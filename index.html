@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GitHub Entegreli İş Takip Programı</title>
+    <title>İŞ TAKİP PROGRAMI</title>
     <!-- SheetJS (xlsx) kütüphanesi -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <!-- Select2 kütüphanesi (gelişmiş çoklu seçim için) -->
@@ -42,9 +42,9 @@
 <body>
 
 <div class="container">
-    <h1>GitHub Entegreli İş Takip Programı</h1>
+    <h1>İŞ TAKİP PROGRAMI</h1>
     <div id="uyari" style="padding: 15px; background-color: #fff3cd; color: #856404; border: 1px solid #ffeeba; border-radius: 5px; margin-bottom: 20px;">
-        <strong>Durum:</strong> Sayfa yüklendi. GitHub'dan veriler çekiliyor...
+        <strong>Durum:</strong> Sayfa yüklendi. Veriler çekiliyor...
     </div>
     <div class="controls">
         <button onclick="yeniSatirEkle()">+ Yeni Satır Ekle</button>
@@ -113,12 +113,11 @@ function setUyari(mesaj, tip = 'bilgi') {
     uyariKutusu.innerHTML = `<strong>Durum:</strong> ${mesaj}`;
 }
 
-// Excel'den tek sütunlu veri okuyan yardımcı fonksiyon
 function readSheetAsList(workbook, sheetName) {
     const sheet = workbook.Sheets[sheetName];
     if (!sheet) return [];
     const json = XLSX.utils.sheet_to_json(sheet, { header: 1 });
-    return json.map(row => row[0]).filter(Boolean); // Sadece dolu hücreleri al
+    return json.map(row => row[0]).filter(Boolean);
 }
 
 async function fetchFromGitHub() {
@@ -134,12 +133,9 @@ async function fetchFromGitHub() {
         for (let i = 0; i < binary_string.length; i++) { bytes[i] = binary_string.charCodeAt(i); }
         const workbook = XLSX.read(bytes, { type: 'array' });
 
-        // --- HATA DÜZELTMESİ BURADA YAPILDI ---
-        // Personel sayfasını doğru ve güvenli bir şekilde oku
         const personelSheet = workbook.Sheets['Personel'];
         if (personelSheet) {
             const personel_json = XLSX.utils.sheet_to_json(personelSheet, { header: ['ad', 'unvan'] });
-            // Excel'den gelebilecek boş satırları filtrele
             personelListesi = personel_json.filter(p => p.ad && p.unvan).map(p => `${p.ad} (${p.unvan})`);
         } else {
             personelListesi = [];
@@ -147,9 +143,7 @@ async function fetchFromGitHub() {
         
         ilceListesi = readSheetAsList(workbook, 'İlçe');
         uygulamaListesi = readSheetAsList(workbook, 'Uygulama');
-        // --- DÜZELTME SONU ---
 
-        // Ana veriyi oku
         const isTakipSheet = workbook.Sheets['İş Takip Listesi'];
         const tabloGovdesi = document.getElementById('tabloGovdesi');
         tabloGovdesi.innerHTML = ''; 
@@ -161,7 +155,7 @@ async function fetchFromGitHub() {
         document.getElementById('loader').style.display = 'none';
         document.getElementById('tableContainer').style.display = 'block';
         document.getElementById('githubKaydetBtn').disabled = false;
-        setUyari("Veriler GitHub'dan başarıyla çekildi.", 'basari');
+        setUyari("Veriler başarıyla çekildi.", 'basari'); // GÜNCELLEME
 
     } catch (error) {
         console.error("GitHub'dan veri çekme hatası:", error);
@@ -182,17 +176,17 @@ function getTableData() {
 
         let rowData = {};
         rowData[headers[0]] = checkbox.checked ? 'EVET' : 'HAYIR';
-        rowData[headers[1]] = inputs[1].value; // İl
-        rowData[headers[2]] = inputs[2].value; // İlçe
-        rowData[headers[3]] = inputs[3].value; // Birim
-        rowData[headers[4]] = inputs[4].value; // Uygulama
-        rowData[headers[5]] = selectedPersonel.join(', '); // Personeller
-        rowData[headers[6]] = inputs[6].value; // Parsel Sayısı
-        rowData[headers[7]] = inputs[7].value; // Alan(Ha)
-        rowData[headers[8]] = inputs[8].value; // İhaleli/Müdürlük
-        rowData[headers[9]] = inputs[9].value; // Başlama Tarihi
-        rowData[headers[10]] = inputs[10].value; // Bitiş Tarihi
-        rowData[headers[11]] = inputs[11].value; // Durumu
+        rowData[headers[1]] = inputs[1].value;
+        rowData[headers[2]] = inputs[2].value;
+        rowData[headers[3]] = inputs[3].value;
+        rowData[headers[4]] = inputs[4].value;
+        rowData[headers[5]] = selectedPersonel.join(', ');
+        rowData[headers[6]] = inputs[6].value;
+        rowData[headers[7]] = inputs[7].value;
+        rowData[headers[8]] = inputs[8].value;
+        rowData[headers[9]] = inputs[9].value;
+        rowData[headers[10]] = inputs[10].value;
+        rowData[headers[11]] = inputs[11].value;
         data.push(rowData);
     });
     return data;
@@ -210,20 +204,19 @@ async function saveToGitHub() {
     const btn = document.getElementById('githubKaydetBtn');
     btn.disabled = true;
     btn.innerHTML = 'Kaydediliyor...';
-    setUyari("Değişiklikler GitHub'a gönderiliyor...", 'bilgi');
+    setUyari("Değişiklikler gönderiliyor...", 'bilgi');
 
     try {
-        const data = getTableData();
+        const data = getTableData(); // GÜNCELLEME: Silme işlemi artık bu fonksiyonda yansıtılıyor.
         const isTakipSheet = XLSX.utils.json_to_sheet(data);
         
         const wb = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(wb, isTakipSheet, 'İş Takip Listesi');
         
-        // Diğer sayfaları da dosyaya geri ekle
         if (personelListesi.length > 0) {
              const personelDataForSheet = personelListesi.map(p => {
                 const match = p.match(/(.*) \((.*)\)/);
-                return match ? [match[1], match[2]] : [p, '']; // Güvenli fallback
+                return match ? [match[1], match[2]] : [p, ''];
             });
             XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(personelDataForSheet), 'Personel');
         }
@@ -247,7 +240,7 @@ async function saveToGitHub() {
         
         const responseData = await response.json();
         currentFileSHA = responseData.content.sha;
-        setUyari('Değişiklikler başarıyla GitHub\'a kaydedildi!', 'basari');
+        setUyari('Değişiklikler başarıyla kaydedildi!', 'basari');
 
     } catch (error) {
         console.error('GitHub\'a kaydetme hatası:', error);
@@ -304,6 +297,9 @@ function satirSil(button) {
     const row = button.closest('tr');
     $(row).find('.personel-select').select2('destroy');
     row.parentNode.removeChild(row);
+    // GÜNCELLEME: Silme işleminden sonra kaydetme butonunu aktif et ve uyarı ver.
+    setUyari('Bir satır silindi. Değişikliği kalıcı yapmak için GitHub\'a Kaydet butonuna basın.', 'bilgi');
+    document.getElementById('githubKaydetBtn').disabled = false;
 }
 
 function excelDateToJSDate(serial) {
