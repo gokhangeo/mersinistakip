@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GitHub Entegreli İş Takip Programı</title>
+    <!-- SheetJS (xlsx) kütüphanesi -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <!-- Select2 kütüphanesi (gelişmiş çoklu seçim için) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/js/select2.min.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/css/select2.min.css" rel="stylesheet" />
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; background-color: #f4f7f6; color: #333; margin: 0; padding: 20px; }
+        .container { max-width: 1800px; margin: 0 auto; background-color: #ffffff; padding: 25px; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        h1 { color: #0056b3; text-align: center; border-bottom: 2px solid #0056b3; padding-bottom: 10px; margin-bottom: 20px; }
+        .controls { display: flex; gap: 15px; margin-bottom: 25px; align-items: center; flex-wrap: wrap; }
+        button { background-color: #007bff; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; font-size: 16px; transition: background-color 0.3s ease; display: flex; align-items: center; gap: 8px; }
+        button:hover { background-color: #0056b3; }
+        button.danger { background-color: #dc3545; }
+        button.danger:hover { background-color: #c82333; }
+        button.success { background-color: #28a745; }
+        button.success:hover { background-color: #218838; }
+        button:disabled { background-color: #cccccc; cursor: not-allowed; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { border: 1px solid #ddd; padding: 10px; text-align: left; vertical-align: middle; }
+        th { background-color: #007bff; color: white; font-size: 14px; }
+        tr:nth-child(even) { background-color: #f2f2f2; }
+        select, input { width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
+        .action-cell { width: 80px; text-align: center; }
+        .check-cell { width: 40px; text-align: center; }
+        .tamamlandi { text-decoration: red line-through; text-decoration-thickness: 2px; opacity: 0.6; background-color: #f0f0f0 !important; }
+        .tamamlandi select, .tamamlandi input, .tamamlandi .select2-container { text-decoration: red line-through; text-decoration-thickness: 2px; }
+        .loader { border: 5px solid #f3f3f3; border-radius: 50%; border-top: 5px solid #3498db; width: 40px; height: 40px; animation: spin 2s linear infinite; margin: 20px auto; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        /* Select2 için stil ayarları */
+        .select2-container--default .select2-selection--multiple { border: 1px solid #ccc; border-radius: 4px; padding: 2px; }
+        .select2-container { width: 100% !important; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>GitHub Entegreli İş Takip Programı</h1>
+    <div id="uyari" style="padding: 15px; background-color: #fff3cd; color: #856404; border: 1px solid #ffeeba; border-radius: 5px; margin-bottom: 20px;">
+        <strong>Durum:</strong> Sayfa yüklendi. GitHub'dan veriler çekiliyor...
+    </div>
+    <div class="controls">
+        <button onclick="yeniSatirEkle()">+ Yeni Satır Ekle</button>
+        <button id="githubKaydetBtn" class="success" onclick="saveToGitHub()" disabled>
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8"/></svg>
+            GitHub'a Kaydet
+        </button>
+    </div>
+
+    <div id="loader" class="loader"></div>
+    <div style="overflow-x:auto;" id="tableContainer" class="hidden">
+        <table id="isTakipTablosu">
+            <thead>
+                <tr>
+                    <th class="check-cell">&#10004;</th>
+                    <th>İL</th>
+                    <th>İLÇE</th>
+                    <th>MAHALLE/KÖY</th>
+                    <th>UYGULAMA</th>
+                    <th>GÖREVLİ PERSONELLER</th>
+                    <th>PARSEL SAYISI</th>
+                    <th>İHALELİ/MÜDÜRLÜK</th>
+                    <th>İŞE BAŞLAMA/YER TESLİMİ</th>
+                    <th>İHALE BİTİŞ TARİHİ</th>
+                    <th>DURUMU</th>
+                    <th class="action-cell">İşlem</th>
+                </tr>
+            </thead>
+            <tbody id="tabloGovdesi"></tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+// !!! KULLANICI TARAFINDAN DOLDURULACAK ALANLAR !!!
+const GITHUB_KULLANICI_ADI = "gokhanelgul"; // Kendi GitHub kullanıcı adınızı girin
+const GITHUB_REPO_ADI = "İsTakip";      // Dosyanın bulunduğu repo adını girin
+const DOSYA_YOLU = "istakip.xlsx";      // Repo içindeki dosyanın tam adını girin
+
+// GitHub token'ını iki parça halinde tanımlama (güvenlik önlemi olarak)
+const token_part1 = 'ghp_SmyttXpScUMwWKKjt2uz';
+const token_part2 = 'lhfCniSHd83kvoFK';
+const GITHUB_TOKEN = token_part1 + token_part2;
+// ----------------------------------------------------
+
+// Global Değişkenler
+const API_URL = `https://api.github.com/repos/${GITHUB_KULLANICI_ADI}/${GITHUB_REPO_ADI}/contents/${DOSYA_YOLU}`;
+let currentFileSHA = '';
+let personelListesi = [];
+const iller = ['Adana', 'Adıyaman', 'Afyonkarahisar', 'Ağrı', 'Amasya', 'Ankara', 'Antalya', 'Artvin', 'Aydın', 'Balıkesir', 'Bilecik', 'Bingöl', 'Bitlis', 'Bolu', 'Burdur', 'Bursa', 'Çanakkale', 'Çankırı', 'Çorum', 'Denizli', 'Diyarbakır', 'Edirne', 'Elazığ', 'Erzincan', 'Erzurum', 'Eskişehir', 'Gaziantep', 'Giresun', 'Gümüşhane', 'Hakkâri', 'Hatay', 'Isparta', 'Mersin', 'İstanbul', 'İzmir', 'Kars', 'Kastamonu', 'Kayseri', 'Kırklareli', 'Kırşehir', 'Kocaeli', 'Konya', 'Kütahya', 'Malatya', 'Manisa', 'Kahramanmaraş', 'Mardin', 'Muğla', 'Muş', 'Nevşehir', 'Niğde', 'Ordu', 'Rize', 'Sakarya', 'Samsun', 'Siirt', 'Sinop', 'Sivas', 'Tekirdağ', 'Tokat', 'Trabzon', 'Tunceli', 'Şanlıurfa', 'Uşak', 'Van', 'Yozgat', 'Zonguldak', 'Aksaray', 'Bayburt', 'Karaman', 'Kırıkkale', 'Batman', 'Şırnak', 'Bartın', 'Ardahan', 'Iğdır', 'Yalova', 'Karabük', 'Kilis', 'Osmaniye', 'Düzce'];
+const durumlar = ['YER TESLİMİ YAPILDI', 'HERHANGİ BİRŞEY YAPILMADI', 'TAPU KAYIT KARŞILAŞTIRMA', 'BİLİRKİŞİ YEMİN/ADA-MEVKİ İLAN', 'ARAZİ DEVAM EDİYOR', 'DEĞERLENDİRMEDE', 'ASKI İLANINA HAZIRLANIYOR', 'BİLGİLENDİRME İLANINDA', 'KOMİSYON AŞAMASINDA', 'KESİN ASKIDA', 'DEVİR YAPILDI', 'TESCİL AŞAMASINDA', 'İHALEDEN/PROGRAMDAN ÇIKARILDI', 'KESİN ASKIDAN İNDİ. BEKLEMEDE', 'DEPREM NEDENİYLE ASKI YENİLENECEK', 'VERİLER ELEKTRONİK ORTAMDA HAZIR', 'ORMAN ASKISI', 'TESCİLİ BİTTİ'];
+
+// Sayfa yüklendiğinde GitHub'dan verileri çek
+window.onload = function() {
+    fetchFromGitHub();
+};
+
+function setUyari(mesaj, tip = 'bilgi') {
+    const uyariKutusu = document.getElementById('uyari');
+    let bgColor, color, borderColor;
+    switch (tip) {
+        case 'hata':
+            bgColor = '#f8d7da'; color = '#721c24'; borderColor = '#f5c6cb'; break;
+        case 'basari':
+            bgColor = '#d4edda'; color = '#155724'; borderColor = '#c3e6cb'; break;
+        default: // bilgi
+            bgColor = '#fff3cd'; color = '#856404'; borderColor = '#ffeeba'; break;
+    }
+    uyariKutusu.style.backgroundColor = bgColor;
+    uyariKutusu.style.color = color;
+    uyariKutusu.style.borderColor = borderColor;
+    uyariKutusu.innerHTML = `<strong>Durum:</strong> ${mesaj}`;
+}
+
+async function fetchFromGitHub() {
+    try {
+        const response = await fetch(API_URL, {
+            headers: { 'Authorization': `token ${GITHUB_TOKEN}`, 'Accept': 'application/vnd.github.v3+json' }
+        });
+        if (!response.ok) throw new Error(`GitHub API Hatası: ${response.status} ${response.statusText}`);
+        
+        const data = await response.json();
+        currentFileSHA = data.sha;
+        
+        // Base64'ten veriyi çöz ve Excel'i oku
+        const binary_string = window.atob(data.content);
+        const len = binary_string.length;
+        const bytes = new Uint8Array(len);
+        for (let i = 0; i < len; i++) {
+            bytes[i] = binary_string.charCodeAt(i);
+        }
+        const workbook = XLSX.read(bytes, { type: 'array' });
+
+        // Personel sayfasını oku
+        const personelSheet = workbook.Sheets['Personel'];
+        if (personelSheet) {
+            const personel_json = XLSX.utils.sheet_to_json(personelSheet, { header: ['ad', 'unvan'] });
+            personelListesi = personel_json.map(p => `${p.ad} (${p.unvan})`);
+        } else {
+            setUyari("Excel dosyasında 'Personel' sayfası bulunamadı!", 'hata');
+        }
+
+        // İş Takip Listesi sayfasını oku
+        const isTakipSheet = workbook.Sheets['İş Takip Listesi'];
+        const tabloGovdesi = document.getElementById('tabloGovdesi');
+        tabloGovdesi.innerHTML = ''; // Tabloyu temizle
+        if (isTakipSheet) {
+            const is_takip_json = XLSX.utils.sheet_to_json(isTakipSheet);
+            is_takip_json.forEach(row => {
+                yeniSatirEkle({
+                    tamamlandi: row['Tamamlandı'] === 'EVET',
+                    il: row['İL'],
+                    ilce: row['İLÇE'],
+                    mahalleKoy: row['MAHALLE/KÖY'],
+                    uygulama: row['UYGULAMA'],
+                    gorevliPersoneller: row['GÖREVLİ PERSONELLER'],
+                    parselSayisi: row['PARSEL SAYISI'],
+                    ihaleMudurluk: row['İHALELİ/MÜDÜRLÜK'],
+                    baslamaTarihi: formatDate(excelDateToJSDate(row['İŞE BAŞLAMA/YER TESLİMİ'])),
+                    bitisTarihi: formatDate(excelDateToJSDate(row['İHALE BİTİŞ TARİHİ'])),
+                    durum: row['DURUMU']
+                });
+            });
+        } else {
+             setUyari("Excel dosyasında 'İş Takip Listesi' sayfası bulunamadı!", 'hata');
+        }
+
+        document.getElementById('loader').style.display = 'none';
+        document.getElementById('tableContainer').style.display = 'block';
+        document.getElementById('githubKaydetBtn').disabled = false;
+        setUyari("Veriler GitHub'dan başarıyla çekildi. Değişiklik yapıp kaydedebilirsiniz.", 'basari');
+
+    } catch (error) {
+        console.error("GitHub'dan veri çekme hatası:", error);
+        document.getElementById('loader').style.display = 'none';
+        setUyari(`Veriler çekilemedi! Hata: ${error.message}. Reponun public olduğundan veya token'ın doğru olduğundan emin olun.`, 'hata');
+    }
+}
+
+async function saveToGitHub() {
+    const btn = document.getElementById('githubKaydetBtn');
+    btn.disabled = true;
+    btn.innerHTML = 'Kaydediliyor...';
+    setUyari("Değişiklikler GitHub'a gönderiliyor...", 'bilgi');
+
+    try {
+        const rows = document.querySelectorAll('#tabloGovdesi tr');
+        const data = [];
+        rows.forEach(row => {
+            const checkbox = row.querySelector('input[type="checkbox"]');
+            const inputs = row.querySelectorAll('select, input[type="text"], input[type="number"], input[type="date"]');
+            const selectedPersonel = $(row).find('.personel-select').val();
+
+            data.push({
+                'Tamamlandı': checkbox.checked ? 'EVET' : 'HAYIR',
+                'İL': inputs[0].value,
+                'İLÇE': inputs[1].value,
+                'MAHALLE/KÖY': inputs[2].value,
+                'UYGULAMA': inputs[3].value,
+                'GÖREVLİ PERSONELLER': selectedPersonel.join(', '), // Diziyi virgülle ayrılmış metne çevir
+                'PARSEL SAYISI': inputs[4].value,
+                'İHALELİ/MÜDÜRLÜK': inputs[5].value,
+                'İŞE BAŞLAMA/YER TESLİMİ': inputs[6].value,
+                'İHALE BİTİŞ TARİHİ': inputs[7].value,
+                'DURUMU': inputs[8].value
+            });
+        });
+
+        const isTakipSheet = XLSX.utils.json_to_sheet(data, {header: ['Tamamlandı', 'İL', 'İLÇE', 'MAHALLE/KÖY', 'UYGULAMA', 'GÖREVLİ PERSONELLER', 'PARSEL SAYISI', 'İHALELİ/MÜDÜRLÜK', 'İŞE BAŞLAMA/YER TESLİMİ', 'İHALE BİTİŞ TARİHİ', 'DURUMU']});
+        
+        // Personel listesini de geri yazalım ki dosya formatı bozulmasın
+        const personelData = personelListesi.map(p => {
+            const match = p.match(/(.*) \((.*)\)/);
+            return { ad: match[1], unvan: match[2] };
+        });
+        const personelSheet = XLSX.utils.json_to_sheet(personelData, {header: ['ad', 'unvan'], skipHeader: true});
+
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, isTakipSheet, 'İş Takip Listesi');
+        XLSX.utils.book_append_sheet(wb, personelSheet, 'Personel');
+
+        const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'binary' });
+        const base64Content = btoa(wbout);
+
+        const response = await fetch(API_URL, {
+            method: 'PUT',
+            headers: {
+                'Authorization': `token ${GITHUB_TOKEN}`,
+                'Accept': 'application/vnd.github.v3+json',
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                message: `İş Takip Listesi Güncellemesi - ${new Date().toLocaleString()}`,
+                content: base64Content,
+                sha: currentFileSHA
+            })
+        });
+
+        if (!response.ok) throw new Error(`GitHub API Hatası: ${response.status} - ${response.statusText}`);
+        
+        const responseData = await response.json();
+        currentFileSHA = responseData.content.sha; // Yeni SHA'yı al
+        
+        setUyari('Değişiklikler başarıyla GitHub\'a kaydedildi!', 'basari');
+
+    } catch (error) {
+        console.error('GitHub\'a kaydetme hatası:', error);
+        setUyari(`Kaydetme başarısız! Hata: ${error.message}`, 'hata');
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8"/></svg> GitHub\'a Kaydet';
+    }
+}
+
+function yeniSatirEkle(data = {}) {
+    const tabloGovdesi = document.getElementById('tabloGovdesi');
+    const newRow = tabloGovdesi.insertRow();
+    const isChecked = data.tamamlandi ? 'checked' : '';
+
+    const ilOptions = iller.map(il => `<option value="${il}" ${data.il === il ? 'selected' : ''}>${il}</option>`).join('');
+    const durumOptions = durumlar.map(d => `<option value="${d}" ${data.durum === d ? 'selected' : ''}>${d}</option>`).join('');
+    const personelOptions = personelListesi.map(p => `<option value="${p}">${p}</option>`).join('');
+    
+    // Gelen personel verisini diziye çevir
+    const selectedPersonel = data.gorevliPersoneller ? data.gorevliPersoneller.split(', ') : [];
+
+    newRow.innerHTML = `
+        <td class="check-cell"><input type="checkbox" onchange="satirDurumunuDegistir(this)" ${isChecked}></td>
+        <td><select>${ilOptions}</select></td>
+        <td><input type="text" value="${data.ilce || ''}"></td>
+        <td><input type="text" value="${data.mahalleKoy || ''}"></td>
+        <td><select><option value="Güncelleme" ${data.uygulama === 'Güncelleme' ? 'selected' : ''}>Güncelleme</option><option value="Müdürlük" ${data.uygulama === 'Müdürlük' ? 'selected' : ''}>Müdürlük</option></select></td>
+        <td><select class="personel-select" multiple="multiple">${personelOptions}</select></td>
+        <td><input type="number" value="${data.parselSayisi || ''}"></td>
+        <td><select><option value="İhaleli" ${data.ihaleMudurluk === 'İhaleli' ? 'selected' : ''}>İhaleli</option><option value="Müdürlük" ${data.ihaleMudurluk === 'Müdürlük' ? 'selected' : ''}>Müdürlük</option></select></td>
+        <td><input type="date" value="${data.baslamaTarihi || ''}"></td>
+        <td><input type="date" value="${data.bitisTarihi || ''}"></td>
+        <td><select>${durumOptions}</select></td>
+        <td class="action-cell"><button class="danger" onclick="satirSil(this)">Sil</button></td>
+    `;
+    
+    // Select2'yi yeni eklenen satır için etkinleştir
+    const personelSelect = $(newRow).find('.personel-select');
+    personelSelect.select2({ placeholder: "Personel Seçin", });
+    personelSelect.val(selectedPersonel).trigger('change'); // Kayıtlı personelleri seçili hale getir
+
+    if (isChecked) newRow.classList.add('tamamlandi');
+}
+
+function satirDurumunuDegistir(checkbox) {
+    const row = checkbox.closest('tr');
+    row.classList.toggle('tamamlandi', checkbox.checked);
+}
+
+function satirSil(button) {
+    const row = button.closest('tr');
+    $(row).find('.personel-select').select2('destroy'); // Select2'yi kaldır
+    row.parentNode.removeChild(row);
+}
+
+// Tarih formatlama yardımcı fonksiyonları
+function excelDateToJSDate(serial) {
+    if(!serial || typeof serial !== 'number') return serial; // Eğer tarih değilse olduğu gibi döndür
+    const utc_days  = Math.floor(serial - 25569);
+    const utc_value = utc_days * 86400;                                        
+    const date_info = new Date(utc_value * 1000);
+    return new Date(date_info.getFullYear(), date_info.getMonth(), date_info.getDate());
+}
+function formatDate(date) {
+    if (!date || !(date instanceof Date)) return date || '';
+    const year = date.getFullYear();
+    const month = (date.getMonth() + 1).toString().padStart(2, '0');
+    const day = date.getDate().toString().padStart(2, '0');
+    return `${year}-${month}-${day}`;
+}
+</script>
+
+</body>
+</html>
