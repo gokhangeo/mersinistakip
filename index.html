@@ -122,7 +122,14 @@ function readSheetAsList(workbook, sheetName) {
 
 async function fetchFromGitHub() {
     try {
-        const response = await fetch(API_URL, { headers: { 'Authorization': `token ${GITHUB_TOKEN}` } });
+        // --- HATA DÜZELTMESİ BURADA YAPILDI ---
+        // Tarayıcı önbelleğini atlamak için fetch isteğine 'cache: "no-cache"' eklendi.
+        const response = await fetch(API_URL, { 
+            headers: { 'Authorization': `token ${GITHUB_TOKEN}` },
+            cache: 'no-cache' 
+        });
+        // --- DÜZELTME SONU ---
+
         if (!response.ok) throw new Error(`GitHub API Hatası: ${response.status} ${response.statusText}`);
         
         const data = await response.json();
@@ -164,7 +171,6 @@ async function fetchFromGitHub() {
     }
 }
 
-// --- HATA DÜZELTMESİ BURADA YAPILDI ---
 function getTableData() {
     const rows = document.querySelectorAll('#tabloGovdesi tr');
     const data = [];
@@ -172,7 +178,6 @@ function getTableData() {
     rows.forEach(row => {
         const cells = row.querySelectorAll('td');
         
-        // Her hücredeki input/select elemanını konuma göre güvenli bir şekilde al
         const tamamlandi = cells[0].querySelector('input[type="checkbox"]').checked ? 'EVET' : 'HAYIR';
         const il = cells[1].querySelector('select').value;
         const ilce = cells[2].querySelector('select').value;
@@ -203,8 +208,6 @@ function getTableData() {
     });
     return data;
 }
-// --- DÜZELTME SONU ---
-
 
 function excelIndir() {
     const data = getTableData();
