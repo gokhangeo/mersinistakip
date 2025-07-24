@@ -164,33 +164,47 @@ async function fetchFromGitHub() {
     }
 }
 
+// --- HATA DÜZELTMESİ BURADA YAPILDI ---
 function getTableData() {
     const rows = document.querySelectorAll('#tabloGovdesi tr');
     const data = [];
-    const headers = ['Tamamlandı', 'İL', 'İLÇE', 'BİRİM', 'UYGULAMA', 'GÖREVLİ PERSONELLER', 'PARSEL SAYISI', 'ALAN(Ha)', 'İHALELİ/MÜDÜRLÜK', 'İŞE BAŞLAMA/YER TESLİMİ', 'İHALE BİTİŞ TARİHİ', 'DURUMU'];
     
     rows.forEach(row => {
-        const checkbox = row.querySelector('input[type="checkbox"]');
-        const inputs = row.querySelectorAll('select, input');
-        const selectedPersonel = $(row).find('.personel-select').val();
+        const cells = row.querySelectorAll('td');
+        
+        // Her hücredeki input/select elemanını konuma göre güvenli bir şekilde al
+        const tamamlandi = cells[0].querySelector('input[type="checkbox"]').checked ? 'EVET' : 'HAYIR';
+        const il = cells[1].querySelector('select').value;
+        const ilce = cells[2].querySelector('select').value;
+        const birim = cells[3].querySelector('input').value;
+        const uygulama = cells[4].querySelector('select').value;
+        const gorevliPersoneller = $(cells[5]).find('.personel-select').val().join(', ');
+        const parselSayisi = cells[6].querySelector('input').value;
+        const alanHa = cells[7].querySelector('input').value;
+        const ihaleMudurluk = cells[8].querySelector('select').value;
+        const baslamaTarihi = cells[9].querySelector('input').value;
+        const bitisTarihi = cells[10].querySelector('input').value;
+        const durumu = cells[11].querySelector('select').value;
 
-        let rowData = {};
-        rowData[headers[0]] = checkbox.checked ? 'EVET' : 'HAYIR';
-        rowData[headers[1]] = inputs[1].value;
-        rowData[headers[2]] = inputs[2].value;
-        rowData[headers[3]] = inputs[3].value;
-        rowData[headers[4]] = inputs[4].value;
-        rowData[headers[5]] = selectedPersonel.join(', ');
-        rowData[headers[6]] = inputs[6].value;
-        rowData[headers[7]] = inputs[7].value;
-        rowData[headers[8]] = inputs[8].value;
-        rowData[headers[9]] = inputs[9].value;
-        rowData[headers[10]] = inputs[10].value;
-        rowData[headers[11]] = inputs[11].value;
-        data.push(rowData);
+        data.push({
+            'Tamamlandı': tamamlandi,
+            'İL': il,
+            'İLÇE': ilce,
+            'BİRİM': birim,
+            'UYGULAMA': uygulama,
+            'GÖREVLİ PERSONELLER': gorevliPersoneller,
+            'PARSEL SAYISI': parselSayisi,
+            'ALAN(Ha)': alanHa,
+            'İHALELİ/MÜDÜRLÜK': ihaleMudurluk,
+            'İŞE BAŞLAMA/YER TESLİMİ': baslamaTarihi,
+            'İHALE BİTİŞ TARİHİ': bitisTarihi,
+            'DURUMU': durumu
+        });
     });
     return data;
 }
+// --- DÜZELTME SONU ---
+
 
 function excelIndir() {
     const data = getTableData();
@@ -207,7 +221,7 @@ async function saveToGitHub() {
     setUyari("Değişiklikler gönderiliyor...", 'bilgi');
 
     try {
-        const data = getTableData(); // DÜZELTME: Bu fonksiyon artık sadece ekrandaki güncel veriyi alıyor.
+        const data = getTableData(); 
         const isTakipSheet = XLSX.utils.json_to_sheet(data);
         
         const wb = XLSX.utils.book_new();
