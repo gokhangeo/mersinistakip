@@ -20,7 +20,6 @@
         button.danger { background-color: #dc3545; }
         button.success { background-color: #28a745; }
         button.info { background-color: #17a2b8; }
-        /* YENİ: Kaydedilmemiş değişiklik uyarısı için stil */
         button.warning { background-color: #ffc107; color: #212529; }
         button:disabled { background-color: #cccccc; cursor: not-allowed; opacity: 0.7; }
         table { width: 100%; border-collapse: collapse; margin-top: 20px; }
@@ -36,6 +35,10 @@
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
         .select2-container--default .select2-selection--multiple { border: 1px solid #ccc; border-radius: 4px; padding: 2px; }
         .select2-container { width: 100% !important; }
+        /* YENİ: Arama Kutusu Stilleri */
+        .search-container { position: relative; width: 250px; }
+        #aramaKutusu { width: 100%; padding: 10px 30px 10px 10px; border-radius: 5px; border: 1px solid #ccc; }
+        #aramaTemizleBtn { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); cursor: pointer; color: #888; display: none; }
     </style>
 </head>
 <body>
@@ -47,6 +50,11 @@
     </div>
     <div class="controls">
         <button onclick="yeniSatirEkle()">+ Yeni Satır Ekle</button>
+        <!-- YENİ: Arama Kutusu -->
+        <div class="search-container">
+            <input type="text" id="aramaKutusu" onkeyup="filtrele()" placeholder="İl, İlçe, Birim, Personel Ara...">
+            <span id="aramaTemizleBtn" onclick="aramaTemizle()">&#10006;</span>
+        </div>
         <button id="githubKaydetBtn" class="success" onclick="saveToGitHub()" disabled>
             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8"/></svg>
             GitHub'a Kaydet
@@ -66,6 +74,7 @@
                     <th>UYGULAMA</th>
                     <th>GÖREVLİ PERSONELLER</th>
                     <th>PARSEL SAYISI</th>
+                    <th>BLOK SAYISI</th> <!-- YENİ SÜTUN -->
                     <th>ALAN(Ha)</th>
                     <th>İHALELİ/MÜDÜRLÜK</th>
                     <th>İŞE BAŞLAMA/YER TESLİMİ</th>
@@ -95,14 +104,14 @@ let currentFileSHA = '';
 let personelListesi = [], ilceListesi = [], uygulamaListesi = [];
 const iller = ['Adana', 'Adıyaman', 'Afyonkarahisar', 'Ağrı', 'Amasya', 'Ankara', 'Antalya', 'Artvin', 'Aydın', 'Balıkesir', 'Bilecik', 'Bingöl', 'Bitlis', 'Bolu', 'Burdur', 'Bursa', 'Çanakkale', 'Çankırı', 'Çorum', 'Denizli', 'Diyarbakır', 'Edirne', 'Elazığ', 'Erzincan', 'Erzurum', 'Eskişehir', 'Gaziantep', 'Giresun', 'Gümüşhane', 'Hakkâri', 'Hatay', 'Isparta', 'Mersin', 'İstanbul', 'İzmir', 'Kars', 'Kastamonu', 'Kayseri', 'Kırklareli', 'Kırşehir', 'Kocaeli', 'Konya', 'Kütahya', 'Malatya', 'Manisa', 'Kahramanmaraş', 'Mardin', 'Muğla', 'Muş', 'Nevşehir', 'Niğde', 'Ordu', 'Rize', 'Sakarya', 'Samsun', 'Siirt', 'Sinop', 'Sivas', 'Tekirdağ', 'Tokat', 'Trabzon', 'Tunceli', 'Şanlıurfa', 'Uşak', 'Van', 'Yozgat', 'Zonguldak', 'Aksaray', 'Bayburt', 'Karaman', 'Kırıkkale', 'Batman', 'Şırnak', 'Bartın', 'Ardahan', 'Iğdır', 'Yalova', 'Karabük', 'Kilis', 'Osmaniye', 'Düzce'];
 const durumlar = ['YER TESLİMİ YAPILDI', 'HERHANGİ BİRŞEY YAPILMADI', 'TAPU KAYIT KARŞILAŞTIRMA', 'BİLİRKİŞİ YEMİN/ADA-MEVKİ İLAN', 'ARAZİ DEVAM EDİYOR', 'DEĞERLENDİRMEDE', 'ASKI İLANINA HAZIRLANIYOR', 'BİLGİLENDİRME İLANINDA', 'KOMİSYON AŞAMASINDA', 'KESİN ASKIDA', 'DEVİR YAPILDI', 'TESCİL AŞAMASINDA', 'İHALEDEN/PROGRAMDAN ÇIKARILDI', 'KESİN ASKIDAN İNDİ. BEKLEMEDE', 'DEPREM NEDENİYLE ASKI YENİLENECEK', 'VERİLER ELEKTRONİK ORTAMDA HAZIR', 'ORMAN ASKISI', 'TESCİLİ BİTTİ'];
+const EXCEL_HEADERS = ['Tamamlandı', 'İL', 'İLÇE', 'BİRİM', 'UYGULAMA', 'GÖREVLİ PERSONELLER', 'PARSEL SAYISI', 'BLOK SAYISI', 'ALAN(Ha)', 'İHALELİ/MÜDÜRLÜK', 'İŞE BAŞLAMA/YER TESLİMİ', 'İHALE BİTİŞ TARİHİ', 'DURUMU'];
+
 
 window.onload = function() {
     fetchFromGitHub();
-    // YENİ: Tablodaki herhangi bir değişikliği dinle
     document.getElementById('tabloGovdesi').addEventListener('change', markAsDirty);
 };
 
-// --- YENİ FONKSİYONLAR ---
 function markAsDirty() {
     const btn = document.getElementById('githubKaydetBtn');
     btn.classList.remove('success');
@@ -116,7 +125,6 @@ function markAsClean() {
     btn.classList.add('success');
     btn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8"/></svg> GitHub'a Kaydet`;
 }
-// --- YENİ FONKSİYONLAR SONU ---
 
 function setUyari(mesaj, tip = 'bilgi') {
     const uyariKutusu = document.getElementById('uyari');
@@ -178,7 +186,7 @@ async function fetchFromGitHub() {
         document.getElementById('tableContainer').style.display = 'block';
         document.getElementById('githubKaydetBtn').disabled = false;
         setUyari("Veriler başarıyla çekildi.", 'basari');
-        markAsClean(); // Veri çekildiğinde temiz durumuna getir
+        markAsClean();
 
     } catch (error) {
         console.error("GitHub'dan veri çekme hatası:", error);
@@ -201,11 +209,12 @@ function getTableData() {
             'UYGULAMA': cells[4].querySelector('select').value,
             'GÖREVLİ PERSONELLER': $(cells[5]).find('.personel-select').val().join(', '),
             'PARSEL SAYISI': cells[6].querySelector('input').value,
-            'ALAN(Ha)': cells[7].querySelector('input').value,
-            'İHALELİ/MÜDÜRLÜK': cells[8].querySelector('select').value,
-            'İŞE BAŞLAMA/YER TESLİMİ': cells[9].querySelector('input').value,
-            'İHALE BİTİŞ TARİHİ': cells[10].querySelector('input').value,
-            'DURUMU': cells[11].querySelector('select').value
+            'BLOK SAYISI': cells[7].querySelector('input').value, // YENİ
+            'ALAN(Ha)': cells[8].querySelector('input').value,
+            'İHALELİ/MÜDÜRLÜK': cells[9].querySelector('select').value,
+            'İŞE BAŞLAMA/YER TESLİMİ': cells[10].querySelector('input').value,
+            'İHALE BİTİŞ TARİHİ': cells[11].querySelector('input').value,
+            'DURUMU': cells[12].querySelector('select').value
         });
     });
     return data;
@@ -213,7 +222,7 @@ function getTableData() {
 
 function excelIndir() {
     const data = getTableData();
-    const ws = XLSX.utils.json_to_sheet(data);
+    const ws = XLSX.utils.json_to_sheet(data, {header: EXCEL_HEADERS}); // Başlıkları her zaman ekle
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'İş Takip Listesi');
     XLSX.writeFile(wb, `IsTakip_Indirilen_${new Date().toISOString().slice(0,10)}.xlsx`);
@@ -227,7 +236,7 @@ async function saveToGitHub() {
 
     try {
         const data = getTableData(); 
-        const isTakipSheet = XLSX.utils.json_to_sheet(data);
+        const isTakipSheet = XLSX.utils.json_to_sheet(data, {header: EXCEL_HEADERS}); // Başlıkları her zaman ekle
         
         const wb = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(wb, isTakipSheet, 'İş Takip Listesi');
@@ -260,14 +269,12 @@ async function saveToGitHub() {
         const responseData = await response.json();
         currentFileSHA = responseData.content.sha;
         setUyari('Değişiklikler başarıyla kaydedildi!', 'basari');
-        markAsClean(); // Kaydetme başarılı olunca temiz durumuna getir
+        markAsClean();
 
     } catch (error) {
         console.error('GitHub\'a kaydetme hatası:', error);
         setUyari(`Kaydetme başarısız! Hata: ${error.message}`, 'hata');
-        btn.classList.add('warning'); // Hata durumunda tekrar sarı yap
-        btn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-exclamation-triangle-fill" viewBox="0 0 16 16"><path d="M8.982 1.566a1.13 1.13 0 0 0-1.96 0L.165 13.233c-.457.778.091 1.767.98 1.767h13.713c.889 0 1.438-.99.98-1.767L8.982 1.566zM8 5c.535 0 .954.462.9.995l-.35 3.507a.552.552 0 0 1-1.1 0L7.1 5.995A.905.905 0 0 1 8 5zm.002 6a1 1 0 1 1 0 2 1 1 0 0 1 0-2z"/></svg> Değişiklikleri Kaydet`;
-
+        markAsDirty(); // Hata durumunda tekrar kirli yap
     } finally {
         btn.disabled = false;
     }
@@ -296,6 +303,7 @@ function yeniSatirEkle(data = {}) {
         <td><select>${uygulamaOptions}</select></td>
         <td><select class="personel-select" multiple="multiple">${personelOptions}</select></td>
         <td><input type="number" value="${data['PARSEL SAYISI'] || ''}"></td>
+        <td><input type="number" value="${data['BLOK SAYISI'] || ''}"></td> <!-- YENİ SÜTUN -->
         <td><input type="number" value="${data['ALAN(Ha)'] || ''}"></td>
         <td><select><option value="İhaleli" ${data['İHALELİ/MÜDÜRLÜK'] === 'İhaleli' ? 'selected' : ''}>İhaleli</option><option value="Müdürlük" ${data['İHALELİ/MÜDÜRLÜK'] === 'Müdürlük' ? 'selected' : ''}>Müdürlük</option></select></td>
         <td><input type="date" value="${formatDate(excelDateToJSDate(data['İŞE BAŞLAMA/YER TESLİMİ']))}"></td>
@@ -309,7 +317,7 @@ function yeniSatirEkle(data = {}) {
     personelSelect.val(selectedPersonel).trigger('change');
 
     if (isChecked) newRow.classList.add('tamamlandi');
-    if (!data['İL']) { // Sadece gerçekten yeni eklenen satırlar için
+    if (!data['İL']) {
         markAsDirty();
     }
 }
@@ -336,6 +344,50 @@ function excelDateToJSDate(serial) {
 function formatDate(date) {
     if (!date || !(date instanceof Date)) return date || '';
     return date.toISOString().split('T')[0];
+}
+
+// --- YENİ ARAMA FONKSİYONLARI ---
+function filtrele() {
+    const input = document.getElementById('aramaKutusu');
+    const filter = input.value.toUpperCase();
+    const tabloGovdesi = document.getElementById("tabloGovdesi");
+    const tr = tabloGovdesi.getElementsByTagName("tr");
+    const temizleBtn = document.getElementById('aramaTemizleBtn');
+
+    if (input.value.length > 0) {
+        temizleBtn.style.display = 'block';
+    } else {
+        temizleBtn.style.display = 'none';
+    }
+
+    for (let i = 0; i < tr.length; i++) {
+        // Aranacak sütunlar: İl(1), İlçe(2), Birim(3), Personel(5)
+        const tdIl = tr[i].getElementsByTagName("td")[1];
+        const tdIlce = tr[i].getElementsByTagName("td")[2];
+        const tdBirim = tr[i].getElementsByTagName("td")[3];
+        const tdPersonel = tr[i].getElementsByTagName("td")[5];
+        
+        if (tdIl || tdIlce || tdBirim || tdPersonel) {
+            const ilText = tdIl.querySelector('select').value;
+            const ilceText = tdIlce.querySelector('select').value;
+            const birimText = tdBirim.querySelector('input').value;
+            const personelText = $(tdPersonel).find('.personel-select').val().join(', ');
+
+            const combinedText = `${ilText} ${ilceText} ${birimText} ${personelText}`;
+
+            if (combinedText.toUpperCase().indexOf(filter) > -1) {
+                tr[i].style.display = "";
+            } else {
+                tr[i].style.display = "none";
+            }
+        }       
+    }
+}
+
+function aramaTemizle() {
+    const input = document.getElementById('aramaKutusu');
+    input.value = '';
+    filtrele(); // Filtreyi temizlemek için tekrar çağır
 }
 </script>
 
