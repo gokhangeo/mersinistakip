@@ -155,7 +155,7 @@ async function fetchFromGitHub() {
         document.getElementById('loader').style.display = 'none';
         document.getElementById('tableContainer').style.display = 'block';
         document.getElementById('githubKaydetBtn').disabled = false;
-        setUyari("Veriler başarıyla çekildi.", 'basari'); // GÜNCELLEME
+        setUyari("Veriler başarıyla çekildi.", 'basari');
 
     } catch (error) {
         console.error("GitHub'dan veri çekme hatası:", error);
@@ -207,7 +207,7 @@ async function saveToGitHub() {
     setUyari("Değişiklikler gönderiliyor...", 'bilgi');
 
     try {
-        const data = getTableData(); // GÜNCELLEME: Silme işlemi artık bu fonksiyonda yansıtılıyor.
+        const data = getTableData(); // DÜZELTME: Bu fonksiyon artık sadece ekrandaki güncel veriyi alıyor.
         const isTakipSheet = XLSX.utils.json_to_sheet(data);
         
         const wb = XLSX.utils.book_new();
@@ -297,7 +297,6 @@ function satirSil(button) {
     const row = button.closest('tr');
     $(row).find('.personel-select').select2('destroy');
     row.parentNode.removeChild(row);
-    // GÜNCELLEME: Silme işleminden sonra kaydetme butonunu aktif et ve uyarı ver.
     setUyari('Bir satır silindi. Değişikliği kalıcı yapmak için GitHub\'a Kaydet butonuna basın.', 'bilgi');
     document.getElementById('githubKaydetBtn').disabled = false;
 }
