@@ -15,7 +15,7 @@
         .container { max-width: 1800px; margin: 0 auto; background-color: #ffffff; padding: 25px; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
         h1 { color: #0056b3; text-align: center; border-bottom: 2px solid #0056b3; padding-bottom: 10px; margin-bottom: 20px; }
         .copyright { text-align: center; margin-top: -15px; margin-bottom: 25px; font-size: 12px; color: #6c757d; }
-        .controls { display: flex; gap: 15px; margin-bottom: 10px; align-items: center; flex-wrap: wrap; }
+        .controls { display: flex; gap: 15px; margin-bottom: 20px; align-items: center; flex-wrap: wrap; }
         button { background-color: #007bff; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; font-size: 16px; transition: background-color 0.3s ease, color 0.3s ease; display: flex; align-items: center; gap: 8px; }
         button:hover { opacity: 0.9; }
         button.danger { background-color: #dc3545; }
@@ -23,7 +23,7 @@
         button.info { background-color: #17a2b8; }
         button.warning { background-color: #ffc107; color: #212529; }
         button:disabled { background-color: #cccccc; cursor: not-allowed; opacity: 0.7; }
-        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
         th, td { border: 1px solid #ddd; padding: 10px; text-align: left; vertical-align: middle; }
         th { background-color: #007bff; color: white; font-size: 14px; }
         tr:nth-child(even) { background-color: #f2f2f2; }
@@ -40,14 +40,15 @@
         #aramaKutusu, #durumFiltresi { padding: 10px; border-radius: 5px; border: 1px solid #ccc; font-size: 14px; }
         #aramaKutusu { padding-right: 30px; }
         #aramaTemizleBtn { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); cursor: pointer; color: #888; display: none; }
-        #kayitSayaci { margin-bottom: 20px; font-weight: bold; color: #0056b3; }
+        #kayitSayaci { margin-top: 10px; font-weight: bold; color: #0056b3; }
         
-        /* YENİ: Grup Başlığı Stilleri */
-        .group-header-row { background-color: #e9ecef; font-weight: bold; cursor: pointer; }
-        .group-header-row:hover { background-color: #dde2e6; }
-        .group-header-row td { padding: 12px; }
-        .group-header-row h3 { margin: 0; font-size: 16px; color: #0056b3; display: flex; justify-content: space-between; align-items: center; }
-        .group-toggle-btn { font-size: 12px; padding: 4px 8px; background-color: #6c757d; }
+        /* YENİ: Sekme Stilleri */
+        .tabs-container { border-bottom: 2px solid #dee2e6; margin-bottom: 20px; display: flex; flex-wrap: wrap; gap: 5px; }
+        .tab-btn { background-color: #f8f9fa; color: #007bff; border: 1px solid #dee2e6; border-bottom: none; padding: 10px 15px; cursor: pointer; border-radius: 5px 5px 0 0; font-size: 16px; margin-bottom: -2px; }
+        .tab-btn:hover { background-color: #e9ecef; }
+        .tab-btn.active { background-color: #007bff; color: white; border-color: #007bff; }
+        .table-wrapper { display: none; }
+        .table-wrapper.active { display: block; }
     </style>
 </head>
 <body>
@@ -59,7 +60,6 @@
         <strong>Durum:</strong> Sayfa yüklendi. Veriler çekiliyor...
     </div>
     <div class="controls">
-        <button onclick="yeniSatirEkle()">+ Yeni Satır Ekle</button>
         <div class="search-container">
             <input type="text" id="aramaKutusu" onkeyup="filtrele()" placeholder="İlçe, Birim, Personel Ara...">
             <span id="aramaTemizleBtn" onclick="aramaTemizle()">&#10006;</span>
@@ -67,35 +67,17 @@
         <select id="durumFiltresi" onchange="filtrele()"></select>
         <button id="githubKaydetBtn" class="success" onclick="saveToGitHub()" disabled>
             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8"/></svg>
-            GitHub'a Kaydet
+            Kaydet
         </button>
         <button class="info" onclick="excelIndir()">&#x1F4BE; Excel Olarak İndir</button>
     </div>
-    <div id="kayitSayaci">Toplam 0 kayıt gösteriliyor.</div>
 
+    <!-- Sekmeler buraya gelecek -->
+    <div id="tabs" class="tabs-container"></div>
+    <div id="kayitSayaci">Toplam 0 kayıt gösteriliyor.</div>
     <div id="loader" class="loader"></div>
-    <div style="overflow-x:auto;" id="tableContainer" class="hidden">
-        <table id="isTakipTablosu">
-            <thead>
-                <tr>
-                    <th class="check-cell">&#10004;</th>
-                    <th>İLÇE</th>
-                    <th>BİRİM</th>
-                    <th>UYGULAMA</th>
-                    <th>GÖREVLİ PERSONELLER</th>
-                    <th>PARSEL SAYISI</th>
-                    <th>BLOK SAYISI</th>
-                    <th>ALAN(Ha)</th>
-                    <th>İHALELİ/MÜDÜRLÜK</th>
-                    <th>İŞE BAŞLAMA/YER TESLİMİ</th>
-                    <th>İHALE BİTİŞ TARİHİ</th>
-                    <th>DURUMU</th>
-                    <th class="action-cell">İşlem</th>
-                </tr>
-            </thead>
-            <!-- Dinamik olarak tbody'ler buraya eklenecek -->
-        </table>
-    </div>
+    <!-- Tablolar buraya gelecek -->
+    <div id="tableContainer" style="overflow-x:auto;"></div>
 </div>
 
 <script>
@@ -118,7 +100,7 @@ const EXCEL_HEADERS = ['Tamamlandı', 'İLÇE', 'BİRİM', 'UYGULAMA', 'GÖREVL�
 
 window.onload = function() {
     fetchFromGitHub();
-    document.getElementById('isTakipTablosu').addEventListener('change', markAsDirty);
+    document.getElementById('tableContainer').addEventListener('change', markAsDirty);
 };
 
 function markAsDirty() {
@@ -132,7 +114,7 @@ function markAsClean() {
     const btn = document.getElementById('githubKaydetBtn');
     btn.classList.remove('warning');
     btn.classList.add('success');
-    btn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8"/></svg> GitHub'a Kaydet`;
+    btn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8"/></svg> Kaydet`;
 }
 
 function setUyari(mesaj, tip = 'bilgi') {
@@ -172,27 +154,20 @@ async function fetchFromGitHub() {
         for (let i = 0; i < binary_string.length; i++) { bytes[i] = binary_string.charCodeAt(i); }
         const workbook = XLSX.read(bytes, { type: 'array' });
 
-        const personelSheet = workbook.Sheets['Personel'];
-        if (personelSheet) {
-            const personel_json = XLSX.utils.sheet_to_json(personelSheet, { header: ['ad', 'unvan'] });
-            personelListesi = personel_json.filter(p => p.ad && p.unvan).map(p => `${p.ad} (${p.unvan})`);
-        } else {
-            personelListesi = [];
-        }
-        
+        personelListesi = readSheetAsList(workbook, 'Personel');
         ilceListesi = readSheetAsList(workbook, 'İlçe');
         uygulamaListesi = readSheetAsList(workbook, 'Uygulama');
 
         const isTakipSheet = workbook.Sheets['İş Takip Listesi'];
-        const table = document.getElementById('isTakipTablosu');
+        const tableContainer = document.getElementById('tableContainer');
+        const tabsContainer = document.getElementById('tabs');
         
-        // Mevcut tbody'leri temizle
-        table.querySelectorAll('tbody').forEach(tbody => tbody.remove());
+        tableContainer.innerHTML = '';
+        tabsContainer.innerHTML = '';
 
         if (isTakipSheet) {
             const is_takip_json = XLSX.utils.sheet_to_json(isTakipSheet);
             
-            // Verileri 'UYGULAMA'ya göre grupla
             const groupedData = is_takip_json.reduce((acc, row) => {
                 const groupName = row['UYGULAMA'] || 'Diğer İşler';
                 if (!acc[groupName]) {
@@ -202,43 +177,68 @@ async function fetchFromGitHub() {
                 return acc;
             }, {});
 
-            // Gruplanmış verileri tabloya ekle
+            // "Tümü" sekmesini oluştur
+            const allTab = document.createElement('button');
+            allTab.className = 'tab-btn active';
+            allTab.textContent = 'Tümü';
+            allTab.onclick = () => showTab('Tümü');
+            tabsContainer.appendChild(allTab);
+
             for (const uygulama in groupedData) {
-                const groupRows = groupedData[uygulama];
+                // Her grup için bir sekme oluştur
+                const tab = document.createElement('button');
+                tab.className = 'tab-btn';
+                tab.textContent = `${uygulama} (${groupedData[uygulama].length})`;
+                tab.dataset.uygulama = uygulama;
+                tab.onclick = () => showTab(uygulama);
+                tabsContainer.appendChild(tab);
+
+                // Her grup için bir tablo wrapper'ı ve tablo oluştur
+                const tableWrapper = document.createElement('div');
+                tableWrapper.className = 'table-wrapper';
+                tableWrapper.dataset.group = uygulama;
+
+                const table = document.createElement('table');
+                
+                // GÜNCELLEME: Başlığı dinamik olarak ayarla
+                const blokSayisiHeader = uygulama === 'GÜNCELLEME' ? 'İDÖ SAYISI' : 'BLOK SAYISI';
+
+                table.innerHTML = `
+                    <thead>
+                        <tr>
+                            <th class="check-cell">&#10004;</th>
+                            <th>İLÇE</th>
+                            <th>BİRİM</th>
+                            <th>UYGULAMA</th>
+                            <th>GÖREVLİ PERSONELLER</th>
+                            <th>PARSEL SAYISI</th>
+                            <th>${blokSayisiHeader}</th>
+                            <th>ALAN(Ha)</th>
+                            <th>İHALELİ/MÜDÜRLÜK</th>
+                            <th>İŞE BAŞLAMA/YER TESLİMİ</th>
+                            <th>İHALE BİTİŞ TARİHİ</th>
+                            <th>DURUMU</th>
+                            <th class="action-cell">İşlem</th>
+                        </tr>
+                    </thead>
+                `;
                 const tbody = document.createElement('tbody');
-                
-                // Grup başlığı satırı
-                const headerRow = tbody.insertRow();
-                headerRow.className = 'group-header-row';
-                headerRow.onclick = (e) => {
-                    // Sadece başlığın kendisine tıklandığında çalışsın, butona değil
-                    if (e.target.tagName !== 'BUTTON') {
-                        toggleGroup(headerRow.querySelector('.group-toggle-btn'));
-                    }
-                };
-                const headerCell = headerRow.insertCell();
-                headerCell.colSpan = 13; // Sütun sayısına göre güncelle
-                headerCell.innerHTML = `<h3>
-                    <span>${uygulama} (<span class="group-count">${groupRows.length}</span> iş)</span>
-                    <button class="group-toggle-btn" onclick="toggleGroup(this)">Kapat</button>
-                </h3>`;
-                
-                // Veri satırları
-                groupRows.forEach(rowData => {
+                groupedData[uygulama].forEach(rowData => {
                     const newRow = createRowElement(rowData);
                     tbody.appendChild(newRow);
                 });
                 table.appendChild(tbody);
+                tableWrapper.appendChild(table);
+                tableContainer.appendChild(tableWrapper);
             }
         }
 
         document.getElementById('loader').style.display = 'none';
-        document.getElementById('tableContainer').style.display = 'block';
         document.getElementById('githubKaydetBtn').disabled = false;
         setUyari("Veriler başarıyla çekildi ve gruplandı.", 'basari');
         markAsClean();
         durumFiltresiDoldur();
-        filtrele();
+        showTab('Tümü'); // Başlangıçta "Tümü" sekmesini göster
 
     } catch (error) {
         console.error("GitHub'dan veri çekme hatası:", error);
@@ -247,8 +247,30 @@ async function fetchFromGitHub() {
     }
 }
 
+function showTab(uygulamaAdi) {
+    const tableWrappers = document.querySelectorAll('.table-wrapper');
+    const tabButtons = document.querySelectorAll('.tab-btn');
+
+    tabButtons.forEach(btn => {
+        btn.classList.remove('active');
+        if (btn.dataset.uygulama === uygulamaAdi || (uygulamaAdi === 'Tümü' && btn.textContent === 'Tümü')) {
+            btn.classList.add('active');
+        }
+    });
+
+    tableWrappers.forEach(wrapper => {
+        if (uygulamaAdi === 'Tümü' || wrapper.dataset.group === uygulamaAdi) {
+            wrapper.classList.add('active');
+        } else {
+            wrapper.classList.remove('active');
+        }
+    });
+    filtrele(); // Sekme değiştiğinde filtreyi ve sayacı güncelle
+}
+
+
 function getTableData() {
-    const rows = document.querySelectorAll('#isTakipTablosu tbody tr:not(.group-header-row)');
+    const rows = document.querySelectorAll('#tableContainer tbody tr');
     const data = [];
     
     rows.forEach(row => {
@@ -321,7 +343,7 @@ async function saveToGitHub() {
         currentFileSHA = responseData.content.sha;
         setUyari('Değişiklikler başarıyla kaydedildi! Sayfa yeniden yüklenecek.', 'basari');
         markAsClean();
-        setTimeout(() => window.location.reload(), 1500); // Gruplamanın doğru çalışması için sayfayı yeniden yükle
+        setTimeout(() => window.location.reload(), 1500);
 
     } catch (error) {
         console.error('GitHub\'a kaydetme hatası:', error);
@@ -332,46 +354,6 @@ async function saveToGitHub() {
     }
 }
 
-// Yeni satır ekleme butonu için
-function yeniSatirEkle() {
-    const table = document.getElementById('isTakipTablosu');
-    let defaultTbody = table.querySelector('tbody[data-group="Yeni İşler"]');
-
-    // Eğer "Yeni İşler" grubu yoksa oluştur
-    if (!defaultTbody) {
-        defaultTbody = document.createElement('tbody');
-        defaultTbody.dataset.group = "Yeni İşler";
-        
-        const headerRow = defaultTbody.insertRow();
-        headerRow.className = 'group-header-row';
-        headerRow.onclick = (e) => {
-            if (e.target.tagName !== 'BUTTON') {
-                toggleGroup(headerRow.querySelector('.group-toggle-btn'));
-            }
-        };
-        const headerCell = headerRow.insertCell();
-        headerCell.colSpan = 13;
-        headerCell.innerHTML = `<h3>
-            <span>Yeni İşler (<span class="group-count">0</span> iş)</span>
-            <button class="group-toggle-btn" onclick="toggleGroup(this)">Kapat</button>
-        </h3>`;
-        table.appendChild(defaultTbody);
-    }
-    
-    const newRow = createRowElement({});
-    defaultTbody.appendChild(newRow);
-    
-    // Yeni satır eklendiğinde grubu açık tut
-    const dataRows = defaultTbody.querySelectorAll('tr:not(.group-header-row)');
-    dataRows.forEach(row => row.style.display = '');
-    defaultTbody.querySelector('.group-toggle-btn').textContent = 'Kapat';
-
-    markAsDirty();
-    filtrele(); // Sayacı güncellemek için
-}
-
-
-// Sadece satır elementini oluşturan yardımcı fonksiyon
 function createRowElement(data = {}) {
     const newRow = document.createElement('tr');
     const isChecked = data['Tamamlandı'] === 'EVET' ? 'checked' : '';
@@ -418,26 +400,15 @@ function satirDurumunuDegistir(checkbox) {
 
 function satirSil(button) {
     const row = button.closest('tr');
-    const tbody = row.closest('tbody');
-    
     $(row).find('.personel-select').select2('destroy');
     row.parentNode.removeChild(row);
-
-    // Eğer grupta başka satır kalmadıysa, tüm tbody'yi sil
-    if (tbody.querySelectorAll('tr:not(.group-header-row)').length === 0) {
-        tbody.remove();
-    }
-    
-    setUyari('Bir satır silindi. Değişikliği kalıcı yapmak için GitHub\'a Kaydet butonuna basın.', 'bilgi');
+    setUyari('Bir satır silindi. Değişikliği kalıcı yapmak için Kaydet butonuna basın.', 'bilgi');
     markAsDirty();
     filtrele();
 }
 
-// DÜZELTİLDİ: Excel tarih (serial) numarasını JavaScript tarih nesnesine çeviren fonksiyon
 function excelDateToJSDate(serial) {
     if (!serial || typeof serial !== 'number' || serial <= 0) return serial;
-    // Excel'in başlangıç tarihi 1899-12-30 olarak alınır (1900 artık yıl hatası uyumluluğu için).
-    // Saat dilimi kaynaklı bir gün kaymalarını önlemek için saat öğlen (12:00) olarak ayarlanır.
     const excelEpoch = new Date(1899, 11, 30, 12, 0, 0);
     excelEpoch.setDate(excelEpoch.getDate() + serial);
     return excelEpoch;
@@ -464,15 +435,16 @@ function filtrele() {
     const durumInput = document.getElementById('durumFiltresi');
     const aramaFilter = aramaInput.value.toUpperCase();
     const durumFilter = durumInput.value.toUpperCase();
-    const tbodies = document.querySelectorAll("#isTakipTablosu tbody");
     const temizleBtn = document.getElementById('aramaTemizleBtn');
     let toplamGorunenSatir = 0;
 
     temizleBtn.style.display = aramaInput.value.length > 0 ? 'block' : 'none';
+    
+    // Sadece aktif olan wrapper'daki satırları filtrele
+    const activeWrappers = document.querySelectorAll('.table-wrapper.active');
 
-    tbodies.forEach(tbody => {
-        const dataRows = tbody.querySelectorAll("tr:not(.group-header-row)");
-        let gorunenSatirSayisiGrup = 0;
+    activeWrappers.forEach(wrapper => {
+        const dataRows = wrapper.querySelectorAll("tbody tr");
 
         dataRows.forEach(row => {
             const cells = row.getElementsByTagName("td");
@@ -489,23 +461,11 @@ function filtrele() {
 
             if (textMatch && durumMatch) {
                 row.style.display = "";
-                gorunenSatirSayisiGrup++;
+                toplamGorunenSatir++;
             } else {
                 row.style.display = "none";
             }
         });
-
-        const headerRow = tbody.querySelector('.group-header-row');
-        if (headerRow) {
-            // Eğer grupta gösterilecek satır varsa grubu göster, yoksa gizle
-            if (gorunenSatirSayisiGrup > 0) {
-                tbody.style.display = "";
-                headerRow.querySelector('.group-count').textContent = gorunenSatirSayisiGrup;
-                toplamGorunenSatir += gorunenSatirSayisiGrup;
-            } else {
-                tbody.style.display = "none";
-            }
-        }
     });
 
     document.getElementById('kayitSayaci').textContent = `Toplam ${toplamGorunenSatir} kayıt gösteriliyor.`;
@@ -516,21 +476,6 @@ function aramaTemizle() {
     document.getElementById('aramaKutusu').value = '';
     document.getElementById('durumFiltresi').value = '';
     filtrele();
-}
-
-function toggleGroup(button) {
-    const tbody = button.closest('tbody');
-    const dataRows = tbody.querySelectorAll('tr:not(.group-header-row)');
-    const isHidden = dataRows.length > 0 && dataRows[0].style.display === 'none';
-
-    dataRows.forEach(row => {
-        // Filtre durumunu korumak için sadece görünür olanları değiştir
-        if (row.style.display !== 'none' || isHidden) {
-             row.style.display = isHidden ? '' : 'none';
-        }
-    });
-    
-    button.textContent = isHidden ? 'Kapat' : 'Aç';
 }
 
 </script>
