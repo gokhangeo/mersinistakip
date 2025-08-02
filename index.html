@@ -42,13 +42,30 @@
         #aramaTemizleBtn { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); cursor: pointer; color: #888; display: none; }
         #kayitSayaci { margin-top: 10px; font-weight: bold; color: #0056b3; }
         
-        /* YENİ: Sekme Stilleri */
+        /* Sekme Stilleri */
         .tabs-container { border-bottom: 2px solid #dee2e6; margin-bottom: 20px; display: flex; flex-wrap: wrap; gap: 5px; }
         .tab-btn { background-color: #f8f9fa; color: #007bff; border: 1px solid #dee2e6; border-bottom: none; padding: 10px 15px; cursor: pointer; border-radius: 5px 5px 0 0; font-size: 16px; margin-bottom: -2px; }
         .tab-btn:hover { background-color: #e9ecef; }
         .tab-btn.active { background-color: #007bff; color: white; border-color: #007bff; }
         .table-wrapper { display: none; }
         .table-wrapper.active { display: block; }
+
+        /* Grup Başlığı Stilleri (Sadece Tümü sekmesi için) */
+        .table-wrapper[data-group="Tümü"] .group-header-row { background-color: #e9ecef; font-weight: bold; cursor: pointer; }
+        .table-wrapper[data-group="Tümü"] .group-header-row:hover { background-color: #dde2e6; }
+        .table-wrapper[data-group="Tümü"] .group-header-row td { padding: 12px; }
+        .table-wrapper[data-group="Tümü"] .group-header-row h3 { margin: 0; font-size: 16px; color: #0056b3; display: flex; justify-content: space-between; align-items: center; }
+        .table-wrapper[data-group="Tümü"] .group-toggle-btn { font-size: 12px; padding: 4px 8px; background-color: #6c757d; color:white; border:none; border-radius: 3px; }
+
+        /* Belirli sekmelerde sütun gizleme */
+        .table-wrapper[data-group="GÜNCELLEME"] th:nth-child(8),
+        .table-wrapper[data-group="GÜNCELLEME"] td:nth-child(8),
+        .table-wrapper[data-group="2/B"] th:nth-child(4),
+        .table-wrapper[data-group="2/B"] td:nth-child(4),
+        .table-wrapper[data-group="GÜNCELLEME"] th:nth-child(4),
+        .table-wrapper[data-group="GÜNCELLEME"] td:nth-child(4) {
+            display: none;
+        }
     </style>
 </head>
 <body>
@@ -72,11 +89,9 @@
         <button class="info" onclick="excelIndir()">&#x1F4BE; Excel Olarak İndir</button>
     </div>
 
-    <!-- Sekmeler buraya gelecek -->
     <div id="tabs" class="tabs-container"></div>
     <div id="kayitSayaci">Toplam 0 kayıt gösteriliyor.</div>
     <div id="loader" class="loader"></div>
-    <!-- Tablolar buraya gelecek -->
     <div id="tableContainer" style="overflow-x:auto;"></div>
 </div>
 
@@ -177,15 +192,53 @@ async function fetchFromGitHub() {
                 return acc;
             }, {});
 
-            // "Tümü" sekmesini oluştur
-            const allTab = document.createElement('button');
-            allTab.className = 'tab-btn active';
-            allTab.textContent = 'Tümü';
-            allTab.onclick = () => showTab('Tümü');
-            tabsContainer.appendChild(allTab);
+            // --- "TÜMÜ" SEKMESİ OLUŞTURMA (Gruplu ve Açılır-Kapanır) ---
+            const allTabBtn = document.createElement('button');
+            allTabBtn.className = 'tab-btn active';
+            allTabBtn.textContent = 'Tümü';
+            allTabBtn.onclick = () => showTab('Tümü');
+            tabsContainer.appendChild(allTabBtn);
+
+            const allWrapper = document.createElement('div');
+            allWrapper.className = 'table-wrapper active';
+            allWrapper.dataset.group = 'Tümü';
+            
+            const allTable = document.createElement('table');
+            allTable.innerHTML = `<thead>
+                <tr>
+                    <th class="check-cell">&#10004;</th><th>İLÇE</th><th>BİRİM</th><th>UYGULAMA</th><th>GÖREVLİ PERSONELLER</th><th>PARSEL SAYISI</th><th>BLOK SAYISI</th><th>ALAN(Ha)</th><th>İHALELİ/MÜDÜRLÜK</th><th>İŞE BAŞLAMA/YER TESLİMİ</th><th>İHALE BİTİŞ TARİHİ</th><th>DURUMU</th><th class="action-cell">İşlem</th>
+                </tr>
+            </thead>`;
 
             for (const uygulama in groupedData) {
-                // Her grup için bir sekme oluştur
+                const groupRows = groupedData[uygulama];
+                const tbody = document.createElement('tbody');
+                
+                const headerRow = tbody.insertRow();
+                headerRow.className = 'group-header-row';
+                headerRow.onclick = (e) => {
+                    if (e.target.tagName !== 'BUTTON') {
+                        toggleGroup(tbody);
+                    }
+                };
+                const headerCell = headerRow.insertCell();
+                headerCell.colSpan = 13;
+                headerCell.innerHTML = `<h3>
+                    <span>${uygulama} (<span class="group-count">${groupRows.length}</span> iş)</span>
+                    <button class="group-toggle-btn" onclick="event.stopPropagation(); toggleGroup(this.closest('tbody'))">Kapat</button>
+                </h3>`;
+                
+                groupRows.forEach(rowData => {
+                    const newRow = createRowElement(rowData);
+                    tbody.appendChild(newRow);
+                });
+                allTable.appendChild(tbody);
+            }
+            allWrapper.appendChild(allTable);
+            tableContainer.appendChild(allWrapper);
+
+            // --- DİĞER SEKMELERİ OLUŞTURMA (Düz Liste) ---
+            for (const uygulama in groupedData) {
                 const tab = document.createElement('button');
                 tab.className = 'tab-btn';
                 tab.textContent = `${uygulama} (${groupedData[uygulama].length})`;
@@ -193,39 +246,20 @@ async function fetchFromGitHub() {
                 tab.onclick = () => showTab(uygulama);
                 tabsContainer.appendChild(tab);
 
-                // Her grup için bir tablo wrapper'ı ve tablo oluştur
                 const tableWrapper = document.createElement('div');
                 tableWrapper.className = 'table-wrapper';
                 tableWrapper.dataset.group = uygulama;
 
                 const table = document.createElement('table');
-                
-                // GÜNCELLEME: Başlığı dinamik olarak ayarla
                 const blokSayisiHeader = uygulama === 'GÜNCELLEME' ? 'İDÖ SAYISI' : 'BLOK SAYISI';
-
-                table.innerHTML = `
-                    <thead>
-                        <tr>
-                            <th class="check-cell">&#10004;</th>
-                            <th>İLÇE</th>
-                            <th>BİRİM</th>
-                            <th>UYGULAMA</th>
-                            <th>GÖREVLİ PERSONELLER</th>
-                            <th>PARSEL SAYISI</th>
-                            <th>${blokSayisiHeader}</th>
-                            <th>ALAN(Ha)</th>
-                            <th>İHALELİ/MÜDÜRLÜK</th>
-                            <th>İŞE BAŞLAMA/YER TESLİMİ</th>
-                            <th>İHALE BİTİŞ TARİHİ</th>
-                            <th>DURUMU</th>
-                            <th class="action-cell">İşlem</th>
-                        </tr>
-                    </thead>
-                `;
+                table.innerHTML = `<thead>
+                    <tr>
+                        <th class="check-cell">&#10004;</th><th>İLÇE</th><th>BİRİM</th><th>UYGULAMA</th><th>GÖREVLİ PERSONELLER</th><th>PARSEL SAYISI</th><th>${blokSayisiHeader}</th><th>ALAN(Ha)</th><th>İHALELİ/MÜDÜRLÜK</th><th>İŞE BAŞLAMA/YER TESLİMİ</th><th>İHALE BİTİŞ TARİHİ</th><th>DURUMU</th><th class="action-cell">İşlem</th>
+                    </tr>
+                </thead>`;
                 const tbody = document.createElement('tbody');
                 groupedData[uygulama].forEach(rowData => {
-                    const newRow = createRowElement(rowData);
-                    tbody.appendChild(newRow);
+                    tbody.appendChild(createRowElement(rowData));
                 });
                 table.appendChild(tbody);
                 tableWrapper.appendChild(table);
@@ -235,10 +269,10 @@ async function fetchFromGitHub() {
 
         document.getElementById('loader').style.display = 'none';
         document.getElementById('githubKaydetBtn').disabled = false;
-        setUyari("Veriler başarıyla çekildi ve gruplandı.", 'basari');
+        setUyari("Veriler başarıyla çekildi ve hibrit görünüm oluşturuldu.", 'basari');
         markAsClean();
         durumFiltresiDoldur();
-        showTab('Tümü'); // Başlangıçta "Tümü" sekmesini göster
+        showTab('Tümü');
 
     } catch (error) {
         console.error("GitHub'dan veri çekme hatası:", error);
@@ -248,34 +282,36 @@ async function fetchFromGitHub() {
 }
 
 function showTab(uygulamaAdi) {
-    const tableWrappers = document.querySelectorAll('.table-wrapper');
-    const tabButtons = document.querySelectorAll('.tab-btn');
-
-    tabButtons.forEach(btn => {
+    document.querySelectorAll('.table-wrapper').forEach(w => w.classList.remove('active'));
+    document.querySelector(`.table-wrapper[data-group="${uygulamaAdi}"]`).classList.add('active');
+    
+    document.querySelectorAll('.tab-btn').forEach(btn => {
         btn.classList.remove('active');
         if (btn.dataset.uygulama === uygulamaAdi || (uygulamaAdi === 'Tümü' && btn.textContent === 'Tümü')) {
             btn.classList.add('active');
         }
     });
-
-    tableWrappers.forEach(wrapper => {
-        if (uygulamaAdi === 'Tümü' || wrapper.dataset.group === uygulamaAdi) {
-            wrapper.classList.add('active');
-        } else {
-            wrapper.classList.remove('active');
-        }
-    });
-    filtrele(); // Sekme değiştiğinde filtreyi ve sayacı güncelle
+    filtrele();
 }
 
-
 function getTableData() {
-    const rows = document.querySelectorAll('#tableContainer tbody tr');
-    const data = [];
-    
+    // Veri toplarken tüm tablolardaki satırları almamız gerekiyor, bu yüzden genel bir seçici kullanıyoruz.
+    const rows = document.querySelectorAll('#tableContainer tbody tr:not(.group-header-row)');
+    const data = new Set(); // Yinelenen satırları önlemek için Set kullan
+    const uniqueRows = [];
+
     rows.forEach(row => {
+        // Her satır için benzersiz bir anahtar oluştur
+        const key = Array.from(row.querySelectorAll('input, select')).map(el => el.value).join('|');
+        if (!data.has(key)) {
+            data.add(key);
+            uniqueRows.push(row);
+        }
+    });
+    
+    return uniqueRows.map(row => {
         const cells = row.querySelectorAll('td');
-        data.push({
+        return {
             'Tamamlandı': cells[0].querySelector('input[type="checkbox"]').checked ? 'EVET' : 'HAYIR',
             'İLÇE': cells[1].querySelector('select').value,
             'BİRİM': cells[2].querySelector('input').value,
@@ -288,9 +324,8 @@ function getTableData() {
             'İŞE BAŞLAMA/YER TESLİMİ': cells[9].querySelector('input').value,
             'İHALE BİTİŞ TARİHİ': cells[10].querySelector('input').value,
             'DURUMU': cells[11].querySelector('select').value
-        });
+        };
     });
-    return data;
 }
 
 function excelIndir() {
@@ -392,7 +427,6 @@ function createRowElement(data = {}) {
     return newRow;
 }
 
-
 function satirDurumunuDegistir(checkbox) {
     checkbox.closest('tr').classList.toggle('tamamlandi', checkbox.checked);
     markAsDirty();
@@ -400,8 +434,21 @@ function satirDurumunuDegistir(checkbox) {
 
 function satirSil(button) {
     const row = button.closest('tr');
+    const tbody = row.closest('tbody');
+    
     $(row).find('.personel-select').select2('destroy');
     row.parentNode.removeChild(row);
+    
+    // Tümü sekmesindeki grup başlığını güncelle veya kaldır
+    if (tbody && tbody.querySelector('.group-header-row')) {
+        const dataRows = tbody.querySelectorAll('tr:not(.group-header-row)');
+        if (dataRows.length === 0) {
+            tbody.remove();
+        } else {
+            tbody.querySelector('.group-count').textContent = dataRows.length;
+        }
+    }
+
     setUyari('Bir satır silindi. Değişikliği kalıcı yapmak için Kaydet butonuna basın.', 'bilgi');
     markAsDirty();
     filtrele();
@@ -440,42 +487,89 @@ function filtrele() {
 
     temizleBtn.style.display = aramaInput.value.length > 0 ? 'block' : 'none';
     
-    // Sadece aktif olan wrapper'daki satırları filtrele
-    const activeWrappers = document.querySelectorAll('.table-wrapper.active');
+    const activeWrapper = document.querySelector('.table-wrapper.active');
+    if (!activeWrapper) return;
 
-    activeWrappers.forEach(wrapper => {
-        const dataRows = wrapper.querySelectorAll("tbody tr");
+    // Eğer "Tümü" sekmesi aktifse, gruplu filtreleme yap
+    if (activeWrapper.dataset.group === 'Tümü') {
+        const tbodies = activeWrapper.querySelectorAll("tbody");
+        tbodies.forEach(tbody => {
+            const dataRows = tbody.querySelectorAll("tr:not(.group-header-row)");
+            let groupVisibleRowCount = 0;
+            dataRows.forEach(row => {
+                const isMatch = checkRowMatch(row, aramaFilter, durumFilter);
+                row.style.display = isMatch ? "" : "none";
+                if (isMatch) groupVisibleRowCount++;
+            });
 
-        dataRows.forEach(row => {
-            const cells = row.getElementsByTagName("td");
-            
-            const ilceText = cells[1].querySelector('select').value.toUpperCase();
-            const birimText = cells[2].querySelector('input').value.toUpperCase();
-            const personelText = $(cells[4]).find('.personel-select').val().join(', ').toUpperCase();
-            const durumText = cells[11].querySelector('select').value.toUpperCase();
-            
-            const combinedText = `${ilceText} ${birimText} ${personelText}`;
-            
-            const textMatch = aramaFilter === '' || combinedText.indexOf(aramaFilter) > -1;
-            const durumMatch = durumFilter === '' || durumText === durumFilter;
-
-            if (textMatch && durumMatch) {
-                row.style.display = "";
-                toplamGorunenSatir++;
-            } else {
-                row.style.display = "none";
+            const headerRow = tbody.querySelector('.group-header-row');
+            if(headerRow) {
+                if (groupVisibleRowCount > 0) {
+                    headerRow.style.display = "";
+                    tbody.style.display = ""; // Ensure tbody is visible
+                    headerRow.querySelector('.group-count').textContent = groupVisibleRowCount;
+                } else {
+                    headerRow.style.display = "none";
+                    tbody.style.display = "none"; // Hide entire tbody if no rows match
+                }
             }
+            toplamGorunenSatir += groupVisibleRowCount;
         });
-    });
+    } else { // Diğer sekmeler için düz filtreleme
+        const dataRows = activeWrapper.querySelectorAll("tbody tr");
+        dataRows.forEach(row => {
+            const isMatch = checkRowMatch(row, aramaFilter, durumFilter);
+            row.style.display = isMatch ? "" : "none";
+            if (isMatch) toplamGorunenSatir++;
+        });
+    }
 
     document.getElementById('kayitSayaci').textContent = `Toplam ${toplamGorunenSatir} kayıt gösteriliyor.`;
 }
 
+function checkRowMatch(row, aramaFilter, durumFilter) {
+    const cells = row.getElementsByTagName("td");
+    if (cells.length < 12) return false;
+    
+    const ilceText = cells[1].querySelector('select').value.toUpperCase();
+    const birimText = cells[2].querySelector('input').value.toUpperCase();
+    const personelText = $(cells[4]).find('.personel-select').val().join(', ').toUpperCase();
+    const durumText = cells[11].querySelector('select').value.toUpperCase();
+    
+    const combinedText = `${ilceText} ${birimText} ${personelText}`;
+    
+    const textMatch = aramaFilter === '' || combinedText.indexOf(aramaFilter) > -1;
+    const durumMatch = durumFilter === '' || durumText === durumFilter;
+
+    return textMatch && durumMatch;
+}
 
 function aramaTemizle() {
     document.getElementById('aramaKutusu').value = '';
     document.getElementById('durumFiltresi').value = '';
     filtrele();
+}
+
+function toggleGroup(tbody) {
+    const dataRows = tbody.querySelectorAll('tr:not(.group-header-row)');
+    const button = tbody.querySelector('.group-toggle-btn');
+    const isHidden = dataRows.length > 0 && dataRows[0].style.display === 'none';
+
+    dataRows.forEach(row => {
+        // Sadece filtrelenmemiş satırları göster/gizle
+        const currentDisplay = window.getComputedStyle(row).display;
+         if (isHidden) {
+             // Açarken, sadece filtreden geçebilenleri göster
+             if(checkRowMatch(row, document.getElementById('aramaKutusu').value.toUpperCase(), document.getElementById('durumFiltresi').value.toUpperCase())) {
+                row.style.display = '';
+             }
+         } else {
+             // Kapatırken hepsini gizle
+             row.style.display = 'none';
+         }
+    });
+    
+    button.textContent = isHidden ? 'Kapat' : 'Aç';
 }
 
 </script>
