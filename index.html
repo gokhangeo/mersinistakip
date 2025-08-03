@@ -601,12 +601,11 @@ function getTableData() {
     const data = [];
     const uniqueKeys = new Set();
     
-    // Tüm sekmelerdeki ana tablo satırlarını topla
     document.querySelectorAll('.table-wrapper:not([data-group="Güncelleme Detay"]) tbody tr:not(.group-header-row)').forEach(row => {
         const key = row.dataset.rowKey;
         if (!uniqueKeys.has(key)) {
             const cells = row.querySelectorAll('td');
-            const personnelWithTitles = $(cells[4]).find('.personel-select').val();
+            const personnelWithTitles = $(cells[4]).find('.personel-select').val() || [];
             const personnelWithoutTitles = personnelWithTitles.map(p => p.replace(/ \(.+\)$/, '').trim());
 
             data.push({
@@ -850,7 +849,7 @@ function checkRowMatch(row, aramaFilter, durumFilter) {
         
         const ilceText = ilceSelect.value.toUpperCase();
         const birimText = birimInput.value.toUpperCase();
-        const personelText = personelSelect.val().join(', ').toUpperCase();
+        const personelText = (personelSelect.val() || []).join(', ').toUpperCase();
         const durumText = durumSelect.value.toUpperCase();
         
         const combinedText = `${ilceText} ${birimText} ${personelText}`;
