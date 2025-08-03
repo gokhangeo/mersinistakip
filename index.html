@@ -115,9 +115,8 @@ const EXCEL_HEADERS_MAIN = ['Tamamlandı', 'İLÇE', 'BİRİM', 'UYGULAMA', 'GÖ
 const EXCEL_HEADERS_DETAIL = ['İLÇE', 'BİRİM', 'PARSEL SAYISI', 'İDÖ PARSEL SAYISI', 'TOPLAM PARSEL', 'İŞE BAŞLAMA', 'BİTİŞ TARİHİ', 'LİDAR/YERSEL ÖLÇÜM TARİHİ(YAPILAN)', 'ARAZİ YERSEL ÖLÇÜM TARİHİ(YAPILAN)', 'UÇUŞ TARİHİ(YAPILAN)', 'UÇUŞ KIYMETLENDİRME DURUM', 'DEĞERLENDİRME DURUM', 'ORMAN ASKI TARİHİ', 'BİLGİLENDİRME İLANI TARİHİ', 'KOMİSYON DURUM', 'KESİN ASKI TARİHİ'];
 
 
-window.onload = function() {
+document.addEventListener('DOMContentLoaded', function() {
     fetchFromGitHub();
-    document.getElementById('tableContainer').addEventListener('change', markAsDirty);
     
     // Event Listeners
     document.getElementById('aramaKutusu').addEventListener('keyup', filtrele);
@@ -125,7 +124,73 @@ window.onload = function() {
     document.getElementById('aramaTemizleBtn').addEventListener('click', aramaTemizle);
     document.getElementById('githubKaydetBtn').addEventListener('click', saveToGitHub);
     document.getElementById('excelIndirBtn').addEventListener('click', excelIndir);
-};
+    document.getElementById('tableContainer').addEventListener('change', handleTableChange);
+});
+
+function handleTableChange(event) {
+    const target = event.target;
+    if (target.tagName === 'INPUT' || target.tagName === 'SELECT') {
+        const row = target.closest('tr');
+        const rowKey = row.dataset.rowKey;
+        const header = target.dataset.header;
+        const table = row.closest('table');
+        
+        let value;
+        if (target.type === 'checkbox') {
+            value = target.checked ? 'EVET' : 'HAYIR';
+        } else if ($(target).hasClass('personel-select')) {
+            value = $(target).val().join(', ');
+        } else {
+            value = target.value;
+        }
+
+        let dataArray, uniqueIdProperty1, uniqueIdProperty2;
+
+        if (table.id === 'guncellemeDetailTable') {
+            dataArray = guncellemeData;
+            uniqueIdProperty1 = 'İLÇE';
+            uniqueIdProperty2 = 'BİRİM';
+        } else {
+            dataArray = isTakipData;
+            uniqueIdProperty1 = 'İLÇE';
+            uniqueIdProperty2 = 'BİRİM';
+        }
+        
+        const [id1, id2] = rowKey.split('|');
+        const dataRow = dataArray.find(r => r[uniqueIdProperty1] == id1 && r[uniqueIdProperty2] == id2);
+
+        if (dataRow) {
+            dataRow[header] = value;
+        }
+
+        // Sync UI
+        document.querySelectorAll(`tr[data-row-key="${rowKey}"]`).forEach(syncRow => {
+            if (syncRow !== row) {
+                const syncTarget = syncRow.querySelector(`[data-header="${header}"]`);
+                if (syncTarget) {
+                    if (syncTarget.type === 'checkbox') {
+                        syncTarget.checked = (value === 'EVET');
+                    } else if ($(syncTarget).hasClass('personel-select')) {
+                         $(syncTarget).val(value.split(', ')).trigger('change');
+                    }
+                    else {
+                        syncTarget.value = value;
+                    }
+                }
+            }
+        });
+        
+        if (target.type === 'checkbox') {
+             row.classList.toggle('tamamlandi', target.checked);
+             document.querySelectorAll(`tr[data-row-key="${rowKey}"]`).forEach(syncRow => {
+                syncRow.classList.toggle('tamamlandi', target.checked);
+             });
+        }
+
+        markAsDirty();
+    }
+}
+
 
 function markAsDirty() {
     const btn = document.getElementById('githubKaydetBtn');
@@ -311,47 +376,11 @@ function showTab(uygulamaAdi) {
 }
 
 function getTableData() {
-    const data = [];
-    const rows = document.querySelectorAll('.table-wrapper:not([data-group="Güncelleme Detay"]) tbody tr:not(.group-header-row)');
-    const uniqueKeys = new Set();
-    
-    rows.forEach(row => {
-        const key = row.dataset.rowKey;
-        if (!uniqueKeys.has(key)) {
-            const cells = row.querySelectorAll('td');
-            data.push({
-                'Tamamlandı': cells[0].querySelector('input[type="checkbox"]').checked ? 'EVET' : 'HAYIR',
-                'İLÇE': cells[1].querySelector('select').value,
-                'BİRİM': cells[2].querySelector('input').value,
-                'UYGULAMA': cells[3].querySelector('select').value,
-                'GÖREVLİ PERSONELLER': $(cells[4]).find('.personel-select').val().join(', '),
-                'PARSEL SAYISI': cells[5].querySelector('input').value,
-                'BLOK SAYISI': cells[6].querySelector('input').value,
-                'ALAN(Ha)': cells[7].querySelector('input').value,
-                'İHALELİ/MÜDÜRLÜK': cells[8].querySelector('select').value,
-                'İŞE BAŞLAMA/YER TESLİMİ': cells[9].querySelector('input').value,
-                'İHALE BİTİŞ TARİHİ': cells[10].querySelector('input').value,
-                'DURUMU': cells[11].querySelector('select').value
-            });
-            uniqueKeys.add(key);
-        }
-    });
-    return data;
+    return isTakipData;
 }
 
 function getGuncellemeDetailData() {
-    const data = [];
-    const rows = document.querySelectorAll('#guncellemeDetailTable tbody tr');
-    rows.forEach(row => {
-        const newRow = {};
-        const cells = row.querySelectorAll('td');
-        EXCEL_HEADERS_DETAIL.forEach((header, index) => {
-            const input = cells[index].querySelector('input, select');
-            newRow[header] = input.value;
-        });
-        data.push(newRow);
-    });
-    return data;
+    return guncellemeData;
 }
 
 async function saveToGitHub() {
@@ -409,61 +438,61 @@ async function saveToGitHub() {
 
 function createRowElement(data = {}) {
     const newRow = document.createElement('tr');
-    newRow.dataset.rowKey = `${data['İLÇE']}-${data['BİRİM']}`;
-    const isChecked = data['Tamamlandı'] === 'EVET' ? 'checked' : '';
+    const rowKey = `${data['İLÇE']}|${data['BİRİM']}`;
+    newRow.dataset.rowKey = rowKey;
+    const isChecked = data['Tamamlandı'] === 'EVET';
+    if(isChecked) newRow.classList.add('tamamlandi');
+
     const createOptions = (list, selected) => list.map(item => `<option value="${item}" ${item === selected ? 'selected' : ''}>${item}</option>`).join('');
     const selectedPersonel = data['GÖREVLİ PERSONELLER'] ? String(data['GÖREVLİ PERSONELLER']).split(', ') : [];
 
     newRow.innerHTML = `
-        <td class="check-cell"><input type="checkbox" onchange="satirDurumunuDegistir(this)" ${isChecked}></td>
-        <td><select>${createOptions(ilceListesi, data['İLÇE'])}</select></td>
-        <td><input type="text" value="${data['BİRİM'] || ''}"></td>
-        <td><select>${createOptions(uygulamaListesi, data['UYGULAMA'])}</select></td>
-        <td><select class="personel-select" multiple="multiple">${createOptions(personelListesi, null)}</select></td>
-        <td><input type="number" value="${data['PARSEL SAYISI'] || ''}"></td>
-        <td><input type="number" value="${data['BLOK SAYISI'] || ''}"></td>
-        <td><input type="number" value="${data['ALAN(Ha)'] || ''}"></td>
-        <td><select><option value="İhaleli" ${data['İHALELİ/MÜDÜRLÜK'] === 'İhaleli' ? 'selected' : ''}>İhaleli</option><option value="Müdürlük" ${data['İHALELİ/MÜDÜRLÜK'] === 'Müdürlük' ? 'selected' : ''}>Müdürlük</option></select></td>
-        <td><input type="date" value="${formatDate(data['İŞE BAŞLAMA/YER TESLİMİ'])}"></td>
-        <td><input type="date" value="${formatDate(data['İHALE BİTİŞ TARİHİ'])}"></td>
-        <td><select>${createOptions(durumlar, data['DURUMU'])}</select></td>
+        <td class="check-cell"><input type="checkbox" data-header="Tamamlandı" ${isChecked ? 'checked' : ''}></td>
+        <td><select data-header="İLÇE">${createOptions(ilceListesi, data['İLÇE'])}</select></td>
+        <td><input type="text" data-header="BİRİM" value="${data['BİRİM'] || ''}"></td>
+        <td><select data-header="UYGULAMA">${createOptions(uygulamaListesi, data['UYGULAMA'])}</select></td>
+        <td><select class="personel-select" data-header="GÖREVLİ PERSONELLER" multiple="multiple">${createOptions(personelListesi, null)}</select></td>
+        <td><input type="number" data-header="PARSEL SAYISI" value="${data['PARSEL SAYISI'] || ''}"></td>
+        <td><input type="number" data-header="BLOK SAYISI" value="${data['BLOK SAYISI'] || ''}"></td>
+        <td><input type="number" data-header="ALAN(Ha)" value="${data['ALAN(Ha)'] || ''}"></td>
+        <td><select data-header="İHALELİ/MÜDÜRLÜK"><option value="İhaleli" ${data['İHALELİ/MÜDÜRLÜK'] === 'İhaleli' ? 'selected' : ''}>İhaleli</option><option value="Müdürlük" ${data['İHALELİ/MÜDÜRLÜK'] === 'Müdürlük' ? 'selected' : ''}>Müdürlük</option></select></td>
+        <td><input type="date" data-header="İŞE BAŞLAMA/YER TESLİMİ" value="${formatDate(data['İŞE BAŞLAMA/YER TESLİMİ'])}"></td>
+        <td><input type="date" data-header="İHALE BİTİŞ TARİHİ" value="${formatDate(data['İHALE BİTİŞ TARİHİ'])}"></td>
+        <td><select data-header="DURUMU">${createOptions(durumlar, data['DURUMU'])}</select></td>
     `;
     
     const personelSelect = $(newRow).find('.personel-select');
     personelSelect.select2({ placeholder: "Personel Seçin" });
     personelSelect.val(selectedPersonel).trigger('change');
-    if (isChecked) newRow.classList.add('tamamlandi');
     return newRow;
 }
 
 function createGuncellemeDetailRowElement(data) {
     const newRow = document.createElement('tr');
+    const rowKey = `${data['İLÇE']}|${data['BİRİM']}`;
+    newRow.dataset.rowKey = rowKey;
+
     const createOptions = (list, selected) => `<option value=""></option>` + list.map(item => `<option value="${item}" ${item === selected ? 'selected' : ''}>${item}</option>`).join('');
     let rowHTML = '';
     EXCEL_HEADERS_DETAIL.forEach(header => {
         const value = data[header] || '';
         let inputHTML = '';
         if (header.includes('TARİH') || header.includes('İŞE BAŞLAMA') || header.includes('BİTİŞ')) {
-            inputHTML = `<input type="date" value="${formatDate(value)}">`;
+            inputHTML = `<input type="date" data-header="${header}" value="${formatDate(value)}">`;
         } else if (header.includes('DURUM')) {
             let optionsList = [];
             if (header.includes('UÇUŞ')) optionsList = ucusKiyDurumList;
             else if (header.includes('KOMİSYON')) optionsList = komisyonDurumList;
             else if (header.includes('DEĞERLENDİRME')) optionsList = degerlendirmeDurumList;
-            inputHTML = `<select>${createOptions(optionsList, value)}</select>`;
+            inputHTML = `<select data-header="${header}">${createOptions(optionsList, value)}</select>`;
         } else {
             const inputType = (header.includes('SAYISI') || header.includes('TOPLAM')) ? 'number' : 'text';
-            inputHTML = `<input type="${inputType}" value="${value}">`;
+            inputHTML = `<input type="${inputType}" data-header="${header}" value="${value}">`;
         }
         rowHTML += `<td>${inputHTML}</td>`;
     });
     newRow.innerHTML = rowHTML;
     return newRow;
-}
-
-function satirDurumunuDegistir(checkbox) {
-    checkbox.closest('tr').classList.toggle('tamamlandi', checkbox.checked);
-    markAsDirty();
 }
 
 function excelDateToJSDate(serial) {
@@ -541,32 +570,38 @@ function filtrele() {
 function checkRowMatch(row, aramaFilter, durumFilter) {
     const cells = row.getElementsByTagName("td");
     
-    // Detay tablosu satırları için filtreleme yapma
-    if (cells.length !== 12) {
-        return true;
-    }
+    // Farklı tablo yapıları için esnek kontrol
+    const isMainTable = cells.length === 12;
     
-    const ilceSelect = cells[1].querySelector('select');
-    const birimInput = cells[2].querySelector('input');
-    const personelSelect = $(cells[4]).find('.personel-select');
-    const durumSelect = cells[11].querySelector('select');
+    if (isMainTable) {
+        const ilceSelect = cells[1].querySelector('select');
+        const birimInput = cells[2].querySelector('input');
+        const personelSelect = $(cells[4]).find('.personel-select');
+        const durumSelect = cells[11].querySelector('select');
 
-    // Eğer gerekli elementler yoksa, bu satırı filtreleme dışı bırak
-    if (!ilceSelect || !birimInput || !personelSelect.length || !durumSelect) {
-        return true;
-    }
-    
-    const ilceText = ilceSelect.value.toUpperCase();
-    const birimText = birimInput.value.toUpperCase();
-    const personelText = personelSelect.val().join(', ').toUpperCase();
-    const durumText = durumSelect.value.toUpperCase();
-    
-    const combinedText = `${ilceText} ${birimText} ${personelText}`;
-    
-    const textMatch = aramaFilter === '' || combinedText.indexOf(aramaFilter) > -1;
-    const durumMatch = durumFilter === '' || durumText === durumFilter;
+        if (!ilceSelect || !birimInput || !personelSelect.length || !durumSelect) return true;
+        
+        const ilceText = ilceSelect.value.toUpperCase();
+        const birimText = birimInput.value.toUpperCase();
+        const personelText = personelSelect.val().join(', ').toUpperCase();
+        const durumText = durumSelect.value.toUpperCase();
+        
+        const combinedText = `${ilceText} ${birimText} ${personelText}`;
+        
+        const textMatch = aramaFilter === '' || combinedText.includes(aramaFilter);
+        const durumMatch = durumFilter === '' || durumText === durumFilter;
 
-    return textMatch && durumMatch;
+        return textMatch && durumMatch;
+    } else { // Detay tablosu için filtreleme
+        const ilceInput = cells[0].querySelector('input');
+        const birimInput = cells[1].querySelector('input');
+        if(!ilceInput || !birimInput) return true;
+
+        const ilceText = ilceInput.value.toUpperCase();
+        const birimText = birimInput.value.toUpperCase();
+        const combinedText = `${ilceText} ${birimText}`;
+        return aramaFilter === '' || combinedText.includes(aramaFilter);
+    }
 }
 
 function aramaTemizle() {
