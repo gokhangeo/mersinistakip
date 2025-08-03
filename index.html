@@ -623,8 +623,9 @@ async function saveToGitHub() {
     setUyari("Değişiklikler gönderiliyor...", 'bilgi');
 
     try {
-        const mainData = isTakipData;
-        const detailData = guncellemeData;
+        // DÜZELTME: Veriyi doğrudan UI'dan topla
+        const mainData = getTableDataFromUI();
+        const detailData = getGuncellemeDetailDataFromUI();
 
         const wb = XLSX.utils.book_new();
         
@@ -671,6 +672,52 @@ async function saveToGitHub() {
         btn.disabled = false;
     }
 }
+
+function getTableDataFromUI() {
+    const data = [];
+    const uniqueKeys = new Set();
+    
+    document.querySelectorAll('.table-wrapper:not([data-group="Güncelleme Detay"]) tbody tr:not(.group-header-row)').forEach(row => {
+        const key = row.dataset.rowKey;
+        if (!uniqueKeys.has(key)) {
+            const cells = row.querySelectorAll('td');
+            const personnelWithTitles = $(cells[4]).find('.personel-select').val() || [];
+            const personnelWithoutTitles = personnelWithTitles.map(p => p.replace(/ \(.+\)$/, '').trim());
+
+            data.push({
+                'Tamamlandı': cells[0].querySelector('input[type="checkbox"]').checked ? 'EVET' : 'HAYIR',
+                'İLÇE': cells[1].querySelector('select').value,
+                'BİRİM': cells[2].querySelector('input').value,
+                'UYGULAMA': cells[3].querySelector('select').value,
+                'GÖREVLİ PERSONELLER': personnelWithoutTitles.join(', '),
+                'PARSEL SAYISI': cells[5].querySelector('input').value,
+                'BLOK SAYISI': cells[6].querySelector('input').value,
+                'ALAN(Ha)': cells[7].querySelector('input').value,
+                'İHALELİ/MÜDÜRLÜK': cells[8].querySelector('select').value,
+                'İŞE BAŞLAMA/YER TESLİMİ': cells[9].querySelector('input').value,
+                'İHALE BİTİŞ TARİHİ': cells[10].querySelector('input').value,
+                'DURUMU': cells[11].querySelector('select').value
+            });
+            uniqueKeys.add(key);
+        }
+    });
+    return data;
+}
+
+function getGuncellemeDetailDataFromUI() {
+    const data = [];
+    document.querySelectorAll('#guncellemeDetailTable tbody tr').forEach(row => {
+        const newRow = {};
+        const cells = row.querySelectorAll('td');
+        EXCEL_HEADERS_DETAIL.forEach((header, index) => {
+            const input = cells[index].querySelector('input, select');
+            newRow[header] = input.value;
+        });
+        data.push(newRow);
+    });
+    return data;
+}
+
 
 function createRowElement(data = {}) {
     const newRow = document.createElement('tr');
@@ -869,7 +916,7 @@ function toggleGroup(tbody) {
 }
 
 function excelIndir() {
-    const data = isTakipData; // Doğrudan in-memory datayı kullan
+    const data = getTableDataFromUI(); // DÜZELTME: İndirme için de UI'dan veri al
     const ws = XLSX.utils.json_to_sheet(data, {header: EXCEL_HEADERS_MAIN});
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'İş Takip Listesi');
