@@ -341,7 +341,7 @@ function handleLogin() {
     const dogruSifre = "503344";
 
     if (usernameInput.value === dogruKullaniciAdi && passwordInput.value === dogruSifre) {
-        sessionStorage.setItem('isLoggedIn', 'true'); // DÜZELTME
+        sessionStorage.setItem('isLoggedIn', 'true'); 
         const loginOverlay = document.getElementById('login-overlay');
         loginOverlay.style.opacity = '0';
         setTimeout(() => {
@@ -606,12 +606,15 @@ function getTableData() {
         const key = row.dataset.rowKey;
         if (!uniqueKeys.has(key)) {
             const cells = row.querySelectorAll('td');
+            const personnelWithTitles = $(cells[4]).find('.personel-select').val();
+            const personnelWithoutTitles = personnelWithTitles.map(p => p.replace(/ \(.+\)$/, '').trim());
+
             data.push({
                 'Tamamlandı': cells[0].querySelector('input[type="checkbox"]').checked ? 'EVET' : 'HAYIR',
                 'İLÇE': cells[1].querySelector('select').value,
                 'BİRİM': cells[2].querySelector('input').value,
                 'UYGULAMA': cells[3].querySelector('select').value,
-                'GÖREVLİ PERSONELLER': $(cells[4]).find('.personel-select').val().join(', '),
+                'GÖREVLİ PERSONELLER': personnelWithoutTitles.join(', '),
                 'PARSEL SAYISI': cells[5].querySelector('input').value,
                 'BLOK SAYISI': cells[6].querySelector('input').value,
                 'ALAN(Ha)': cells[7].querySelector('input').value,
@@ -704,7 +707,9 @@ function createRowElement(data = {}) {
     if(isChecked) newRow.classList.add('tamamlandi');
 
     const createOptions = (list, selected) => list.map(item => `<option value="${item}" ${item === selected ? 'selected' : ''}>${item}</option>`).join('');
-    const selectedPersonel = data['GÖREVLİ PERSONELLER'] ? String(data['GÖREVLİ PERSONELLER']).split(', ') : [];
+    const selectedPersonel = data['GÖREVLİ PERSONELLER'] ? String(data['GÖREVLİ PERSONELLER']).split(', ').map(name => {
+        return personelListesi.find(p => p.startsWith(name.trim())) || name.trim();
+    }) : [];
 
     newRow.innerHTML = `
         <td class="check-cell"><input type="checkbox" data-header="Tamamlandı" ${isChecked ? 'checked' : ''}></td>
