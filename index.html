@@ -372,9 +372,29 @@ function handleTableChange(event) {
         if (target.type === 'checkbox') {
             value = target.checked ? 'EVET' : 'HAYIR';
         } else if ($(target).hasClass('personel-select')) {
-            value = $(target).val().join(', ');
+            value = $(target).val() || []; // Get array from select2
         } else {
             value = target.value;
+        }
+
+        // DÜZELTME: Veriyi doğrudan ana veri dizilerinde güncelle
+        const [ilce, birim] = rowKey.split('|');
+        const table = row.closest('table');
+
+        if (table.id === 'guncellemeDetailTable') {
+            const dataRow = guncellemeData.find(r => r['İLÇE'] == ilce && r['BİRİM'] == birim);
+            if (dataRow) dataRow[header] = value;
+        } else {
+            const dataRow = isTakipData.find(r => r['İLÇE'] == ilce && r['BİRİM'] == birim);
+            if (dataRow) {
+                if (header === 'GÖREVLİ PERSONELLER') {
+                    // Excel'e kaydetmek için unvansız, virgülle ayrılmış string'e çevir
+                    const personnelWithoutTitles = value.map(p => p.replace(/ \(.+\)$/, '').trim());
+                    dataRow[header] = personnelWithoutTitles.join(', ');
+                } else {
+                    dataRow[header] = value;
+                }
+            }
         }
 
         // Sync UI
@@ -385,7 +405,7 @@ function handleTableChange(event) {
                     if (syncTarget.type === 'checkbox') {
                         syncTarget.checked = (value === 'EVET');
                     } else if ($(syncTarget).hasClass('personel-select')) {
-                         $(syncTarget).val(value.split(', ')).trigger('change.select2');
+                         $(syncTarget).val(value).trigger('change.select2');
                     }
                     else {
                         syncTarget.value = value;
@@ -597,51 +617,6 @@ function showTab(uygulamaAdi) {
     filtrele();
 }
 
-function getTableData() {
-    const data = [];
-    const uniqueKeys = new Set();
-    
-    document.querySelectorAll('.table-wrapper:not([data-group="Güncelleme Detay"]) tbody tr:not(.group-header-row)').forEach(row => {
-        const key = row.dataset.rowKey;
-        if (!uniqueKeys.has(key)) {
-            const cells = row.querySelectorAll('td');
-            const personnelWithTitles = $(cells[4]).find('.personel-select').val() || [];
-            const personnelWithoutTitles = personnelWithTitles.map(p => p.replace(/ \(.+\)$/, '').trim());
-
-            data.push({
-                'Tamamlandı': cells[0].querySelector('input[type="checkbox"]').checked ? 'EVET' : 'HAYIR',
-                'İLÇE': cells[1].querySelector('select').value,
-                'BİRİM': cells[2].querySelector('input').value,
-                'UYGULAMA': cells[3].querySelector('select').value,
-                'GÖREVLİ PERSONELLER': personnelWithoutTitles.join(', '),
-                'PARSEL SAYISI': cells[5].querySelector('input').value,
-                'BLOK SAYISI': cells[6].querySelector('input').value,
-                'ALAN(Ha)': cells[7].querySelector('input').value,
-                'İHALELİ/MÜDÜRLÜK': cells[8].querySelector('select').value,
-                'İŞE BAŞLAMA/YER TESLİMİ': cells[9].querySelector('input').value,
-                'İHALE BİTİŞ TARİHİ': cells[10].querySelector('input').value,
-                'DURUMU': cells[11].querySelector('select').value
-            });
-            uniqueKeys.add(key);
-        }
-    });
-    return data;
-}
-
-function getGuncellemeDetailData() {
-    const data = [];
-    document.querySelectorAll('#guncellemeDetailTable tbody tr').forEach(row => {
-        const newRow = {};
-        const cells = row.querySelectorAll('td');
-        EXCEL_HEADERS_DETAIL.forEach((header, index) => {
-            const input = cells[index].querySelector('input, select');
-            newRow[header] = input.value;
-        });
-        data.push(newRow);
-    });
-    return data;
-}
-
 async function saveToGitHub() {
     const btn = document.getElementById('githubKaydetBtn');
     btn.disabled = true;
@@ -649,8 +624,9 @@ async function saveToGitHub() {
     setUyari("Değişiklikler gönderiliyor...", 'bilgi');
 
     try {
-        const mainData = getTableData();
-        const detailData = getGuncellemeDetailData();
+        // DÜZELTME: Veriyi global değişkenlerden al, DOM'dan değil
+        const mainData = isTakipData;
+        const detailData = guncellemeData;
 
         const wb = XLSX.utils.book_new();
         
@@ -895,7 +871,7 @@ function toggleGroup(tbody) {
 }
 
 function excelIndir() {
-    const data = getTableData();
+    const data = isTakipData; // Doğrudan in-memory datayı kullan
     const ws = XLSX.utils.json_to_sheet(data, {header: EXCEL_HEADERS_MAIN});
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'İş Takip Listesi');
