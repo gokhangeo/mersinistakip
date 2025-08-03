@@ -921,12 +921,33 @@ function excelIndir() {
     const wb = XLSX.utils.book_new();
     
     const wsMain = XLSX.utils.json_to_sheet(mainData, {header: EXCEL_HEADERS_MAIN});
+    wsMain['!cols'] = getColumnWidths(mainData, EXCEL_HEADERS_MAIN);
     XLSX.utils.book_append_sheet(wb, wsMain, 'İş Takip Listesi');
     
     const wsDetail = XLSX.utils.json_to_sheet(detailData, {header: EXCEL_HEADERS_DETAIL});
+    wsDetail['!cols'] = getColumnWidths(detailData, EXCEL_HEADERS_DETAIL);
     XLSX.utils.book_append_sheet(wb, wsDetail, 'Güncelleme Detay');
 
     XLSX.writeFile(wb, `IhaleTakip_Indirilen_${new Date().toISOString().slice(0,10)}.xlsx`);
+}
+
+function getColumnWidths(data, headers) {
+    const widths = headers.map(header => ({ wch: header.length })); 
+
+    data.forEach(row => {
+        headers.forEach((header, i) => {
+            const cellValue = row[header] ? String(row[header]) : '';
+            if (cellValue.length > widths[i].wch) {
+                widths[i].wch = cellValue.length;
+            }
+        });
+    });
+
+    widths.forEach(width => {
+        width.wch = Math.min(Math.max(width.wch, 10), 40) + 2; // Min 10, Max 40 karakter + padding
+    });
+
+    return widths;
 }
 
 </script>
