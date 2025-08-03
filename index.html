@@ -28,6 +28,7 @@
         th { background-color: #007bff; color: white; font-size: 14px; }
         tr:nth-child(even) { background-color: #f2f2f2; }
         select, input { width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
+        input[readonly] { background-color: #e9ecef; cursor: not-allowed; }
         .action-cell { width: 80px; text-align: center; }
         .check-cell { width: 40px; text-align: center; }
         .tamamlandi { text-decoration: red line-through; text-decoration-thickness: 2px; opacity: 0.6; background-color: #f0f0f0 !important; }
@@ -252,9 +253,19 @@ async function fetchFromGitHub() {
         const binary_string = window.atob(data.content);
         const bytes = new Uint8Array(binary_string.length);
         for (let i = 0; i < binary_string.length; i++) { bytes[i] = binary_string.charCodeAt(i); }
-        const workbook = XLSX.read(bytes, { type: 'array' }); // DÜZELTME: cellDates:true kaldırıldı
+        const workbook = XLSX.read(bytes, { type: 'array' });
 
-        personelListesi = readSheetAsList(workbook, 'Personel');
+        // DÜZELTME: Personel listesini ad ve unvan ile birlikte oku
+        const personelSheet = workbook.Sheets['Personel'];
+        if (personelSheet) {
+            const personel_json = XLSX.utils.sheet_to_json(personelSheet, { header: 1 });
+            personelListesi = personel_json.slice(1)
+                .filter(row => row && row[0] && row[1])
+                .map(row => `${row[0]} (${row[1]})`);
+        } else {
+            personelListesi = [];
+        }
+
         ilceListesi = readSheetAsList(workbook, 'İlçe');
         uygulamaListesi = readSheetAsList(workbook, 'Uygulama');
         parseLists(workbook, 'Liste');
@@ -399,7 +410,7 @@ async function saveToGitHub() {
         XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(mainData, {header: EXCEL_HEADERS_MAIN, cellDates:true}), 'İş Takip Listesi');
         XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(detailData, {header: EXCEL_HEADERS_DETAIL, cellDates:true}), 'Güncelleme');
         
-        const personelData = [['ad', 'unvan'], ...personelListesi.map(p => { const m = p.match(/(.*) \((.*)\)/); return m ? [m[1], m[2]] : [p, '']; })];
+        const personelData = [['ad', 'unvan'], ...personelListesi.map(p => { const m = p.match(/(.*) \((.*)\)/); return m ? [m[1].trim(), m[2].trim()] : [p, '']; })];
         XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(personelData), 'Personel');
         XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([['İlçe'], ...ilceListesi.map(i => [i])]), 'İlçe');
         XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([['Uygulama'], ...uygulamaListesi.map(u => [u])]), 'Uygulama');
@@ -453,9 +464,9 @@ function createRowElement(data = {}) {
         <td><input type="text" data-header="BİRİM" value="${data['BİRİM'] || ''}"></td>
         <td><select data-header="UYGULAMA">${createOptions(uygulamaListesi, data['UYGULAMA'])}</select></td>
         <td><select class="personel-select" data-header="GÖREVLİ PERSONELLER" multiple="multiple">${createOptions(personelListesi, null)}</select></td>
-        <td><input type="number" data-header="PARSEL SAYISI" value="${data['PARSEL SAYISI'] || ''}"></td>
-        <td><input type="number" data-header="BLOK SAYISI" value="${data['BLOK SAYISI'] || ''}"></td>
-        <td><input type="number" data-header="ALAN(Ha)" value="${data['ALAN(Ha)'] || ''}"></td>
+        <td><input type="number" data-header="PARSEL SAYISI" value="${data['PARSEL SAYISI'] || ''}" readonly></td>
+        <td><input type="number" data-header="BLOK SAYISI" value="${data['BLOK SAYISI'] || ''}" readonly></td>
+        <td><input type="number" data-header="ALAN(Ha)" value="${data['ALAN(Ha)'] || ''}" readonly></td>
         <td><select data-header="İHALELİ/MÜDÜRLÜK"><option value="İhaleli" ${data['İHALELİ/MÜDÜRLÜK'] === 'İhaleli' ? 'selected' : ''}>İhaleli</option><option value="Müdürlük" ${data['İHALELİ/MÜDÜRLÜK'] === 'Müdürlük' ? 'selected' : ''}>Müdürlük</option></select></td>
         <td><input type="date" data-header="İŞE BAŞLAMA/YER TESLİMİ" value="${formatDate(excelDateToJSDate(data['İŞE BAŞLAMA/YER TESLİMİ']))}"></td>
         <td><input type="date" data-header="İHALE BİTİŞ TARİHİ" value="${formatDate(excelDateToJSDate(data['İHALE BİTİŞ TARİHİ']))}"></td>
@@ -464,7 +475,7 @@ function createRowElement(data = {}) {
     
     const personelSelect = $(newRow).find('.personel-select');
     personelSelect.select2({ placeholder: "Personel Seçin" });
-    personelSelect.val(selectedPersonel).trigger('change.select2'); // DÜZELTME: .trigger('change') -> .trigger('change.select2')
+    personelSelect.val(selectedPersonel).trigger('change.select2');
     return newRow;
 }
 
@@ -488,7 +499,8 @@ function createGuncellemeDetailRowElement(data) {
             inputHTML = `<select data-header="${header}">${createOptions(optionsList, value)}</select>`;
         } else {
             const inputType = (header.includes('SAYISI') || header.includes('TOPLAM')) ? 'number' : 'text';
-            inputHTML = `<input type="${inputType}" data-header="${header}" value="${value}">`;
+            const readonly = (header.includes('SAYISI') || header.includes('TOPLAM')) ? 'readonly' : '';
+            inputHTML = `<input type="${inputType}" data-header="${header}" value="${value}" ${readonly}>`;
         }
         rowHTML += `<td>${inputHTML}</td>`;
     });
@@ -497,10 +509,10 @@ function createGuncellemeDetailRowElement(data) {
 }
 
 function excelDateToJSDate(serial) {
-    if (!serial || typeof serial !== 'number' || serial <= 0) return serial;
+    if (!serial || isNaN(serial) || serial <= 0) return serial;
     // Excel'in başlangıç tarihi 1899-12-30 olarak alınır (1900 artık yıl hatası uyumluluğu için).
     const excelEpoch = new Date(1899, 11, 30, 12, 0, 0);
-    excelEpoch.setDate(excelEpoch.getDate() + serial);
+    excelEpoch.setDate(excelEpoch.getDate() + Number(serial));
     return excelEpoch;
 }
 
