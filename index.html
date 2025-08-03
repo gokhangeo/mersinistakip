@@ -599,10 +599,10 @@ function showTab(uygulamaAdi) {
 
 function getTableData() {
     const data = [];
-    const rows = document.querySelectorAll('.table-wrapper:not([data-group="Güncelleme Detay"]) tbody tr:not(.group-header-row)');
     const uniqueKeys = new Set();
     
-    rows.forEach(row => {
+    // Tüm sekmelerdeki ana tablo satırlarını topla
+    document.querySelectorAll('.table-wrapper:not([data-group="Güncelleme Detay"]) tbody tr:not(.group-header-row)').forEach(row => {
         const key = row.dataset.rowKey;
         if (!uniqueKeys.has(key)) {
             const cells = row.querySelectorAll('td');
@@ -628,8 +628,7 @@ function getTableData() {
 
 function getGuncellemeDetailData() {
     const data = [];
-    const rows = document.querySelectorAll('#guncellemeDetailTable tbody tr');
-    rows.forEach(row => {
+    document.querySelectorAll('#guncellemeDetailTable tbody tr').forEach(row => {
         const newRow = {};
         const cells = row.querySelectorAll('td');
         EXCEL_HEADERS_DETAIL.forEach((header, index) => {
@@ -648,7 +647,6 @@ async function saveToGitHub() {
     setUyari("Değişiklikler gönderiliyor...", 'bilgi');
 
     try {
-        // DÜZELTME: Veriyi global değişkenler yerine doğrudan UI'dan al
         const mainData = getTableData();
         const detailData = getGuncellemeDetailData();
 
@@ -685,10 +683,9 @@ async function saveToGitHub() {
         setUyari('Değişiklikler başarıyla kaydedildi! Veriler yenileniyor...', 'basari');
         markAsClean();
         
-        // DÜZELTME: Sayfayı yeniden yüklemek yerine verileri yeniden çek
         const activeTab = document.querySelector('.tab-btn.active').dataset.uygulama || 'Tümü';
         await fetchFromGitHub();
-        showTab(activeTab); // Kullanıcının kaldığı sekmeyi tekrar göster
+        showTab(activeTab);
 
     } catch (error) {
         console.error('GitHub\'a kaydetme hatası:', error);
