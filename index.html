@@ -131,6 +131,8 @@ function handleTableChange(event) {
     const target = event.target;
     if (target.tagName === 'INPUT' || target.tagName === 'SELECT') {
         const row = target.closest('tr');
+        if (!row || !row.dataset.rowKey) return;
+
         const rowKey = row.dataset.rowKey;
         const header = target.dataset.header;
         const table = row.closest('table');
@@ -171,7 +173,7 @@ function handleTableChange(event) {
                     if (syncTarget.type === 'checkbox') {
                         syncTarget.checked = (value === 'EVET');
                     } else if ($(syncTarget).hasClass('personel-select')) {
-                         $(syncTarget).val(value.split(', ')).trigger('change');
+                         $(syncTarget).val(value.split(', ')).trigger('change.select2');
                     }
                     else {
                         syncTarget.value = value;
@@ -180,8 +182,7 @@ function handleTableChange(event) {
             }
         });
         
-        if (target.type === 'checkbox') {
-             row.classList.toggle('tamamlandi', target.checked);
+        if (target.type === 'checkbox' && header === 'Tamamlandı') {
              document.querySelectorAll(`tr[data-row-key="${rowKey}"]`).forEach(syncRow => {
                 syncRow.classList.toggle('tamamlandi', target.checked);
              });
@@ -251,7 +252,7 @@ async function fetchFromGitHub() {
         const binary_string = window.atob(data.content);
         const bytes = new Uint8Array(binary_string.length);
         for (let i = 0; i < binary_string.length; i++) { bytes[i] = binary_string.charCodeAt(i); }
-        const workbook = XLSX.read(bytes, { type: 'array', cellDates:true });
+        const workbook = XLSX.read(bytes, { type: 'array' }); // DÜZELTME: cellDates:true kaldırıldı
 
         personelListesi = readSheetAsList(workbook, 'Personel');
         ilceListesi = readSheetAsList(workbook, 'İlçe');
@@ -456,14 +457,14 @@ function createRowElement(data = {}) {
         <td><input type="number" data-header="BLOK SAYISI" value="${data['BLOK SAYISI'] || ''}"></td>
         <td><input type="number" data-header="ALAN(Ha)" value="${data['ALAN(Ha)'] || ''}"></td>
         <td><select data-header="İHALELİ/MÜDÜRLÜK"><option value="İhaleli" ${data['İHALELİ/MÜDÜRLÜK'] === 'İhaleli' ? 'selected' : ''}>İhaleli</option><option value="Müdürlük" ${data['İHALELİ/MÜDÜRLÜK'] === 'Müdürlük' ? 'selected' : ''}>Müdürlük</option></select></td>
-        <td><input type="date" data-header="İŞE BAŞLAMA/YER TESLİMİ" value="${formatDate(data['İŞE BAŞLAMA/YER TESLİMİ'])}"></td>
-        <td><input type="date" data-header="İHALE BİTİŞ TARİHİ" value="${formatDate(data['İHALE BİTİŞ TARİHİ'])}"></td>
+        <td><input type="date" data-header="İŞE BAŞLAMA/YER TESLİMİ" value="${formatDate(excelDateToJSDate(data['İŞE BAŞLAMA/YER TESLİMİ']))}"></td>
+        <td><input type="date" data-header="İHALE BİTİŞ TARİHİ" value="${formatDate(excelDateToJSDate(data['İHALE BİTİŞ TARİHİ']))}"></td>
         <td><select data-header="DURUMU">${createOptions(durumlar, data['DURUMU'])}</select></td>
     `;
     
     const personelSelect = $(newRow).find('.personel-select');
     personelSelect.select2({ placeholder: "Personel Seçin" });
-    personelSelect.val(selectedPersonel).trigger('change');
+    personelSelect.val(selectedPersonel).trigger('change.select2'); // DÜZELTME: .trigger('change') -> .trigger('change.select2')
     return newRow;
 }
 
@@ -478,7 +479,7 @@ function createGuncellemeDetailRowElement(data) {
         const value = data[header] || '';
         let inputHTML = '';
         if (header.includes('TARİH') || header.includes('İŞE BAŞLAMA') || header.includes('BİTİŞ')) {
-            inputHTML = `<input type="date" data-header="${header}" value="${formatDate(value)}">`;
+            inputHTML = `<input type="date" data-header="${header}" value="${formatDate(excelDateToJSDate(value))}">`;
         } else if (header.includes('DURUM')) {
             let optionsList = [];
             if (header.includes('UÇUŞ')) optionsList = ucusKiyDurumList;
@@ -497,6 +498,7 @@ function createGuncellemeDetailRowElement(data) {
 
 function excelDateToJSDate(serial) {
     if (!serial || typeof serial !== 'number' || serial <= 0) return serial;
+    // Excel'in başlangıç tarihi 1899-12-30 olarak alınır (1900 artık yıl hatası uyumluluğu için).
     const excelEpoch = new Date(1899, 11, 30, 12, 0, 0);
     excelEpoch.setDate(excelEpoch.getDate() + serial);
     return excelEpoch;
