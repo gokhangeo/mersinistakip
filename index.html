@@ -71,10 +71,10 @@
             margin-bottom: 25px;
         }
 
-        #login-box input {
+        #login-box input[type="text"], #login-box input[type="password"] {
             width: 100%;
             padding: 12px;
-            margin-bottom: 15px;
+            margin-bottom: 10px;
             border: 1px solid #ccc;
             border-radius: 8px;
             box-sizing: border-box;
@@ -82,8 +82,8 @@
         }
 
         #login-button {
-            width: auto;
-            padding: 12px 40px;
+            width: 100%;
+            padding: 12px;
             font-size: 18px;
             background-color: #28a745;
             justify-content: center;
@@ -99,8 +99,9 @@
         .remember-me-container {
             display: flex;
             align-items: center;
-            justify-content: center;
+            justify-content: flex-start; /* Sola hizala */
             margin-bottom: 20px;
+            margin-top: 5px; 
             font-size: 14px;
             color: #333;
         }
