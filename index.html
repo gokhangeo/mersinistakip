@@ -377,7 +377,6 @@ function handleTableChange(event) {
             value = target.value;
         }
 
-        // DÜZELTME: Veriyi doğrudan ana veri dizilerinde güncelle
         const [ilce, birim] = rowKey.split('|');
         const table = row.closest('table');
 
@@ -388,7 +387,6 @@ function handleTableChange(event) {
             const dataRow = isTakipData.find(r => r['İLÇE'] == ilce && r['BİRİM'] == birim);
             if (dataRow) {
                 if (header === 'GÖREVLİ PERSONELLER') {
-                    // Excel'e kaydetmek için unvansız, virgülle ayrılmış string'e çevir
                     const personnelWithoutTitles = value.map(p => p.replace(/ \(.+\)$/, '').trim());
                     dataRow[header] = personnelWithoutTitles.join(', ');
                 } else {
@@ -624,7 +622,6 @@ async function saveToGitHub() {
     setUyari("Değişiklikler gönderiliyor...", 'bilgi');
 
     try {
-        // DÜZELTME: Veriyi global değişkenlerden al, DOM'dan değil
         const mainData = isTakipData;
         const detailData = guncellemeData;
 
