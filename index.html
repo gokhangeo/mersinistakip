@@ -666,9 +666,10 @@ async function saveToGitHub() {
         
         const responseData = await response.json();
         currentFileSHA = responseData.content.sha;
-        setUyari('Değişiklikler başarıyla kaydedildi! Sayfa yeniden yüklenecek.', 'basari');
+        setUyari('Değişiklikler başarıyla kaydedildi! Veriler yenileniyor...', 'basari');
         markAsClean();
-        setTimeout(() => window.location.reload(), 1500);
+        // DÜZELTME: Sayfayı yeniden yüklemek yerine verileri yeniden çek
+        fetchFromGitHub();
 
     } catch (error) {
         console.error('GitHub\'a kaydetme hatası:', error);
