@@ -937,6 +937,7 @@ function filtrele() {
     }
 
     document.getElementById('kayitSayaci').textContent = `Toplam ${toplamGorunenSatir} kayıt gösteriliyor.`;
+    applyDistrictBorders();
 }
 
 function checkRowMatch(row, aramaFilter, durumFilter) {
@@ -1048,6 +1049,44 @@ function showToast(message) {
 function calculateColumnSum(data, columnName) {
     return data.reduce((sum, row) => sum + (Number(row[columnName]) || 0), 0);
 }
+
+function applyDistrictBorders() {
+    const activeTable = document.querySelector('.table-wrapper.active table');
+    if (!activeTable) return;
+
+    const rows = activeTable.querySelectorAll('tbody tr:not(.group-header-row)');
+    const colors = ['#ff6347', '#4682b4', '#32cd32', '#ff8c00', '#9370db'];
+    let colorIndex = 0;
+    let lastIlce = null;
+
+    // First, clear all existing borders
+    rows.forEach(row => {
+        row.style.borderTop = '';
+    });
+
+    // Apply borders only to visible rows
+    rows.forEach(row => {
+        if (row.style.display === 'none') {
+            return; // Skip hidden rows
+        }
+
+        const ilceCell = row.cells[1];
+        if (!ilceCell) return;
+        
+        const currentIlceElement = ilceCell.querySelector('select, input');
+        if (!currentIlceElement) return;
+        
+        const currentIlce = currentIlceElement.value;
+
+        if (currentIlce !== lastIlce) {
+            // New visible group starts
+            row.style.borderTop = `3px solid ${colors[colorIndex % colors.length]}`;
+            colorIndex++;
+            lastIlce = currentIlce;
+        }
+    });
+}
+
 
 </script>
 
