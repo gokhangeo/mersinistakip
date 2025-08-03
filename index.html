@@ -247,7 +247,7 @@ document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('aramaTemizleBtn').addEventListener('click', aramaTemizle);
     document.getElementById('githubKaydetBtn').addEventListener('click', saveToGitHub);
     document.getElementById('excelIndirBtn').addEventListener('click', excelIndir);
-    document.getElementById('tableContainer').addEventListener('change', markAsDirty);
+    document.getElementById('tableContainer').addEventListener('change', handleTableChange);
 });
 
 function checkLoginStatus() {
@@ -356,6 +356,70 @@ function handleLogin() {
         setTimeout(() => {
             loginBox.classList.remove('shake');
         }, 500);
+    }
+}
+
+
+function handleTableChange(event) {
+    const target = event.target;
+    if (target.tagName === 'INPUT' || target.tagName === 'SELECT') {
+        const row = target.closest('tr');
+        if (!row || !row.dataset.rowKey) return;
+
+        const rowKey = row.dataset.rowKey;
+        const header = target.dataset.header;
+        
+        let value;
+        if (target.type === 'checkbox') {
+            value = target.checked ? 'EVET' : 'HAYIR';
+        } else if ($(target).hasClass('personel-select')) {
+            value = $(target).val() || []; // Get array from select2
+        } else {
+            value = target.value;
+        }
+
+        const [ilce, birim] = rowKey.split('|');
+        const table = row.closest('table');
+
+        if (table.id === 'guncellemeDetailTable') {
+            const dataRow = guncellemeData.find(r => r['İLÇE'] == ilce && r['BİRİM'] == birim);
+            if (dataRow) dataRow[header] = value;
+        } else {
+            const dataRow = isTakipData.find(r => r['İLÇE'] == ilce && r['BİRİM'] == birim);
+            if (dataRow) {
+                if (header === 'GÖREVLİ PERSONELLER') {
+                    const personnelWithoutTitles = value.map(p => p.replace(/ \(.+\)$/, '').trim());
+                    dataRow[header] = personnelWithoutTitles.join(', ');
+                } else {
+                    dataRow[header] = value;
+                }
+            }
+        }
+
+        // Sync UI
+        document.querySelectorAll(`tr[data-row-key="${rowKey}"]`).forEach(syncRow => {
+            if (syncRow !== row) {
+                const syncTarget = syncRow.querySelector(`[data-header="${header}"]`);
+                if (syncTarget) {
+                    if (syncTarget.type === 'checkbox') {
+                        syncTarget.checked = (value === 'EVET');
+                    } else if ($(syncTarget).hasClass('personel-select')) {
+                         $(syncTarget).val(value).trigger('change.select2');
+                    }
+                    else {
+                        syncTarget.value = value;
+                    }
+                }
+            }
+        });
+        
+        if (target.type === 'checkbox' && header === 'Tamamlandı') {
+             document.querySelectorAll(`tr[data-row-key="${rowKey}"]`).forEach(syncRow => {
+                syncRow.classList.toggle('tamamlandi', target.checked);
+             });
+        }
+
+        markAsDirty();
     }
 }
 
@@ -851,10 +915,17 @@ function toggleGroup(tbody) {
 }
 
 function excelIndir() {
-    const data = getTableDataFromUI(); // DÜZELTME: İndirme için de UI'dan veri al
-    const ws = XLSX.utils.json_to_sheet(data, {header: EXCEL_HEADERS_MAIN});
+    const mainData = getTableDataFromUI();
+    const detailData = getGuncellemeDetailDataFromUI();
+
     const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'İş Takip Listesi');
+    
+    const wsMain = XLSX.utils.json_to_sheet(mainData, {header: EXCEL_HEADERS_MAIN});
+    XLSX.utils.book_append_sheet(wb, wsMain, 'İş Takip Listesi');
+    
+    const wsDetail = XLSX.utils.json_to_sheet(detailData, {header: EXCEL_HEADERS_DETAIL});
+    XLSX.utils.book_append_sheet(wb, wsDetail, 'Güncelleme Detay');
+
     XLSX.writeFile(wb, `IhaleTakip_Indirilen_${new Date().toISOString().slice(0,10)}.xlsx`);
 }
 
