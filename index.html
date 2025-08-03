@@ -20,7 +20,6 @@
             /* Arka plan rengi canvas tarafından sağlanacak */
         }
         
-        /* --- YENİ: ANİMASYONLU ARKA PLAN --- */
         #dynamic-bg {
             position: fixed;
             top: 0;
@@ -30,7 +29,6 @@
             z-index: -1;
         }
 
-        /* --- GİRİŞ EKRANI STİLLERİ --- */
         #login-overlay {
             position: fixed;
             top: 0;
@@ -88,7 +86,7 @@
             padding: 12px;
             font-size: 18px;
             background-color: #28a745;
-            justify-content: center; /* DÜZELTME: Yazıyı ortala */
+            justify-content: center;
         }
         
         #login-error {
@@ -114,7 +112,6 @@
             20%, 40%, 60%, 80% { transform: translateX(10px); }
         }
 
-        /* --- ANA UYGULAMA STİLLERİ --- */
         #main-app-container { display: none; padding: 20px; background-color: #f4f7f6;} 
         .container { max-width: 1800px; margin: 0 auto; background-color: #ffffff; padding: 25px; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
         h1 { color: #0056b3; text-align: center; border-bottom: 2px solid #0056b3; padding-bottom: 10px; margin-bottom: 20px; }
@@ -132,7 +129,7 @@
         th { background-color: #007bff; color: white; font-size: 14px; }
         tr:nth-child(even) { background-color: #f2f2f2; }
         select, input { width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
-        input[readonly] { background-color: #e9ecef; cursor: not-allowed; }
+        input[readonly], select[disabled] { background-color: #e9ecef; cursor: not-allowed; }
         .action-cell { width: 80px; text-align: center; }
         .check-cell { width: 40px; text-align: center; }
         .tamamlandi { text-decoration: red line-through; text-decoration-thickness: 2px; opacity: 0.6; background-color: #f0f0f0 !important; }
@@ -160,14 +157,29 @@
         .table-wrapper[data-group="Tümü"] .group-header-row h3 { margin: 0; font-size: 16px; color: #0056b3; display: flex; justify-content: space-between; align-items: center; }
         .table-wrapper[data-group="Tümü"] .group-toggle-btn { font-size: 12px; padding: 4px 8px; background-color: #6c757d; color:white; border:none; border-radius: 3px; }
 
-        /* Belirli sekmelerde sütun gizleme */
-        .table-wrapper[data-group="GÜNCELLEME"] th:nth-child(8),
-        .table-wrapper[data-group="GÜNCELLEME"] td:nth-child(8),
-        .table-wrapper[data-group="2/B"] th:nth-child(4),
-        .table-wrapper[data-group="2/B"] td:nth-child(4),
-        .table-wrapper[data-group="GÜNCELLEME"] th:nth-child(4),
-        .table-wrapper[data-group="GÜNCELLEME"] td:nth-child(4) {
+        /* Sütun gizleme */
+        .col-ihaleli { display: none; }
+        .table-wrapper[data-group="GÜNCELLEME"] .col-alan,
+        .table-wrapper[data-group="2/B"] .col-uygulama,
+        .table-wrapper[data-group="GÜNCELLEME"] .col-uygulama {
             display: none;
+        }
+
+        #toast {
+            position: fixed;
+            bottom: -100px;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: #dc3545;
+            color: white;
+            padding: 1rem 2rem;
+            border-radius: 0.5rem;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            transition: bottom 0.5s ease-in-out;
+            z-index: 9999;
+        }
+        #toast.show {
+            bottom: 30px;
         }
     </style>
 </head>
@@ -213,6 +225,7 @@
         <div id="tableContainer" style="overflow-x:auto;"></div>
     </div>
 </div>
+<div id="toast"></div>
 
 <script>
 // !!! KULLANICI BİLGİLERİ !!!
@@ -542,7 +555,7 @@ function renderAllTables(mainData, detailData) {
     allWrapper.className = 'table-wrapper active';
     allWrapper.dataset.group = 'Tümü';
     const allTable = document.createElement('table');
-    allTable.innerHTML = `<thead><tr><th class="check-cell">&#10004;</th><th>İLÇE</th><th>BİRİM</th><th>UYGULAMA</th><th>GÖREVLİ PERSONELLER</th><th>PARSEL SAYISI</th><th>BLOK SAYISI</th><th>ALAN(Ha)</th><th>İHALELİ/MÜDÜRLÜK</th><th>İŞE BAŞLAMA/YER TESLİMİ</th><th>İHALE BİTİŞ TARİHİ</th><th>DURUMU</th></tr></thead>`;
+    allTable.innerHTML = `<thead><tr><th class="check-cell">&#10004;</th><th>İLÇE</th><th>BİRİM</th><th>UYGULAMA</th><th>GÖREVLİ PERSONELLER</th><th>PARSEL SAYISI</th><th>BLOK SAYISI</th><th>ALAN(Ha)</th><th class="col-ihaleli">İHALELİ/MÜDÜRLÜK</th><th>İŞE BAŞLAMA/YER TESLİMİ</th><th>İHALE BİTİŞ TARİHİ</th><th>DURUMU</th></tr></thead>`;
     allWrapper.appendChild(allTable);
     tableContainer.appendChild(allWrapper);
 
@@ -552,8 +565,8 @@ function renderAllTables(mainData, detailData) {
         headerRow.className = 'group-header-row';
         headerRow.onclick = (e) => { if (e.target.tagName !== 'BUTTON') toggleGroup(tbody); };
         headerRow.insertCell().innerHTML = `<h3><span>${uygulama} (<span class="group-count">${groupedData[uygulama].length}</span> iş)</span><button class="group-toggle-btn" onclick="event.stopPropagation(); toggleGroup(this.closest('tbody'))">Kapat</button></h3>`;
-        headerRow.cells[0].colSpan = 12;
-        groupedData[uygulama].forEach(rowData => tbody.appendChild(createRowElement(rowData)));
+        headerRow.cells[0].colSpan = 11; // Colspan updated
+        groupedData[uygulama].forEach(rowData => tbody.appendChild(createRowElement(rowData, 'Tümü')));
         allTable.appendChild(tbody);
     }
     
@@ -571,9 +584,9 @@ function renderAllTables(mainData, detailData) {
         tableWrapper.dataset.group = uygulama;
         const table = document.createElement('table');
         const blokSayisiHeader = uygulama === 'GÜNCELLEME' ? 'İDÖ SAYISI' : 'BLOK SAYISI';
-        table.innerHTML = `<thead><tr><th class="check-cell">&#10004;</th><th>İLÇE</th><th>BİRİM</th><th>UYGULAMA</th><th>GÖREVLİ PERSONELLER</th><th>PARSEL SAYISI</th><th>${blokSayisiHeader}</th><th>ALAN(Ha)</th><th>İHALELİ/MÜDÜRLÜK</th><th>İŞE BAŞLAMA/YER TESLİMİ</th><th>İHALE BİTİŞ TARİHİ</th><th>DURUMU</th></tr></thead>`;
+        table.innerHTML = `<thead><tr><th class="check-cell">&#10004;</th><th>İLÇE</th><th>BİRİM</th><th class="col-uygulama">UYGULAMA</th><th>GÖREVLİ PERSONELLER</th><th>PARSEL SAYISI</th><th>${blokSayisiHeader}</th><th class="col-alan">ALAN(Ha)</th><th class="col-ihaleli">İHALELİ/MÜDÜRLÜK</th><th>İŞE BAŞLAMA/YER TESLİMİ</th><th>İHALE BİTİŞ TARİHİ</th><th>DURUMU</th></tr></thead>`;
         const singleTbody = document.createElement('tbody');
-        groupedData[uygulama].forEach(rowData => singleTbody.appendChild(createRowElement(rowData)));
+        groupedData[uygulama].forEach(rowData => singleTbody.appendChild(createRowElement(rowData, uygulama)));
         table.appendChild(singleTbody);
         tableWrapper.appendChild(table);
         tableContainer.appendChild(tableWrapper);
@@ -592,10 +605,26 @@ function renderAllTables(mainData, detailData) {
     detailWrapper.dataset.group = 'Güncelleme Detay';
     const detailTable = document.createElement('table');
     detailTable.id = 'guncellemeDetailTable';
+    
+    const ucusYapildiCount = detailData.filter(row => row['UÇUŞ KIYMETLENDİRME DURUM'] === 'Yapıldı').length;
+    const degerlendirmeYapildiCount = detailData.filter(row => row['DEĞERLENDİRME DURUM'] === 'Yapıldı').length;
+    const komisyonYapildiCount = detailData.filter(row => row['KOMİSYON DURUM'] === 'Yapıldı').length;
+
     let detailThead = `<thead><tr>`;
-    EXCEL_HEADERS_DETAIL.forEach(h => detailThead += `<th>${h}</th>`);
+    EXCEL_HEADERS_DETAIL.forEach(h => {
+        let headerText = h;
+        if (h === 'UÇUŞ KIYMETLENDİRME DURUM') {
+            headerText += ` (${ucusYapildiCount})`;
+        } else if (h === 'DEĞERLENDİRME DURUM') {
+            headerText += ` (${degerlendirmeYapildiCount})`;
+        } else if (h === 'KOMİSYON DURUM') {
+            headerText += ` (${komisyonYapildiCount})`;
+        }
+        detailThead += `<th>${headerText}</th>`;
+    });
     detailThead += `</tr></thead>`;
     detailTable.innerHTML = detailThead;
+
     const detailTbody = document.createElement('tbody');
     detailData.forEach(rowData => detailTbody.appendChild(createGuncellemeDetailRowElement(rowData)));
     detailTable.appendChild(detailTbody);
@@ -692,7 +721,7 @@ function getTableDataFromUI() {
                 'PARSEL SAYISI': cells[5].querySelector('input').value,
                 'BLOK SAYISI': cells[6].querySelector('input').value,
                 'ALAN(Ha)': cells[7].querySelector('input').value,
-                'İHALELİ/MÜDÜRLÜK': cells[8].querySelector('select').value,
+                'İHALELİ/MÜDÜRLÜK': isTakipData.find(d => `${d['İLÇE']}|${d['BİRİM']}` === key)?.['İHALELİ/MÜDÜRLÜK'] || 'Müdürlük',
                 'İŞE BAŞLAMA/YER TESLİMİ': cells[9].querySelector('input').value,
                 'İHALE BİTİŞ TARİHİ': cells[10].querySelector('input').value,
                 'DURUMU': cells[11].querySelector('select').value
@@ -718,12 +747,14 @@ function getGuncellemeDetailDataFromUI() {
 }
 
 
-function createRowElement(data = {}) {
+function createRowElement(data = {}, tabName) {
     const newRow = document.createElement('tr');
     const rowKey = `${data['İLÇE']}|${data['BİRİM']}`;
     newRow.dataset.rowKey = rowKey;
     const isChecked = data['Tamamlandı'] === 'EVET';
     if(isChecked) newRow.classList.add('tamamlandi');
+
+    const isPersonnelEditable = tabName === 'Tümü';
 
     const createOptions = (list, selected) => list.map(item => `<option value="${item}" ${item === selected ? 'selected' : ''}>${item}</option>`).join('');
     const selectedPersonel = data['GÖREVLİ PERSONELLER'] ? String(data['GÖREVLİ PERSONELLER']).split(', ').map(name => {
@@ -732,16 +763,20 @@ function createRowElement(data = {}) {
 
     newRow.innerHTML = `
         <td class="check-cell"><input type="checkbox" data-header="Tamamlandı" ${isChecked ? 'checked' : ''}></td>
-        <td><select data-header="İLÇE">${createOptions(ilceListesi, data['İLÇE'])}</select></td>
-        <td><input type="text" data-header="BİRİM" value="${data['BİRİM'] || ''}"></td>
-        <td><select data-header="UYGULAMA">${createOptions(uygulamaListesi, data['UYGULAMA'])}</select></td>
-        <td><select class="personel-select" data-header="GÖREVLİ PERSONELLER" multiple="multiple">${createOptions(personelListesi, null)}</select></td>
+        <td><select data-header="İLÇE" disabled>${createOptions(ilceListesi, data['İLÇE'])}</select></td>
+        <td><input type="text" data-header="BİRİM" value="${data['BİRİM'] || ''}" readonly></td>
+        <td class="col-uygulama"><select data-header="UYGULAMA">${createOptions(uygulamaListesi, data['UYGULAMA'])}</select></td>
+        <td>
+            <div class="personnel-wrapper" ${!isPersonnelEditable ? `onclick="showToast('Personel değişikliği sadece \\'Tümü\\' sekmesinden yapılabilir.')"` : ''}>
+                <select class="personel-select" data-header="GÖREVLİ PERSONELLER" multiple="multiple" ${!isPersonnelEditable ? 'disabled' : ''}>${createOptions(personelListesi, null)}</select>
+            </div>
+        </td>
         <td><input type="number" data-header="PARSEL SAYISI" value="${data['PARSEL SAYISI'] || ''}" readonly></td>
         <td><input type="number" data-header="BLOK SAYISI" value="${data['BLOK SAYISI'] || ''}" readonly></td>
-        <td><input type="number" data-header="ALAN(Ha)" value="${data['ALAN(Ha)'] || ''}" readonly></td>
-        <td><select data-header="İHALELİ/MÜDÜRLÜK"><option value="İhaleli" ${data['İHALELİ/MÜDÜRLÜK'] === 'İhaleli' ? 'selected' : ''}>İhaleli</option><option value="Müdürlük" ${data['İHALELİ/MÜDÜRLÜK'] === 'Müdürlük' ? 'selected' : ''}>Müdürlük</option></select></td>
-        <td><input type="date" data-header="İŞE BAŞLAMA/YER TESLİMİ" value="${formatDate(excelDateToJSDate(data['İŞE BAŞLAMA/YER TESLİMİ']))}"></td>
-        <td><input type="date" data-header="İHALE BİTİŞ TARİHİ" value="${formatDate(excelDateToJSDate(data['İHALE BİTİŞ TARİHİ']))}"></td>
+        <td class="col-alan"><input type="number" data-header="ALAN(Ha)" value="${data['ALAN(Ha)'] || ''}" readonly></td>
+        <td class="col-ihaleli"><select data-header="İHALELİ/MÜDÜRLÜK"><option value="İhaleli" ${data['İHALELİ/MÜDÜRLÜK'] === 'İhaleli' ? 'selected' : ''}>İhaleli</option><option value="Müdürlük" ${data['İHALELİ/MÜDÜRLÜK'] === 'Müdürlük' ? 'selected' : ''}>Müdürlük</option></select></td>
+        <td><input type="date" data-header="İŞE BAŞLAMA/YER TESLİMİ" value="${formatDate(excelDateToJSDate(data['İŞE BAŞLAMA/YER TESLİMİ']))}" readonly></td>
+        <td><input type="date" data-header="İHALE BİTİŞ TARİHİ" value="${formatDate(excelDateToJSDate(data['İHALE BİTİŞ TARİHİ']))}" readonly></td>
         <td><select data-header="DURUMU">${createOptions(durumlar, data['DURUMU'])}</select></td>
     `;
     
@@ -762,7 +797,8 @@ function createGuncellemeDetailRowElement(data) {
         const value = data[header] || '';
         let inputHTML = '';
         if (header.includes('TARİH') || header.includes('İŞE BAŞLAMA') || header.includes('BİTİŞ')) {
-            inputHTML = `<input type="date" data-header="${header}" value="${formatDate(excelDateToJSDate(value))}">`;
+            const readonly = (header === 'BİTİŞ TARİHİ' || header === 'İŞE BAŞLAMA') ? 'readonly' : '';
+            inputHTML = `<input type="date" data-header="${header}" value="${formatDate(excelDateToJSDate(value))}" ${readonly}>`;
         } else if (header.includes('DURUM')) {
             let optionsList = [];
             if (header.includes('UÇUŞ')) optionsList = ucusKiyDurumList;
@@ -771,7 +807,7 @@ function createGuncellemeDetailRowElement(data) {
             inputHTML = `<select data-header="${header}">${createOptions(optionsList, value)}</select>`;
         } else {
             const inputType = (header.includes('SAYISI') || header.includes('TOPLAM')) ? 'number' : 'text';
-            const readonly = (header.includes('SAYISI') || header.includes('TOPLAM')) ? 'readonly' : '';
+            const readonly = (header.includes('SAYISI') || header.includes('TOPLAM') || header === 'İLÇE' || header === 'BİRİM') ? 'readonly' : '';
             inputHTML = `<input type="${inputType}" data-header="${header}" value="${value}" ${readonly}>`;
         }
         rowHTML += `<td>${inputHTML}</td>`;
@@ -948,6 +984,15 @@ function getColumnWidths(data, headers) {
     });
 
     return widths;
+}
+
+function showToast(message) {
+    const toast = document.getElementById('toast');
+    toast.textContent = message;
+    toast.className = "show";
+    setTimeout(() => { 
+        toast.className = toast.className.replace("show", ""); 
+    }, 3000);
 }
 
 </script>
