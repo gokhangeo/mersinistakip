@@ -236,34 +236,35 @@ const EXCEL_HEADERS_DETAIL = ['İLÇE', 'BİRİM', 'PARSEL SAYISI', 'İDÖ PARSE
 
 
 document.addEventListener('DOMContentLoaded', function() {
-    // Giriş ekranı olaylarını bağla
-    const loginButton = document.getElementById('login-button');
-    const usernameInput = document.getElementById('username');
-    const passwordInput = document.getElementById('password');
-
-    loginButton.addEventListener('click', handleLogin);
-    passwordInput.addEventListener('keypress', function(event) {
-        if (event.key === 'Enter') {
-            handleLogin();
-        }
-    });
-    usernameInput.addEventListener('keypress', function(event) {
-        if (event.key === 'Enter') {
-            handleLogin();
-        }
-    });
-
-    // Ana uygulama olaylarını bağla
+    // Arka plan animasyonunu başlat
+    initAnimatedBackground();
+    checkLoginStatus();
+    
+    // Event Listeners
     document.getElementById('aramaKutusu').addEventListener('keyup', filtrele);
     document.getElementById('durumFiltresi').addEventListener('change', filtrele);
     document.getElementById('aramaTemizleBtn').addEventListener('click', aramaTemizle);
     document.getElementById('githubKaydetBtn').addEventListener('click', saveToGitHub);
     document.getElementById('excelIndirBtn').addEventListener('click', excelIndir);
     document.getElementById('tableContainer').addEventListener('change', handleTableChange);
-
-    // Arka plan animasyonunu başlat
-    initAnimatedBackground();
 });
+
+function checkLoginStatus() {
+    if (sessionStorage.getItem('isLoggedIn') === 'true') {
+        document.getElementById('login-overlay').style.display = 'none';
+        document.getElementById('main-app-container').style.display = 'block';
+        fetchFromGitHub();
+    } else {
+        const loginButton = document.getElementById('login-button');
+        const usernameInput = document.getElementById('username');
+        const passwordInput = document.getElementById('password');
+
+        loginButton.addEventListener('click', handleLogin);
+        passwordInput.addEventListener('keypress', (event) => { if (event.key === 'Enter') handleLogin(); });
+        usernameInput.addEventListener('keypress', (event) => { if (event.key === 'Enter') handleLogin(); });
+    }
+}
+
 
 function initAnimatedBackground() {
     const bgCanvas = document.getElementById('dynamic-bg');
@@ -272,7 +273,6 @@ function initAnimatedBackground() {
     const renderer = new THREE.WebGLRenderer({ canvas: bgCanvas, alpha: true });
     renderer.setSize(window.innerWidth, window.innerHeight);
     
-    // Açık gökyüzü arka planı
     const gradientTexture = new THREE.CanvasTexture(generateGradient());
     scene.background = gradientTexture;
 
@@ -284,7 +284,6 @@ function initAnimatedBackground() {
     }
     particlesGeometry.setAttribute('position', new THREE.BufferAttribute(posArray, 3));
     
-    // Parçacıklar beyaz olacak
     const particlesMaterial = new THREE.PointsMaterial({ size: 0.015, color: 0xffffff });
     const particlesMesh = new THREE.Points(particlesGeometry, particlesMaterial);
     scene.add(particlesMesh);
@@ -338,17 +337,17 @@ function handleLogin() {
     const loginError = document.getElementById('login-error');
     const loginBox = document.getElementById('login-box');
     
-    // Şifre ve kullanıcı adını buradan değiştirebilirsiniz
     const dogruKullaniciAdi = "mersinistakip";
     const dogruSifre = "503344";
 
     if (usernameInput.value === dogruKullaniciAdi && passwordInput.value === dogruSifre) {
+        sessionStorage.setItem('isLoggedIn', 'true'); // DÜZELTME
         const loginOverlay = document.getElementById('login-overlay');
         loginOverlay.style.opacity = '0';
         setTimeout(() => {
             loginOverlay.style.display = 'none';
             document.getElementById('main-app-container').style.display = 'block';
-            fetchFromGitHub(); // Verileri giriş yapıldıktan sonra çek
+            fetchFromGitHub();
         }, 500);
     } else {
         loginError.textContent = 'Kullanıcı adı veya şifre hatalı!';
@@ -368,7 +367,6 @@ function handleTableChange(event) {
 
         const rowKey = row.dataset.rowKey;
         const header = target.dataset.header;
-        const table = row.closest('table');
         
         let value;
         if (target.type === 'checkbox') {
@@ -377,25 +375,6 @@ function handleTableChange(event) {
             value = $(target).val().join(', ');
         } else {
             value = target.value;
-        }
-
-        let dataArray, uniqueIdProperty1, uniqueIdProperty2;
-
-        if (table.id === 'guncellemeDetailTable') {
-            dataArray = guncellemeData;
-            uniqueIdProperty1 = 'İLÇE';
-            uniqueIdProperty2 = 'BİRİM';
-        } else {
-            dataArray = isTakipData;
-            uniqueIdProperty1 = 'İLÇE';
-            uniqueIdProperty2 = 'BİRİM';
-        }
-        
-        const [id1, id2] = rowKey.split('|');
-        const dataRow = dataArray.find(r => r[uniqueIdProperty1] == id1 && r[uniqueIdProperty2] == id2);
-
-        if (dataRow) {
-            dataRow[header] = value;
         }
 
         // Sync UI
@@ -619,11 +598,47 @@ function showTab(uygulamaAdi) {
 }
 
 function getTableData() {
-    return isTakipData;
+    const data = [];
+    const rows = document.querySelectorAll('.table-wrapper:not([data-group="Güncelleme Detay"]) tbody tr:not(.group-header-row)');
+    const uniqueKeys = new Set();
+    
+    rows.forEach(row => {
+        const key = row.dataset.rowKey;
+        if (!uniqueKeys.has(key)) {
+            const cells = row.querySelectorAll('td');
+            data.push({
+                'Tamamlandı': cells[0].querySelector('input[type="checkbox"]').checked ? 'EVET' : 'HAYIR',
+                'İLÇE': cells[1].querySelector('select').value,
+                'BİRİM': cells[2].querySelector('input').value,
+                'UYGULAMA': cells[3].querySelector('select').value,
+                'GÖREVLİ PERSONELLER': $(cells[4]).find('.personel-select').val().join(', '),
+                'PARSEL SAYISI': cells[5].querySelector('input').value,
+                'BLOK SAYISI': cells[6].querySelector('input').value,
+                'ALAN(Ha)': cells[7].querySelector('input').value,
+                'İHALELİ/MÜDÜRLÜK': cells[8].querySelector('select').value,
+                'İŞE BAŞLAMA/YER TESLİMİ': cells[9].querySelector('input').value,
+                'İHALE BİTİŞ TARİHİ': cells[10].querySelector('input').value,
+                'DURUMU': cells[11].querySelector('select').value
+            });
+            uniqueKeys.add(key);
+        }
+    });
+    return data;
 }
 
 function getGuncellemeDetailData() {
-    return guncellemeData;
+    const data = [];
+    const rows = document.querySelectorAll('#guncellemeDetailTable tbody tr');
+    rows.forEach(row => {
+        const newRow = {};
+        const cells = row.querySelectorAll('td');
+        EXCEL_HEADERS_DETAIL.forEach((header, index) => {
+            const input = cells[index].querySelector('input, select');
+            newRow[header] = input.value;
+        });
+        data.push(newRow);
+    });
+    return data;
 }
 
 async function saveToGitHub() {
@@ -633,6 +648,7 @@ async function saveToGitHub() {
     setUyari("Değişiklikler gönderiliyor...", 'bilgi');
 
     try {
+        // DÜZELTME: Veriyi global değişkenler yerine doğrudan UI'dan al
         const mainData = getTableData();
         const detailData = getGuncellemeDetailData();
 
@@ -668,8 +684,11 @@ async function saveToGitHub() {
         currentFileSHA = responseData.content.sha;
         setUyari('Değişiklikler başarıyla kaydedildi! Veriler yenileniyor...', 'basari');
         markAsClean();
+        
         // DÜZELTME: Sayfayı yeniden yüklemek yerine verileri yeniden çek
-        fetchFromGitHub();
+        const activeTab = document.querySelector('.tab-btn.active').dataset.uygulama || 'Tümü';
+        await fetchFromGitHub();
+        showTab(activeTab); // Kullanıcının kaldığı sekmeyi tekrar göster
 
     } catch (error) {
         console.error('GitHub\'a kaydetme hatası:', error);
