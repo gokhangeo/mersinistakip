@@ -49,8 +49,6 @@
         .tab-btn.active { background-color: #007bff; color: white; border-color: #007bff; }
         .table-wrapper { display: none; }
         .table-wrapper.active { display: block; }
-
-        /* Grup Başlığı Stilleri (Sadece Tümü sekmesi için) */
         .table-wrapper[data-group="Tümü"] .group-header-row { background-color: #e9ecef; font-weight: bold; cursor: pointer; }
         .table-wrapper[data-group="Tümü"] .group-header-row:hover { background-color: #dde2e6; }
         .table-wrapper[data-group="Tümü"] .group-header-row td { padding: 12px; }
@@ -78,15 +76,15 @@
     </div>
     <div class="controls">
         <div class="search-container">
-            <input type="text" id="aramaKutusu" onkeyup="filtrele()" placeholder="İlçe, Birim, Personel Ara...">
-            <span id="aramaTemizleBtn" onclick="aramaTemizle()">&#10006;</span>
+            <input type="text" id="aramaKutusu" placeholder="İlçe, Birim, Personel Ara...">
+            <span id="aramaTemizleBtn">&#10006;</span>
         </div>
-        <select id="durumFiltresi" onchange="filtrele()"></select>
-        <button id="githubKaydetBtn" class="success" onclick="saveToGitHub()" disabled>
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8"/></svg>
+        <select id="durumFiltresi"></select>
+        <button id="githubKaydetBtn" class="success" disabled>
+             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8"/></svg>
             Kaydet
         </button>
-        <button class="info" onclick="excelIndir()">&#x1F4BE; Excel Olarak İndir</button>
+        <button id="excelIndirBtn" class="info">&#x1F4BE; Excel Olarak İndir</button>
     </div>
 
     <div id="tabs" class="tabs-container"></div>
@@ -109,13 +107,24 @@ const GITHUB_TOKEN = token_part1 + token_part2;
 const API_URL = `https://api.github.com/repos/${GITHUB_KULLANICI_ADI}/${GITHUB_REPO_ADI}/contents/${DOSYA_YOLU}`;
 let currentFileSHA = '';
 let personelListesi = [], ilceListesi = [], uygulamaListesi = [];
+let guncellemeData = [], isTakipData = [];
+let ucusKiyDurumList = [], komisyonDurumList = [], degerlendirmeDurumList = [];
+
 const durumlar = ['YER TESLİMİ YAPILDI', 'HERHANGİ BİRŞEY YAPILMADI', 'TAPU KAYIT KARŞILAŞTIRMA', 'BİLİRKİŞİ YEMİN/ADA-MEVKİ İLAN', 'ARAZİ DEVAM EDİYOR', 'DEĞERLENDİRMEDE', 'ASKI İLANINA HAZIRLANIYOR', 'BİLGİLENDİRME İLANINDA', 'KOMİSYON AŞAMASINDA', 'KESİN ASKIDA', 'DEVİR YAPILDI', 'TESCİL AŞAMASINDA', 'İHALEDEN/PROGRAMDAN ÇIKARILDI', 'KESİN ASKIDAN İNDİ. BEKLEMEDE', 'DEPREM NEDENİYLE ASKI YENİLENECEK', 'VERİLER ELEKTRONİK ORTAMDA HAZIR', 'ORMAN ASKISI', 'TESCİLİ BİTTİ'];
-const EXCEL_HEADERS = ['Tamamlandı', 'İLÇE', 'BİRİM', 'UYGULAMA', 'GÖREVLİ PERSONELLER', 'PARSEL SAYISI', 'BLOK SAYISI', 'ALAN(Ha)', 'İHALELİ/MÜDÜRLÜK', 'İŞE BAŞLAMA/YER TESLİMİ', 'İHALE BİTİŞ TARİHİ', 'DURUMU'];
+const EXCEL_HEADERS_MAIN = ['Tamamlandı', 'İLÇE', 'BİRİM', 'UYGULAMA', 'GÖREVLİ PERSONELLER', 'PARSEL SAYISI', 'BLOK SAYISI', 'ALAN(Ha)', 'İHALELİ/MÜDÜRLÜK', 'İŞE BAŞLAMA/YER TESLİMİ', 'İHALE BİTİŞ TARİHİ', 'DURUMU'];
+const EXCEL_HEADERS_DETAIL = ['İLÇE', 'BİRİM', 'PARSEL SAYISI', 'İDÖ PARSEL SAYISI', 'TOPLAM PARSEL', 'İŞE BAŞLAMA', 'BİTİŞ TARİHİ', 'LİDAR/YERSEL ÖLÇÜM TARİHİ(YAPILAN)', 'ARAZİ YERSEL ÖLÇÜM TARİHİ(YAPILAN)', 'UÇUŞ TARİHİ(YAPILAN)', 'UÇUŞ KIYMETLENDİRME DURUM', 'DEĞERLENDİRME DURUM', 'ORMAN ASKI TARİHİ', 'BİLGİLENDİRME İLANI TARİHİ', 'KOMİSYON DURUM', 'KESİN ASKI TARİHİ'];
 
 
 window.onload = function() {
     fetchFromGitHub();
     document.getElementById('tableContainer').addEventListener('change', markAsDirty);
+    
+    // Event Listeners
+    document.getElementById('aramaKutusu').addEventListener('keyup', filtrele);
+    document.getElementById('durumFiltresi').addEventListener('change', filtrele);
+    document.getElementById('aramaTemizleBtn').addEventListener('click', aramaTemizle);
+    document.getElementById('githubKaydetBtn').addEventListener('click', saveToGitHub);
+    document.getElementById('excelIndirBtn').addEventListener('click', excelIndir);
 };
 
 function markAsDirty() {
@@ -146,11 +155,21 @@ function setUyari(mesaj, tip = 'bilgi') {
     uyariKutusu.innerHTML = `<strong>Durum:</strong> ${mesaj}`;
 }
 
-function readSheetAsList(workbook, sheetName) {
+function readSheetAsList(workbook, sheetName, header=true) {
     const sheet = workbook.Sheets[sheetName];
     if (!sheet) return [];
     const json = XLSX.utils.sheet_to_json(sheet, { header: 1 });
-    return json.map(row => row[0]).filter(Boolean);
+    const data = header ? json.slice(1) : json;
+    return data.map(row => row[0]).filter(Boolean);
+}
+
+function parseLists(workbook, sheetName) {
+    const sheet = workbook.Sheets[sheetName];
+    if (!sheet) return;
+    const json = XLSX.utils.sheet_to_json(sheet);
+    ucusKiyDurumList = json.map(row => row['UÇUŞ KIYMETLENDİRME DURUM']).filter(Boolean);
+    komisyonDurumList = json.map(row => row['KOMİSYON DURUM']).filter(Boolean);
+    degerlendirmeDurumList = json.map(row => row['DEĞERLENDİRME DURUM']).filter(Boolean);
 }
 
 async function fetchFromGitHub() {
@@ -167,109 +186,21 @@ async function fetchFromGitHub() {
         const binary_string = window.atob(data.content);
         const bytes = new Uint8Array(binary_string.length);
         for (let i = 0; i < binary_string.length; i++) { bytes[i] = binary_string.charCodeAt(i); }
-        const workbook = XLSX.read(bytes, { type: 'array' });
+        const workbook = XLSX.read(bytes, { type: 'array', cellDates:true });
 
         personelListesi = readSheetAsList(workbook, 'Personel');
         ilceListesi = readSheetAsList(workbook, 'İlçe');
         uygulamaListesi = readSheetAsList(workbook, 'Uygulama');
+        parseLists(workbook, 'Liste');
 
-        const isTakipSheet = workbook.Sheets['İş Takip Listesi'];
-        const tableContainer = document.getElementById('tableContainer');
-        const tabsContainer = document.getElementById('tabs');
-        
-        tableContainer.innerHTML = '';
-        tabsContainer.innerHTML = '';
+        isTakipData = XLSX.utils.sheet_to_json(workbook.Sheets['İş Takip Listesi'] || {});
+        guncellemeData = XLSX.utils.sheet_to_json(workbook.Sheets['Güncelleme'] || {});
 
-        if (isTakipSheet) {
-            const is_takip_json = XLSX.utils.sheet_to_json(isTakipSheet);
-            
-            const groupedData = is_takip_json.reduce((acc, row) => {
-                const groupName = row['UYGULAMA'] || 'Diğer İşler';
-                if (!acc[groupName]) {
-                    acc[groupName] = [];
-                }
-                acc[groupName].push(row);
-                return acc;
-            }, {});
-
-            // --- "TÜMÜ" SEKMESİ OLUŞTURMA (Gruplu ve Açılır-Kapanır) ---
-            const allTabBtn = document.createElement('button');
-            allTabBtn.className = 'tab-btn active';
-            allTabBtn.textContent = 'Tümü';
-            allTabBtn.onclick = () => showTab('Tümü');
-            tabsContainer.appendChild(allTabBtn);
-
-            const allWrapper = document.createElement('div');
-            allWrapper.className = 'table-wrapper active';
-            allWrapper.dataset.group = 'Tümü';
-            
-            const allTable = document.createElement('table');
-            allTable.innerHTML = `<thead>
-                <tr>
-                    <th class="check-cell">&#10004;</th><th>İLÇE</th><th>BİRİM</th><th>UYGULAMA</th><th>GÖREVLİ PERSONELLER</th><th>PARSEL SAYISI</th><th>BLOK SAYISI</th><th>ALAN(Ha)</th><th>İHALELİ/MÜDÜRLÜK</th><th>İŞE BAŞLAMA/YER TESLİMİ</th><th>İHALE BİTİŞ TARİHİ</th><th>DURUMU</th><th class="action-cell">İşlem</th>
-                </tr>
-            </thead>`;
-
-            for (const uygulama in groupedData) {
-                const groupRows = groupedData[uygulama];
-                const tbody = document.createElement('tbody');
-                
-                const headerRow = tbody.insertRow();
-                headerRow.className = 'group-header-row';
-                headerRow.onclick = (e) => {
-                    if (e.target.tagName !== 'BUTTON') {
-                        toggleGroup(tbody);
-                    }
-                };
-                const headerCell = headerRow.insertCell();
-                headerCell.colSpan = 13;
-                headerCell.innerHTML = `<h3>
-                    <span>${uygulama} (<span class="group-count">${groupRows.length}</span> iş)</span>
-                    <button class="group-toggle-btn" onclick="event.stopPropagation(); toggleGroup(this.closest('tbody'))">Kapat</button>
-                </h3>`;
-                
-                groupRows.forEach(rowData => {
-                    const newRow = createRowElement(rowData);
-                    tbody.appendChild(newRow);
-                });
-                allTable.appendChild(tbody);
-            }
-            allWrapper.appendChild(allTable);
-            tableContainer.appendChild(allWrapper);
-
-            // --- DİĞER SEKMELERİ OLUŞTURMA (Düz Liste) ---
-            for (const uygulama in groupedData) {
-                const tab = document.createElement('button');
-                tab.className = 'tab-btn';
-                tab.textContent = `${uygulama} (${groupedData[uygulama].length})`;
-                tab.dataset.uygulama = uygulama;
-                tab.onclick = () => showTab(uygulama);
-                tabsContainer.appendChild(tab);
-
-                const tableWrapper = document.createElement('div');
-                tableWrapper.className = 'table-wrapper';
-                tableWrapper.dataset.group = uygulama;
-
-                const table = document.createElement('table');
-                const blokSayisiHeader = uygulama === 'GÜNCELLEME' ? 'İDÖ SAYISI' : 'BLOK SAYISI';
-                table.innerHTML = `<thead>
-                    <tr>
-                        <th class="check-cell">&#10004;</th><th>İLÇE</th><th>BİRİM</th><th>UYGULAMA</th><th>GÖREVLİ PERSONELLER</th><th>PARSEL SAYISI</th><th>${blokSayisiHeader}</th><th>ALAN(Ha)</th><th>İHALELİ/MÜDÜRLÜK</th><th>İŞE BAŞLAMA/YER TESLİMİ</th><th>İHALE BİTİŞ TARİHİ</th><th>DURUMU</th><th class="action-cell">İşlem</th>
-                    </tr>
-                </thead>`;
-                const tbody = document.createElement('tbody');
-                groupedData[uygulama].forEach(rowData => {
-                    tbody.appendChild(createRowElement(rowData));
-                });
-                table.appendChild(tbody);
-                tableWrapper.appendChild(table);
-                tableContainer.appendChild(tableWrapper);
-            }
-        }
+        renderAllTables(isTakipData, guncellemeData);
 
         document.getElementById('loader').style.display = 'none';
         document.getElementById('githubKaydetBtn').disabled = false;
-        setUyari("Veriler başarıyla çekildi ve hibrit görünüm oluşturuldu.", 'basari');
+        setUyari("Veriler başarıyla çekildi.", 'basari');
         markAsClean();
         durumFiltresiDoldur();
         showTab('Tümü');
@@ -281,10 +212,95 @@ async function fetchFromGitHub() {
     }
 }
 
+function renderAllTables(mainData, detailData) {
+    const tableContainer = document.getElementById('tableContainer');
+    const tabsContainer = document.getElementById('tabs');
+    tableContainer.innerHTML = '';
+    tabsContainer.innerHTML = '';
+
+    const groupedData = mainData.reduce((acc, row) => {
+        const groupName = row['UYGULAMA'] || 'Diğer İşler';
+        if (!acc[groupName]) acc[groupName] = [];
+        acc[groupName].push(row);
+        return acc;
+    }, {});
+
+    // "Tümü" Sekmesi ve Tablosu
+    const allTabBtn = document.createElement('button');
+    allTabBtn.className = 'tab-btn active';
+    allTabBtn.textContent = 'Tümü';
+    allTabBtn.onclick = () => showTab('Tümü');
+    tabsContainer.appendChild(allTabBtn);
+
+    const allWrapper = document.createElement('div');
+    allWrapper.className = 'table-wrapper active';
+    allWrapper.dataset.group = 'Tümü';
+    const allTable = document.createElement('table');
+    allTable.innerHTML = `<thead><tr><th class="check-cell">&#10004;</th><th>İLÇE</th><th>BİRİM</th><th>UYGULAMA</th><th>GÖREVLİ PERSONELLER</th><th>PARSEL SAYISI</th><th>BLOK SAYISI</th><th>ALAN(Ha)</th><th>İHALELİ/MÜDÜRLÜK</th><th>İŞE BAŞLAMA/YER TESLİMİ</th><th>İHALE BİTİŞ TARİHİ</th><th>DURUMU</th></tr></thead>`;
+    allWrapper.appendChild(allTable);
+    tableContainer.appendChild(allWrapper);
+
+    for (const uygulama in groupedData) {
+        const tbody = document.createElement('tbody');
+        const headerRow = tbody.insertRow();
+        headerRow.className = 'group-header-row';
+        headerRow.onclick = (e) => { if (e.target.tagName !== 'BUTTON') toggleGroup(tbody); };
+        headerRow.insertCell().innerHTML = `<h3><span>${uygulama} (<span class="group-count">${groupedData[uygulama].length}</span> iş)</span><button class="group-toggle-btn" onclick="event.stopPropagation(); toggleGroup(this.closest('tbody'))">Kapat</button></h3>`;
+        headerRow.cells[0].colSpan = 12;
+        groupedData[uygulama].forEach(rowData => tbody.appendChild(createRowElement(rowData)));
+        allTable.appendChild(tbody);
+    }
+    
+    // Diğer Ana Sekmeler ve Tabloları
+    for (const uygulama in groupedData) {
+        const tab = document.createElement('button');
+        tab.className = 'tab-btn';
+        tab.textContent = `${uygulama} (${groupedData[uygulama].length})`;
+        tab.dataset.uygulama = uygulama;
+        tab.onclick = () => showTab(uygulama);
+        tabsContainer.appendChild(tab);
+
+        const tableWrapper = document.createElement('div');
+        tableWrapper.className = 'table-wrapper';
+        tableWrapper.dataset.group = uygulama;
+        const table = document.createElement('table');
+        const blokSayisiHeader = uygulama === 'GÜNCELLEME' ? 'İDÖ SAYISI' : 'BLOK SAYISI';
+        table.innerHTML = `<thead><tr><th class="check-cell">&#10004;</th><th>İLÇE</th><th>BİRİM</th><th>UYGULAMA</th><th>GÖREVLİ PERSONELLER</th><th>PARSEL SAYISI</th><th>${blokSayisiHeader}</th><th>ALAN(Ha)</th><th>İHALELİ/MÜDÜRLÜK</th><th>İŞE BAŞLAMA/YER TESLİMİ</th><th>İHALE BİTİŞ TARİHİ</th><th>DURUMU</th></tr></thead>`;
+        const singleTbody = document.createElement('tbody');
+        groupedData[uygulama].forEach(rowData => singleTbody.appendChild(createRowElement(rowData)));
+        table.appendChild(singleTbody);
+        tableWrapper.appendChild(table);
+        tableContainer.appendChild(tableWrapper);
+    }
+
+    // "Güncelleme Detay" Sekmesi ve Tablosu
+    const detailTabBtn = document.createElement('button');
+    detailTabBtn.className = 'tab-btn';
+    detailTabBtn.textContent = 'Güncelleme Detay';
+    detailTabBtn.dataset.uygulama = 'Güncelleme Detay';
+    detailTabBtn.onclick = () => showTab('Güncelleme Detay');
+    tabsContainer.appendChild(detailTabBtn);
+
+    const detailWrapper = document.createElement('div');
+    detailWrapper.className = 'table-wrapper';
+    detailWrapper.dataset.group = 'Güncelleme Detay';
+    const detailTable = document.createElement('table');
+    detailTable.id = 'guncellemeDetailTable';
+    let detailThead = `<thead><tr>`;
+    EXCEL_HEADERS_DETAIL.forEach(h => detailThead += `<th>${h}</th>`);
+    detailThead += `</tr></thead>`;
+    detailTable.innerHTML = detailThead;
+    const detailTbody = document.createElement('tbody');
+    detailData.forEach(rowData => detailTbody.appendChild(createGuncellemeDetailRowElement(rowData)));
+    detailTable.appendChild(detailTbody);
+    detailWrapper.appendChild(detailTable);
+    tableContainer.appendChild(detailWrapper);
+}
+
+
 function showTab(uygulamaAdi) {
     document.querySelectorAll('.table-wrapper').forEach(w => w.classList.remove('active'));
     document.querySelector(`.table-wrapper[data-group="${uygulamaAdi}"]`).classList.add('active');
-    
     document.querySelectorAll('.tab-btn').forEach(btn => {
         btn.classList.remove('active');
         if (btn.dataset.uygulama === uygulamaAdi || (uygulamaAdi === 'Tümü' && btn.textContent === 'Tümü')) {
@@ -295,45 +311,47 @@ function showTab(uygulamaAdi) {
 }
 
 function getTableData() {
-    // Veri toplarken tüm tablolardaki satırları almamız gerekiyor, bu yüzden genel bir seçici kullanıyoruz.
-    const rows = document.querySelectorAll('#tableContainer tbody tr:not(.group-header-row)');
-    const data = new Set(); // Yinelenen satırları önlemek için Set kullan
-    const uniqueRows = [];
-
+    const data = [];
+    const rows = document.querySelectorAll('.table-wrapper:not([data-group="Güncelleme Detay"]) tbody tr:not(.group-header-row)');
+    const uniqueKeys = new Set();
+    
     rows.forEach(row => {
-        // Her satır için benzersiz bir anahtar oluştur
-        const key = Array.from(row.querySelectorAll('input, select')).map(el => el.value).join('|');
-        if (!data.has(key)) {
-            data.add(key);
-            uniqueRows.push(row);
+        const key = row.dataset.rowKey;
+        if (!uniqueKeys.has(key)) {
+            const cells = row.querySelectorAll('td');
+            data.push({
+                'Tamamlandı': cells[0].querySelector('input[type="checkbox"]').checked ? 'EVET' : 'HAYIR',
+                'İLÇE': cells[1].querySelector('select').value,
+                'BİRİM': cells[2].querySelector('input').value,
+                'UYGULAMA': cells[3].querySelector('select').value,
+                'GÖREVLİ PERSONELLER': $(cells[4]).find('.personel-select').val().join(', '),
+                'PARSEL SAYISI': cells[5].querySelector('input').value,
+                'BLOK SAYISI': cells[6].querySelector('input').value,
+                'ALAN(Ha)': cells[7].querySelector('input').value,
+                'İHALELİ/MÜDÜRLÜK': cells[8].querySelector('select').value,
+                'İŞE BAŞLAMA/YER TESLİMİ': cells[9].querySelector('input').value,
+                'İHALE BİTİŞ TARİHİ': cells[10].querySelector('input').value,
+                'DURUMU': cells[11].querySelector('select').value
+            });
+            uniqueKeys.add(key);
         }
     });
-    
-    return uniqueRows.map(row => {
-        const cells = row.querySelectorAll('td');
-        return {
-            'Tamamlandı': cells[0].querySelector('input[type="checkbox"]').checked ? 'EVET' : 'HAYIR',
-            'İLÇE': cells[1].querySelector('select').value,
-            'BİRİM': cells[2].querySelector('input').value,
-            'UYGULAMA': cells[3].querySelector('select').value,
-            'GÖREVLİ PERSONELLER': $(cells[4]).find('.personel-select').val().join(', '),
-            'PARSEL SAYISI': cells[5].querySelector('input').value,
-            'BLOK SAYISI': cells[6].querySelector('input').value,
-            'ALAN(Ha)': cells[7].querySelector('input').value,
-            'İHALELİ/MÜDÜRLÜK': cells[8].querySelector('select').value,
-            'İŞE BAŞLAMA/YER TESLİMİ': cells[9].querySelector('input').value,
-            'İHALE BİTİŞ TARİHİ': cells[10].querySelector('input').value,
-            'DURUMU': cells[11].querySelector('select').value
-        };
-    });
+    return data;
 }
 
-function excelIndir() {
-    const data = getTableData();
-    const ws = XLSX.utils.json_to_sheet(data, {header: EXCEL_HEADERS});
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'İş Takip Listesi');
-    XLSX.writeFile(wb, `IsTakip_Indirilen_${new Date().toISOString().slice(0,10)}.xlsx`);
+function getGuncellemeDetailData() {
+    const data = [];
+    const rows = document.querySelectorAll('#guncellemeDetailTable tbody tr');
+    rows.forEach(row => {
+        const newRow = {};
+        const cells = row.querySelectorAll('td');
+        EXCEL_HEADERS_DETAIL.forEach((header, index) => {
+            const input = cells[index].querySelector('input, select');
+            newRow[header] = input.value;
+        });
+        data.push(newRow);
+    });
+    return data;
 }
 
 async function saveToGitHub() {
@@ -343,21 +361,25 @@ async function saveToGitHub() {
     setUyari("Değişiklikler gönderiliyor...", 'bilgi');
 
     try {
-        const data = getTableData(); 
-        const isTakipSheet = XLSX.utils.json_to_sheet(data, {header: EXCEL_HEADERS});
-        
+        const mainData = getTableData();
+        const detailData = getGuncellemeDetailData();
+
         const wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(wb, isTakipSheet, 'İş Takip Listesi');
         
-        if (personelListesi.length > 0) {
-             const personelDataForSheet = personelListesi.map(p => {
-                 const match = p.match(/(.*) \((.*)\)/);
-                 return match ? [match[1], match[2]] : [p, ''];
-             });
-            XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([['ad', 'unvan'], ...personelDataForSheet]), 'Personel');
+        XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(mainData, {header: EXCEL_HEADERS_MAIN, cellDates:true}), 'İş Takip Listesi');
+        XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(detailData, {header: EXCEL_HEADERS_DETAIL, cellDates:true}), 'Güncelleme');
+        
+        const personelData = [['ad', 'unvan'], ...personelListesi.map(p => { const m = p.match(/(.*) \((.*)\)/); return m ? [m[1], m[2]] : [p, '']; })];
+        XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(personelData), 'Personel');
+        XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([['İlçe'], ...ilceListesi.map(i => [i])]), 'İlçe');
+        XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([['Uygulama'], ...uygulamaListesi.map(u => [u])]), 'Uygulama');
+        
+        const listSheetData = [Object.keys({'UÇUŞ KIYMETLENDİRME DURUM': '', 'KOMİSYON DURUM': '', 'DEĞERLENDİRME DURUM': ''})];
+        const maxRows = Math.max(ucusKiyDurumList.length, komisyonDurumList.length, degerlendirmeDurumList.length);
+        for(let i = 0; i < maxRows; i++) {
+            listSheetData.push([ucusKiyDurumList[i] || '', komisyonDurumList[i] || '', degerlendirmeDurumList[i] || '']);
         }
-        if (ilceListesi.length > 0) XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(ilceListesi.map(item => [item])), 'İlçe');
-        if (uygulamaListesi.length > 0) XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(uygulamaListesi.map(item => [item])), 'Uygulama');
+        XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(listSheetData), 'Liste');
 
         const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'binary' });
         const base64Content = btoa(wbout);
@@ -365,11 +387,7 @@ async function saveToGitHub() {
         const response = await fetch(API_URL, {
             method: 'PUT',
             headers: { 'Authorization': `token ${GITHUB_TOKEN}`, 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                message: `İş Takip Güncellemesi - ${new Date().toLocaleString()}`,
-                content: base64Content,
-                sha: currentFileSHA
-            })
+            body: JSON.stringify({ message: `İş Takip Güncellemesi - ${new Date().toLocaleString()}`, content: base64Content, sha: currentFileSHA })
         });
 
         if (!response.ok) throw new Error(`GitHub API Hatası: ${response.status} - ${response.statusText}`);
@@ -391,67 +409,61 @@ async function saveToGitHub() {
 
 function createRowElement(data = {}) {
     const newRow = document.createElement('tr');
+    newRow.dataset.rowKey = `${data['İLÇE']}-${data['BİRİM']}`;
     const isChecked = data['Tamamlandı'] === 'EVET' ? 'checked' : '';
-
     const createOptions = (list, selected) => list.map(item => `<option value="${item}" ${item === selected ? 'selected' : ''}>${item}</option>`).join('');
-
-    const ilceOptions = createOptions(ilceListesi, data['İLÇE']);
-    const uygulamaOptions = createOptions(uygulamaListesi, data['UYGULAMA']);
-    const durumOptions = createOptions(durumlar, data['DURUMU']);
-    const personelOptions = createOptions(personelListesi, null);
-    
-    const selectedPersonel = data['GÖREVLİ PERSONELLER'] ? data['GÖREVLİ PERSONELLER'].split(', ') : [];
+    const selectedPersonel = data['GÖREVLİ PERSONELLER'] ? String(data['GÖREVLİ PERSONELLER']).split(', ') : [];
 
     newRow.innerHTML = `
         <td class="check-cell"><input type="checkbox" onchange="satirDurumunuDegistir(this)" ${isChecked}></td>
-        <td><select>${ilceOptions}</select></td>
+        <td><select>${createOptions(ilceListesi, data['İLÇE'])}</select></td>
         <td><input type="text" value="${data['BİRİM'] || ''}"></td>
-        <td><select>${uygulamaOptions}</select></td>
-        <td><select class="personel-select" multiple="multiple">${personelOptions}</select></td>
+        <td><select>${createOptions(uygulamaListesi, data['UYGULAMA'])}</select></td>
+        <td><select class="personel-select" multiple="multiple">${createOptions(personelListesi, null)}</select></td>
         <td><input type="number" value="${data['PARSEL SAYISI'] || ''}"></td>
         <td><input type="number" value="${data['BLOK SAYISI'] || ''}"></td>
         <td><input type="number" value="${data['ALAN(Ha)'] || ''}"></td>
         <td><select><option value="İhaleli" ${data['İHALELİ/MÜDÜRLÜK'] === 'İhaleli' ? 'selected' : ''}>İhaleli</option><option value="Müdürlük" ${data['İHALELİ/MÜDÜRLÜK'] === 'Müdürlük' ? 'selected' : ''}>Müdürlük</option></select></td>
-        <td><input type="date" value="${formatDate(excelDateToJSDate(data['İŞE BAŞLAMA/YER TESLİMİ']))}"></td>
-        <td><input type="date" value="${formatDate(excelDateToJSDate(data['İHALE BİTİŞ TARİHİ']))}"></td>
-        <td><select>${durumOptions}</select></td>
-        <td class="action-cell"><button class="danger" onclick="satirSil(this)">Sil</button></td>
+        <td><input type="date" value="${formatDate(data['İŞE BAŞLAMA/YER TESLİMİ'])}"></td>
+        <td><input type="date" value="${formatDate(data['İHALE BİTİŞ TARİHİ'])}"></td>
+        <td><select>${createOptions(durumlar, data['DURUMU'])}</select></td>
     `;
     
     const personelSelect = $(newRow).find('.personel-select');
     personelSelect.select2({ placeholder: "Personel Seçin" });
     personelSelect.val(selectedPersonel).trigger('change');
-
     if (isChecked) newRow.classList.add('tamamlandi');
-    
+    return newRow;
+}
+
+function createGuncellemeDetailRowElement(data) {
+    const newRow = document.createElement('tr');
+    const createOptions = (list, selected) => `<option value=""></option>` + list.map(item => `<option value="${item}" ${item === selected ? 'selected' : ''}>${item}</option>`).join('');
+    let rowHTML = '';
+    EXCEL_HEADERS_DETAIL.forEach(header => {
+        const value = data[header] || '';
+        let inputHTML = '';
+        if (header.includes('TARİH') || header.includes('İŞE BAŞLAMA') || header.includes('BİTİŞ')) {
+            inputHTML = `<input type="date" value="${formatDate(value)}">`;
+        } else if (header.includes('DURUM')) {
+            let optionsList = [];
+            if (header.includes('UÇUŞ')) optionsList = ucusKiyDurumList;
+            else if (header.includes('KOMİSYON')) optionsList = komisyonDurumList;
+            else if (header.includes('DEĞERLENDİRME')) optionsList = degerlendirmeDurumList;
+            inputHTML = `<select>${createOptions(optionsList, value)}</select>`;
+        } else {
+            const inputType = (header.includes('SAYISI') || header.includes('TOPLAM')) ? 'number' : 'text';
+            inputHTML = `<input type="${inputType}" value="${value}">`;
+        }
+        rowHTML += `<td>${inputHTML}</td>`;
+    });
+    newRow.innerHTML = rowHTML;
     return newRow;
 }
 
 function satirDurumunuDegistir(checkbox) {
     checkbox.closest('tr').classList.toggle('tamamlandi', checkbox.checked);
     markAsDirty();
-}
-
-function satirSil(button) {
-    const row = button.closest('tr');
-    const tbody = row.closest('tbody');
-    
-    $(row).find('.personel-select').select2('destroy');
-    row.parentNode.removeChild(row);
-    
-    // Tümü sekmesindeki grup başlığını güncelle veya kaldır
-    if (tbody && tbody.querySelector('.group-header-row')) {
-        const dataRows = tbody.querySelectorAll('tr:not(.group-header-row)');
-        if (dataRows.length === 0) {
-            tbody.remove();
-        } else {
-            tbody.querySelector('.group-count').textContent = dataRows.length;
-        }
-    }
-
-    setUyari('Bir satır silindi. Değişikliği kalıcı yapmak için Kaydet butonuna basın.', 'bilgi');
-    markAsDirty();
-    filtrele();
 }
 
 function excelDateToJSDate(serial) {
@@ -462,8 +474,14 @@ function excelDateToJSDate(serial) {
 }
 
 function formatDate(date) {
-    if (!date || !(date instanceof Date)) return date || '';
-    return date.toISOString().split('T')[0];
+    if (!date) return '';
+    try {
+        const d = new Date(date);
+        if (isNaN(d.getTime())) return '';
+        return d.toISOString().split('T')[0];
+    } catch (e) {
+        return '';
+    }
 }
 
 function durumFiltresiDoldur() {
@@ -490,7 +508,6 @@ function filtrele() {
     const activeWrapper = document.querySelector('.table-wrapper.active');
     if (!activeWrapper) return;
 
-    // Eğer "Tümü" sekmesi aktifse, gruplu filtreleme yap
     if (activeWrapper.dataset.group === 'Tümü') {
         const tbodies = activeWrapper.querySelectorAll("tbody");
         tbodies.forEach(tbody => {
@@ -504,18 +521,12 @@ function filtrele() {
 
             const headerRow = tbody.querySelector('.group-header-row');
             if(headerRow) {
-                if (groupVisibleRowCount > 0) {
-                    headerRow.style.display = "";
-                    tbody.style.display = ""; // Ensure tbody is visible
-                    headerRow.querySelector('.group-count').textContent = groupVisibleRowCount;
-                } else {
-                    headerRow.style.display = "none";
-                    tbody.style.display = "none"; // Hide entire tbody if no rows match
-                }
+                tbody.style.display = groupVisibleRowCount > 0 ? "" : "none";
+                headerRow.querySelector('.group-count').textContent = groupVisibleRowCount;
             }
             toplamGorunenSatir += groupVisibleRowCount;
         });
-    } else { // Diğer sekmeler için düz filtreleme
+    } else { 
         const dataRows = activeWrapper.querySelectorAll("tbody tr");
         dataRows.forEach(row => {
             const isMatch = checkRowMatch(row, aramaFilter, durumFilter);
@@ -529,12 +540,26 @@ function filtrele() {
 
 function checkRowMatch(row, aramaFilter, durumFilter) {
     const cells = row.getElementsByTagName("td");
-    if (cells.length < 12) return false;
     
-    const ilceText = cells[1].querySelector('select').value.toUpperCase();
-    const birimText = cells[2].querySelector('input').value.toUpperCase();
-    const personelText = $(cells[4]).find('.personel-select').val().join(', ').toUpperCase();
-    const durumText = cells[11].querySelector('select').value.toUpperCase();
+    // Detay tablosu satırları için filtreleme yapma
+    if (cells.length !== 12) {
+        return true;
+    }
+    
+    const ilceSelect = cells[1].querySelector('select');
+    const birimInput = cells[2].querySelector('input');
+    const personelSelect = $(cells[4]).find('.personel-select');
+    const durumSelect = cells[11].querySelector('select');
+
+    // Eğer gerekli elementler yoksa, bu satırı filtreleme dışı bırak
+    if (!ilceSelect || !birimInput || !personelSelect.length || !durumSelect) {
+        return true;
+    }
+    
+    const ilceText = ilceSelect.value.toUpperCase();
+    const birimText = birimInput.value.toUpperCase();
+    const personelText = personelSelect.val().join(', ').toUpperCase();
+    const durumText = durumSelect.value.toUpperCase();
     
     const combinedText = `${ilceText} ${birimText} ${personelText}`;
     
@@ -556,20 +581,24 @@ function toggleGroup(tbody) {
     const isHidden = dataRows.length > 0 && dataRows[0].style.display === 'none';
 
     dataRows.forEach(row => {
-        // Sadece filtrelenmemiş satırları göster/gizle
-        const currentDisplay = window.getComputedStyle(row).display;
          if (isHidden) {
-             // Açarken, sadece filtreden geçebilenleri göster
              if(checkRowMatch(row, document.getElementById('aramaKutusu').value.toUpperCase(), document.getElementById('durumFiltresi').value.toUpperCase())) {
                 row.style.display = '';
              }
          } else {
-             // Kapatırken hepsini gizle
              row.style.display = 'none';
          }
     });
     
     button.textContent = isHidden ? 'Kapat' : 'Aç';
+}
+
+function excelIndir() {
+    const data = getTableData();
+    const ws = XLSX.utils.json_to_sheet(data, {header: EXCEL_HEADERS_MAIN});
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'İş Takip Listesi');
+    XLSX.writeFile(wb, `IsTakip_Indirilen_${new Date().toISOString().slice(0,10)}.xlsx`);
 }
 
 </script>
