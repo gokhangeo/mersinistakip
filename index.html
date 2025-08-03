@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>İŞ TAKİP PROGRAMI</title>
+    <title>İHALE TAKİP</title>
     <!-- SheetJS (xlsx) kütüphanesi -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <!-- Select2 kütüphanesi (gelişmiş çoklu seçim için) -->
@@ -88,6 +88,7 @@
             padding: 12px;
             font-size: 18px;
             background-color: #28a745;
+            justify-content: center; /* DÜZELTME: Yazıyı ortala */
         }
         
         #login-error {
@@ -176,7 +177,7 @@
 
 <div id="login-overlay">
     <div id="login-box">
-        <h2>İş Takip Programı</h2>
+        <h2>İhale Takip</h2>
         <p>Devam etmek için lütfen giriş yapın.</p>
         <div id="login-error"></div>
         <input type="text" id="username" placeholder="Kullanıcı Adı" required>
@@ -188,7 +189,7 @@
 
 <div id="main-app-container">
     <div class="container">
-        <h1>İŞ TAKİP PROGRAMI</h1>
+        <h1>İHALE TAKİP</h1>
         <p class="copyright">© Gökhan ELGÜL tarafından tasarlanmıştır.</p>
         <div id="uyari" style="padding: 15px; background-color: #fff3cd; color: #856404; border: 1px solid #ffeeba; border-radius: 5px; margin-bottom: 20px;">
             <strong>Durum:</strong> Sayfa yüklendi. Veriler çekiliyor...
