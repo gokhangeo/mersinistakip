@@ -401,7 +401,8 @@ function handleTableChange(event) {
             const dataRow = isTakipData.find(r => r['İLÇE'] == ilce && r['BİRİM'] == birim);
             if (dataRow) {
                 if (header === 'GÖREVLİ PERSONELLER') {
-                    const personnelWithoutTitles = value.map(p => p.replace(/ \(.+\)$/, '').trim());
+                    const personnelWithTitles = value;
+                    const personnelWithoutTitles = personnelWithTitles.map(p => p.replace(/ \(.+\)$/, '').trim());
                     dataRow[header] = personnelWithoutTitles.join(', ');
                 } else {
                     dataRow[header] = value;
@@ -767,9 +768,15 @@ function createRowElement(data = {}, tabName) {
 
     const isPersonnelEditable = tabName === 'Tümü';
 
-    const createOptions = (list, selected) => list.map(item => `<option value="${item}" ${item === selected ? 'selected' : ''}>${item}</option>`).join('');
+    const createOptions = (list, selected) => {
+        const selectedUpper = selected ? String(selected).toUpperCase() : null;
+        return list.map(item => {
+            const isSelected = selectedUpper && String(item).toUpperCase() === selectedUpper;
+            return `<option value="${item}" ${isSelected ? 'selected' : ''}>${item}</option>`;
+        }).join('');
+    };
     const selectedPersonel = data['GÖREVLİ PERSONELLER'] ? String(data['GÖREVLİ PERSONELLER']).split(', ').map(name => {
-        return personelListesi.find(p => p.startsWith(name.trim())) || name.trim();
+        return personelListesi.find(p => p.toUpperCase().startsWith(name.trim().toUpperCase())) || name.trim();
     }) : [];
 
     newRow.innerHTML = `
