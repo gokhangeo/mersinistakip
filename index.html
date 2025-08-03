@@ -1055,22 +1055,26 @@ function applyDistrictBorders() {
     if (!activeTable) return;
 
     const rows = activeTable.querySelectorAll('tbody tr:not(.group-header-row)');
-    const colors = ['#ff6347', '#4682b4', '#32cd32', '#ff8c00', '#9370db'];
+    const colors = ['#ff6347', '#4682b4', '#32cd32', '#ff8c00', '#9370db', '#00ced1', '#f08080'];
     let colorIndex = 0;
     let lastIlce = null;
 
-    // First, clear all existing borders
+    // Determine which column has the district name
+    const isDetailTable = activeTable.id === 'guncellemeDetailTable';
+    const ilceColumnIndex = isDetailTable ? 0 : 1;
+
+    // Clear all special borders first
     rows.forEach(row => {
         row.style.borderTop = '';
     });
 
-    // Apply borders only to visible rows
+    // Apply borders to the first visible row of each new district
     rows.forEach(row => {
         if (row.style.display === 'none') {
             return; // Skip hidden rows
         }
 
-        const ilceCell = row.cells[1];
+        const ilceCell = row.cells[ilceColumnIndex];
         if (!ilceCell) return;
         
         const currentIlceElement = ilceCell.querySelector('select, input');
