@@ -209,11 +209,19 @@
         }
         
         /* GÜNCELLEME: Sütun genişliklerini ayarlamak için yeni sınıflar */
-        .force-nowrap {
+        #guncellemeDetailTable .col-wide {
+            min-width: 130px;
             white-space: nowrap;
         }
-        #guncellemeDetailTable th.allow-wrap {
-            white-space: normal;
+        #guncellemeDetailTable .col-narrow {
+            white-space: normal; /* Başlığın alta kaymasına izin ver */
+            width: 100px; /* Sayısal sütunlar için daha dar bir genişlik */
+        }
+        .date-cell-container {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            min-width: 220px; /* İki tarih kutusunun sığması için */
         }
     </style>
 </head>
@@ -286,6 +294,8 @@ let ucusKiyDurumList = [], komisyonDurumList = [], degerlendirmeDurumList = [];
 const durumlar = ['YER TESLİMİ YAPILDI', 'HERHANGİ BİRŞEY YAPILMADI', 'TAPU KAYIT KARŞILAŞTIRMA', 'BİLİRKİŞİ YEMİN/ADA-MEVKİ İLAN', 'ARAZİ DEVAM EDİYOR', 'DEĞERLENDİRMEDE', 'ASKI İLANINA HAZIRLANIYOR', 'BİLGİLENDİRME İLANINDA', 'KOMİSYON AŞAMASINDA', 'KESİN ASKIDA', 'DEVİR YAPILDI', 'TESCİL AŞAMASINDA', 'İHALEDEN/PROGRAMDAN ÇIKARILDI', 'KESİN ASKIDAN İNDİ. BEKLEMEDE', 'DEPREM NEDENİYLE ASKI YENİLENECEK', 'VERİLER ELEKTRONİK ORTAMDA HAZIR', 'ORMAN ASKISI', 'TESCİLİ BİTTİ'];
 const EXCEL_HEADERS_MAIN = ['Tamamlandı', 'İLÇE', 'BİRİM', 'UYGULAMA', 'GÖREVLİ PERSONELLER', 'PARSEL SAYISI', 'BLOK SAYISI', 'ALAN(Ha)', 'İHALELİ/MÜDÜRLÜK', 'İŞE BAŞLAMA/YER TESLİMİ', 'İHALE BİTİŞ TARİHİ', 'DURUMU'];
 const EXCEL_HEADERS_DETAIL = ['İLÇE', 'BİRİM', 'PARSEL SAYISI', 'İDÖ PARSEL SAYISI', 'TOPLAM PARSEL', 'İŞE BAŞLAMA', 'BİTİŞ TARİHİ', 'LİDAR/YERSEL ÖLÇÜM TARİHİ(YAPILAN)', 'ARAZİ YERSEL ÖLÇÜM TARİHİ(YAPILAN)', 'UÇUŞ TARİHİ(YAPILAN)', 'UÇUŞ KIYMETLENDİRME DURUM', 'DEĞERLENDİRME DURUM', 'ORMAN ASKI TARİHİ', 'BİLGİLENDİRME İLANI TARİHİ', 'KOMİSYON DURUM', 'KESİN ASKI TARİHİ'];
+// GÜNCELLEME: Detay tablosu için yeni başlık listesi
+const DISPLAY_HEADERS_DETAIL = ['İLÇE', 'BİRİM', 'PARSEL SAYISI', 'İDÖ PARSEL SAYISI', 'TOPLAM PARSEL', 'İşe Başlama / Bitiş Tarihi', 'LİDAR/YERSEL ÖLÇÜM TARİHİ(YAPILAN)', 'ARAZİ YERSEL ÖLÇÜM TARİHİ(YAPILAN)', 'UÇUŞ TARİHİ(YAPILAN)', 'UÇUŞ KIYMETLENDİRME DURUM', 'DEĞERLENDİRME DURUM', 'ORMAN ASKI TARİHİ', 'BİLGİLENDİRME İLANI TARİHİ', 'KOMİSYON DURUM', 'KESİN ASKI TARİHİ'];
 
 
 document.addEventListener('DOMContentLoaded', function() {
@@ -676,7 +686,7 @@ function renderAllTables(mainData, detailData) {
     const totalToplamParsel = calculateColumnSum(detailData, 'TOPLAM PARSEL');
 
     let detailThead = `<thead><tr>`;
-    EXCEL_HEADERS_DETAIL.forEach(h => {
+    DISPLAY_HEADERS_DETAIL.forEach(h => {
         let headerText = h;
         if (h === 'UÇUŞ KIYMETLENDİRME DURUM') headerText += ` (${ucusYapildiCount})`;
         else if (h === 'DEĞERLENDİRME DURUM') headerText += ` (${degerlendirmeYapildiCount})`;
@@ -688,9 +698,9 @@ function renderAllTables(mainData, detailData) {
         // GÜNCELLEME: Sütunlara özel class'lar ekleniyor
         let thClass = '';
         if (h === 'İLÇE' || h === 'BİRİM') {
-            thClass = 'class="force-nowrap"';
+            thClass = 'class="col-wide"';
         } else if (h.includes('SAYISI')) {
-            thClass = 'class="allow-wrap"';
+            thClass = 'class="col-narrow"';
         }
         detailThead += `<th ${thClass}>${headerText}</th>`;
     });
@@ -811,9 +821,25 @@ function getGuncellemeDetailDataFromUI() {
     document.querySelectorAll('#guncellemeDetailTable tbody tr').forEach(row => {
         const newRow = {};
         const cells = row.querySelectorAll('td');
-        EXCEL_HEADERS_DETAIL.forEach((header, index) => {
-            const input = cells[index].querySelector('input, select');
-            newRow[header] = input.value;
+        
+        // GÜNCELLEME: Veri toplama mantığı birleştirilmiş tarih sütununa göre ayarlandı
+        let cellIndex = 0;
+        EXCEL_HEADERS_DETAIL.forEach(header => {
+            if (header === 'İŞE BAŞLAMA' || header === 'BİTİŞ TARİHİ') {
+                // Bu başlıklar artık tek bir hücreden okunacak, bu yüzden atla
+                return;
+            }
+
+            const cell = cells[cellIndex];
+            if (cell.querySelector('.date-cell-container')) {
+                // Birleştirilmiş tarih hücresi
+                newRow['İŞE BAŞLAMA'] = cell.querySelector('[data-header="İŞE BAŞLAMA"]').value;
+                newRow['BİTİŞ TARİHİ'] = cell.querySelector('[data-header="BİTİŞ TARİHİ"]').value;
+            } else {
+                const input = cell.querySelector('input, select');
+                newRow[header] = input.value;
+            }
+            cellIndex++;
         });
         data.push(newRow);
     });
@@ -872,34 +898,44 @@ function createGuncellemeDetailRowElement(data) {
     newRow.dataset.rowKey = rowKey;
 
     const createOptions = (list, selected) => `<option value=""></option>` + list.map(item => `<option value="${item}" ${item === selected ? 'selected' : ''}>${item}</option>`).join('');
-    let rowHTML = '';
-    EXCEL_HEADERS_DETAIL.forEach(header => {
-        const value = data[header] || '';
-        let inputHTML = '';
-        
-        // GÜNCELLEME: Hücrelere özel class'lar ekleniyor
+    
+    DISPLAY_HEADERS_DETAIL.forEach(header => {
+        let cellHTML = '';
         let tdClass = '';
-        if (header === 'İLÇE' || header === 'BİRİM') {
-             tdClass = 'class="force-nowrap"';
-        }
 
-        if (header.includes('TARİH') || header.includes('İŞE BAŞLAMA') || header.includes('BİTİŞ')) {
-            const readonly = (header === 'BİTİŞ TARİHİ' || header === 'İŞE BAŞLAMA') ? 'readonly' : '';
-            inputHTML = `<input type="date" data-header="${header}" value="${formatDate(excelDateToJSDate(value))}" ${readonly} title="${formatDate(excelDateToJSDate(value))}">`;
+        if (header === 'İLÇE' || header === 'BİRİM') {
+            tdClass = 'class="col-wide"';
+            const value = data[header] || '';
+            cellHTML = `<input type="text" data-header="${header}" value="${value}" readonly title="${value}">`;
+        } else if (header.includes('SAYISI') || header.includes('TOPLAM PARSEL')) { // DÜZELTME: "TOPLAM PARSEL" de sayı olarak ele alınıyor
+            tdClass = 'class="col-narrow"';
+            const value = data[header] || '';
+            cellHTML = `<input type="number" data-header="${header}" value="${value}" readonly title="${value}">`;
+        } else if (header === 'İşe Başlama / Bitiş Tarihi') {
+            const baslamaValue = data['İŞE BAŞLAMA'] || '';
+            const bitisValue = data['BİTİŞ TARİHİ'] || '';
+            cellHTML = `<div class="date-cell-container">
+                            <input type="date" data-header="İŞE BAŞLAMA" value="${formatDate(excelDateToJSDate(baslamaValue))}" readonly title="${formatDate(excelDateToJSDate(baslamaValue))}">
+                            <input type="date" data-header="BİTİŞ TARİHİ" value="${formatDate(excelDateToJSDate(bitisValue))}" readonly title="${formatDate(excelDateToJSDate(bitisValue))}">
+                        </div>`;
         } else if (header.includes('DURUM')) {
-            let optionsList = [];
-            if (header.includes('UÇUŞ')) optionsList = ucusKiyDurumList;
-            else if (header.includes('KOMİSYON')) optionsList = komisyonDurumList;
-            else if (header.includes('DEĞERLENDİRME')) optionsList = degerlendirmeDurumList;
-            inputHTML = `<select data-header="${header}">${createOptions(optionsList, value)}</select>`;
+             let optionsList = [];
+             const value = data[header] || '';
+             if (header.includes('UÇUŞ')) optionsList = ucusKiyDurumList;
+             else if (header.includes('KOMİSYON')) optionsList = komisyonDurumList;
+             else if (header.includes('DEĞERLENDİRME')) optionsList = degerlendirmeDurumList;
+             cellHTML = `<select data-header="${header}">${createOptions(optionsList, value)}</select>`;
         } else {
-            const inputType = (header.includes('SAYISI') || header.includes('TOPLAM')) ? 'number' : 'text';
-            const readonly = (header.includes('SAYISI') || header.includes('TOPLAM') || header === 'İLÇE' || header === 'BİRİM') ? 'readonly' : '';
-            inputHTML = `<input type="${inputType}" data-header="${header}" value="${value}" ${readonly} title="${value}">`;
+             const value = data[header] || '';
+             cellHTML = `<input type="date" data-header="${header}" value="${formatDate(excelDateToJSDate(value))}" title="${formatDate(excelDateToJSDate(value))}">`;
         }
-        rowHTML += `<td ${tdClass}>${inputHTML}</td>`;
+        
+        const td = document.createElement('td');
+        if (tdClass) td.className = tdClass.replace('class="', '').replace('"', '');
+        td.innerHTML = cellHTML;
+        newRow.appendChild(td);
     });
-    newRow.innerHTML = rowHTML;
+
     return newRow;
 }
 
