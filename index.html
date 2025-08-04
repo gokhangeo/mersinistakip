@@ -196,6 +196,16 @@
         #toast.show {
             bottom: 30px;
         }
+
+        /* Üst Kaydırma Çubuğu */
+        #top-scrollbar-wrapper {
+            overflow-x: auto;
+            overflow-y: hidden;
+            height: 20px; /* Sadece kaydırma çubuğu yüksekliği */
+        }
+        #top-scrollbar-content {
+            height: 1px; /* İçerik yüksekliği önemli değil */
+        }
     </style>
 </head>
 <body>
@@ -241,6 +251,7 @@
         <div id="tabs" class="tabs-container"></div>
         <div id="kayitSayaci">Toplam 0 kayıt gösteriliyor.</div>
         <div id="loader" class="loader"></div>
+        <div id="top-scrollbar-wrapper"><div id="top-scrollbar-content"></div></div>
         <div id="tableContainer" style="overflow-x:auto;"></div>
     </div>
 </div>
@@ -814,20 +825,20 @@ function createRowElement(data = {}, tabName) {
 
     newRow.innerHTML = `
         <td class="check-cell"><input type="checkbox" data-header="Tamamlandı" ${isChecked ? 'checked' : ''}></td>
-        <td><select data-header="İLÇE" disabled>${createOptions(ilceListesi, data['İLÇE'])}</select></td>
-        <td><input type="text" data-header="BİRİM" value="${data['BİRİM'] || ''}" readonly></td>
+        <td><select data-header="İLÇE" disabled title="${data['İLÇE'] || ''}">${createOptions(ilceListesi, data['İLÇE'])}</select></td>
+        <td><input type="text" data-header="BİRİM" value="${data['BİRİM'] || ''}" readonly title="${data['BİRİM'] || ''}"></td>
         <td class="col-uygulama"><select data-header="UYGULAMA">${createOptions(uygulamaListesi, data['UYGULAMA'])}</select></td>
         <td>
             <div class="personnel-wrapper" ${!isPersonnelEditable ? `onclick="showToast('Personel değişikliği sadece \\'Tümü\\' sekmesinden yapılabilir.')"` : ''}>
                 <select class="personel-select" data-header="GÖREVLİ PERSONELLER" multiple="multiple" ${!isPersonnelEditable ? 'disabled' : ''}>${createOptions(personelListesi, null)}</select>
             </div>
         </td>
-        <td><input type="number" data-header="PARSEL SAYISI" value="${data['PARSEL SAYISI'] || ''}" readonly></td>
-        <td><input type="number" data-header="BLOK SAYISI" value="${data['BLOK SAYISI'] || ''}" readonly></td>
-        <td class="col-alan"><input type="number" data-header="ALAN(Ha)" value="${data['ALAN(Ha)'] || ''}" readonly></td>
+        <td><input type="number" data-header="PARSEL SAYISI" value="${data['PARSEL SAYISI'] || ''}" readonly title="${data['PARSEL SAYISI'] || ''}"></td>
+        <td><input type="number" data-header="BLOK SAYISI" value="${data['BLOK SAYISI'] || ''}" readonly title="${data['BLOK SAYISI'] || ''}"></td>
+        <td class="col-alan"><input type="number" data-header="ALAN(Ha)" value="${data['ALAN(Ha)'] || ''}" readonly title="${data['ALAN(Ha)'] || ''}"></td>
         <td class="col-ihaleli"><select data-header="İHALELİ/MÜDÜRLÜK"><option value="İhaleli" ${data['İHALELİ/MÜDÜRLÜK'] === 'İhaleli' ? 'selected' : ''}>İhaleli</option><option value="Müdürlük" ${data['İHALELİ/MÜDÜRLÜK'] === 'Müdürlük' ? 'selected' : ''}>Müdürlük</option></select></td>
-        <td><input type="date" data-header="İŞE BAŞLAMA/YER TESLİMİ" value="${formatDate(excelDateToJSDate(data['İŞE BAŞLAMA/YER TESLİMİ']))}" readonly></td>
-        <td><input type="date" data-header="İHALE BİTİŞ TARİHİ" value="${formatDate(excelDateToJSDate(data['İHALE BİTİŞ TARİHİ']))}" readonly></td>
+        <td><input type="date" data-header="İŞE BAŞLAMA/YER TESLİMİ" value="${formatDate(excelDateToJSDate(data['İŞE BAŞLAMA/YER TESLİMİ']))}" readonly title="${formatDate(excelDateToJSDate(data['İŞE BAŞLAMA/YER TESLİMİ']))}"></td>
+        <td><input type="date" data-header="İHALE BİTİŞ TARİHİ" value="${formatDate(excelDateToJSDate(data['İHALE BİTİŞ TARİHİ']))}" readonly title="${formatDate(excelDateToJSDate(data['İHALE BİTİŞ TARİHİ']))}"></td>
         <td><select data-header="DURUMU">${createOptions(durumlar, data['DURUMU'])}</select></td>
     `;
     
@@ -849,7 +860,7 @@ function createGuncellemeDetailRowElement(data) {
         let inputHTML = '';
         if (header.includes('TARİH') || header.includes('İŞE BAŞLAMA') || header.includes('BİTİŞ')) {
             const readonly = (header === 'BİTİŞ TARİHİ' || header === 'İŞE BAŞLAMA') ? 'readonly' : '';
-            inputHTML = `<input type="date" data-header="${header}" value="${formatDate(excelDateToJSDate(value))}" ${readonly}>`;
+            inputHTML = `<input type="date" data-header="${header}" value="${formatDate(excelDateToJSDate(value))}" ${readonly} title="${formatDate(excelDateToJSDate(value))}">`;
         } else if (header.includes('DURUM')) {
             let optionsList = [];
             if (header.includes('UÇUŞ')) optionsList = ucusKiyDurumList;
@@ -859,7 +870,7 @@ function createGuncellemeDetailRowElement(data) {
         } else {
             const inputType = (header.includes('SAYISI') || header.includes('TOPLAM')) ? 'number' : 'text';
             const readonly = (header.includes('SAYISI') || header.includes('TOPLAM') || header === 'İLÇE' || header === 'BİRİM') ? 'readonly' : '';
-            inputHTML = `<input type="${inputType}" data-header="${header}" value="${value}" ${readonly}>`;
+            inputHTML = `<input type="${inputType}" data-header="${header}" value="${value}" ${readonly} title="${value}">`;
         }
         rowHTML += `<td>${inputHTML}</td>`;
     });
