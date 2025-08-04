@@ -139,9 +139,9 @@
         button.info { background-color: #17a2b8; }
         button.warning { background-color: #ffc107; color: #212529; }
         button:disabled { background-color: #cccccc; cursor: not-allowed; opacity: 0.7; }
-        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; table-layout: auto; }
         th, td { border: 1px solid #ddd; padding: 10px; text-align: left; vertical-align: middle; }
-        th { background-color: #007bff; color: white; font-size: 14px; }
+        th { background-color: #007bff; color: white; font-size: 14px; } /* GÜNCELLEME: Başlıkların gerektiğinde alta kaymasına izin verilir */
         tr:nth-child(even) { background-color: #f2f2f2; }
         select, input { width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
         input[readonly], select[disabled] { background-color: #e9ecef; cursor: not-allowed; }
@@ -202,6 +202,7 @@
             overflow-x: auto;
             overflow-y: hidden;
             height: 20px; /* Sadece kaydırma çubuğu yüksekliği */
+            display: none; /* Başlangıçta gizli */
         }
         #top-scrollbar-content {
             height: 1px; /* İçerik yüksekliği önemli değil */
@@ -613,7 +614,7 @@ function renderAllTables(mainData, detailData) {
         headerRow.className = 'group-header-row';
         headerRow.onclick = (e) => { if (e.target.tagName !== 'BUTTON') toggleGroup(tbody); };
         headerRow.insertCell().innerHTML = `<h3><span>${uygulama} (<span class="group-count">${groupedData[uygulama].length}</span> iş)</span><button class="group-toggle-btn" onclick="event.stopPropagation(); toggleGroup(this.closest('tbody'))">Kapat</button></h3>`;
-        headerRow.cells[0].colSpan = 11; // Colspan updated
+        headerRow.cells[0].colSpan = 12; // Colspan updated to 12
         groupedData[uygulama].forEach(rowData => tbody.appendChild(createRowElement(rowData, 'Tümü')));
         allTable.appendChild(tbody);
     }
@@ -699,6 +700,8 @@ function showTab(uygulamaAdi) {
         }
     });
     filtrele();
+    // GÜNCELLEME: DOM güncellendikten sonra kaydırma çubuğunu ayarlamak için timeout kullanıldı.
+    setTimeout(setupTopScrollbar, 0);
 }
 
 async function saveToGitHub() {
@@ -1001,13 +1004,13 @@ function toggleGroup(tbody) {
     const isHidden = dataRows.length > 0 && dataRows[0].style.display === 'none';
 
     dataRows.forEach(row => {
-         if (isHidden) {
-             if(checkRowMatch(row, document.getElementById('aramaKutusu').value.toUpperCase(), document.getElementById('durumFiltresi').value.toUpperCase())) {
-                row.style.display = '';
-             }
-         } else {
-             row.style.display = 'none';
+       if (isHidden) {
+         if(checkRowMatch(row, document.getElementById('aramaKutusu').value.toUpperCase(), document.getElementById('durumFiltresi').value.toUpperCase())) {
+            row.style.display = '';
          }
+       } else {
+            row.style.display = 'none';
+       }
     });
     
     button.textContent = isHidden ? 'Kapat' : 'Aç';
@@ -1103,6 +1106,45 @@ function applyDistrictBorders() {
     });
 }
 
+/**
+ * Sets up and synchronizes a top horizontal scrollbar with the main table container's scrollbar.
+ * This makes it easier to navigate wide tables.
+ */
+function setupTopScrollbar() {
+    const tableContainer = document.getElementById('tableContainer');
+    const topScrollbarWrapper = document.getElementById('top-scrollbar-wrapper');
+    const topScrollbarContent = document.getElementById('top-scrollbar-content');
+
+    // Hide the top scrollbar if the table content doesn't overflow
+    const hasOverflow = tableContainer.scrollWidth > tableContainer.clientWidth;
+    topScrollbarWrapper.style.display = hasOverflow ? 'block' : 'none';
+
+    if (!hasOverflow) return;
+
+    // Set the width of the dummy content to match the table's actual scrollable width
+    topScrollbarContent.style.width = tableContainer.scrollWidth + 'px';
+
+    let isSyncing = false; // A flag to prevent scroll event feedback loops
+
+    // Sync scrolling from the main table container to the top scrollbar
+    tableContainer.onscroll = function() {
+        if (isSyncing) return;
+        isSyncing = true;
+        topScrollbarWrapper.scrollLeft = tableContainer.scrollLeft;
+        isSyncing = false;
+    };
+
+    // Sync scrolling from the top scrollbar to the main table container
+    topScrollbarWrapper.onscroll = function() {
+        if (isSyncing) return;
+        isSyncing = true;
+        tableContainer.scrollLeft = topScrollbarWrapper.scrollLeft; // DÜZELTME: Tabloyu kaydır
+        isSyncing = false;
+    };
+}
+
+// Re-calculate scrollbar on window resize
+window.addEventListener('resize', setupTopScrollbar);
 
 </script>
 
