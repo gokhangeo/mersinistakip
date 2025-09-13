@@ -759,10 +759,16 @@ async function saveToGitHub() {
         XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([['İlçe'], ...ilceListesi.map(i => [i])]), 'İlçe');
         XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([['Uygulama'], ...uygulamaListesi.map(u => [u])]), 'Uygulama');
         
-        const listSheetData = [Object.keys({'UÇUŞ KIYMETLENDİRME DURUM': '', 'KOMİSYON DURUM': '', 'DEĞERLENDİRME DURUM': ''})];
-        const maxRows = Math.max(ucusKiyDurumList.length, komisyonDurumList.length, degerlendirmeDurumList.length);
+        const listHeaders = ['UÇUŞ KIYMETLENDİRME DURUM', 'KOMİSYON DURUM', 'DEĞERLENDİRME DURUM', 'DURUMU'];
+        const listSheetData = [listHeaders];
+        const maxRows = Math.max(ucusKiyDurumList.length, komisyonDurumList.length, degerlendirmeDurumList.length, durumlar.length);
         for(let i = 0; i < maxRows; i++) {
-            listSheetData.push([ucusKiyDurumList[i] || '', komisyonDurumList[i] || '', degerlendirmeDurumList[i] || '']);
+            listSheetData.push([
+                ucusKiyDurumList[i] || '', 
+                komisyonDurumList[i] || '', 
+                degerlendirmeDurumList[i] || '',
+                durumlar[i] || ''
+            ]);
         }
         XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(listSheetData), 'Liste');
 
@@ -1217,6 +1223,7 @@ window.addEventListener('resize', setupTopScrollbar);
 
 </body>
 </html>
+
 
 
 
