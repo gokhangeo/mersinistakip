@@ -822,25 +822,24 @@ function getGuncellemeDetailDataFromUI() {
         const newRow = {};
         const cells = row.querySelectorAll('td');
         
-        // GÜNCELLEME: Veri toplama mantığı birleştirilmiş tarih sütununa göre ayarlandı
-        let cellIndex = 0;
-        EXCEL_HEADERS_DETAIL.forEach(header => {
-            if (header === 'İŞE BAŞLAMA' || header === 'BİTİŞ TARİHİ') {
-                // Bu başlıklar artık tek bir hücreden okunacak, bu yüzden atla
-                return;
-            }
-
-            const cell = cells[cellIndex];
-            if (cell.querySelector('.date-cell-container')) {
-                // Birleştirilmiş tarih hücresi
-                newRow['İŞE BAŞLAMA'] = cell.querySelector('[data-header="İŞE BAŞLAMA"]').value;
-                newRow['BİTİŞ TARİHİ'] = cell.querySelector('[data-header="BİTİŞ TARİHİ"]').value;
-            } else {
-                const input = cell.querySelector('input, select');
-                newRow[header] = input.value;
-            }
-            cellIndex++;
-        });
+        // Directly map cells to the correct Excel headers based on their display order.
+        newRow['İLÇE']                                 = cells[0].querySelector('input').value;
+        newRow['BİRİM']                                 = cells[1].querySelector('input').value;
+        newRow['PARSEL SAYISI']                         = cells[2].querySelector('input').value;
+        newRow['İDÖ PARSEL SAYISI']                      = cells[3].querySelector('input').value;
+        newRow['TOPLAM PARSEL']                         = cells[4].querySelector('input').value;
+        newRow['İŞE BAŞLAMA']                           = cells[5].querySelector('[data-header="İŞE BAŞLAMA"]').value;
+        newRow['BİTİŞ TARİHİ']                            = cells[5].querySelector('[data-header="BİTİŞ TARİHİ"]').value;
+        newRow['LİDAR/YERSEL ÖLÇÜM TARİHİ(YAPILAN)']    = cells[6].querySelector('input').value;
+        newRow['ARAZİ YERSEL ÖLÇÜM TARİHİ(YAPILAN)']   = cells[7].querySelector('input').value;
+        newRow['UÇUŞ TARİHİ(YAPILAN)']                  = cells[8].querySelector('input').value;
+        newRow['UÇUŞ KIYMETLENDİRME DURUM']             = cells[9].querySelector('select').value;
+        newRow['DEĞERLENDİRME DURUM']                   = cells[10].querySelector('select').value;
+        newRow['ORMAN ASKI TARİHİ']                     = cells[11].querySelector('input').value;
+        newRow['BİLGİLENDİRME İLANI TARİHİ']            = cells[12].querySelector('input').value;
+        newRow['KOMİSYON DURUM']                        = cells[13].querySelector('select').value;
+        newRow['KESİN ASKI TARİHİ']                      = cells[14].querySelector('input').value;
+        
         data.push(newRow);
     });
     return data;
@@ -1208,3 +1207,5 @@ window.addEventListener('resize', setupTopScrollbar);
 
 </body>
 </html>
+
+
