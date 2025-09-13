@@ -291,7 +291,7 @@ let personelListesi = [], ilceListesi = [], uygulamaListesi = [];
 let guncellemeData = [], isTakipData = [];
 let ucusKiyDurumList = [], komisyonDurumList = [], degerlendirmeDurumList = [];
 
-const durumlar = ['YER TESLİMİ YAPILDI', 'HERHANGİ BİRŞEY YAPILMADI', 'TAPU KAYIT KARŞILAŞTIRMA', 'BİLİRKİŞİ YEMİN/ADA-MEVKİ İLAN', 'ARAZİ DEVAM EDİYOR', 'DEĞERLENDİRMEDE', 'ASKI İLANINA HAZIRLANIYOR', 'BİLGİLENDİRME İLANINDA', 'KOMİSYON AŞAMASINDA', 'KESİN ASKIDA', 'DEVİR YAPILDI', 'TESCİL AŞAMASINDA', 'İHALEDEN/PROGRAMDAN ÇIKARILDI', 'KESİN ASKIDAN İNDİ. BEKLEMEDE', 'DEPREM NEDENİYLE ASKI YENİLENECEK', 'VERİLER ELEKTRONİK ORTAMDA HAZIR', 'ORMAN ASKISI', 'TESCİLİ BİTTİ'];
+let durumlar = []; // Durum listesi artık dinamik olarak yüklenecek
 const EXCEL_HEADERS_MAIN = ['Tamamlandı', 'İLÇE', 'BİRİM', 'UYGULAMA', 'GÖREVLİ PERSONELLER', 'PARSEL SAYISI', 'BLOK SAYISI', 'ALAN(Ha)', 'İHALELİ/MÜDÜRLÜK', 'İŞE BAŞLAMA/YER TESLİMİ', 'İHALE BİTİŞ TARİHİ', 'DURUMU'];
 const EXCEL_HEADERS_DETAIL = ['İLÇE', 'BİRİM', 'PARSEL SAYISI', 'İDÖ PARSEL SAYISI', 'TOPLAM PARSEL', 'İŞE BAŞLAMA', 'BİTİŞ TARİHİ', 'LİDAR/YERSEL ÖLÇÜM TARİHİ(YAPILAN)', 'ARAZİ YERSEL ÖLÇÜM TARİHİ(YAPILAN)', 'UÇUŞ TARİHİ(YAPILAN)', 'UÇUŞ KIYMETLENDİRME DURUM', 'DEĞERLENDİRME DURUM', 'ORMAN ASKI TARİHİ', 'BİLGİLENDİRME İLANI TARİHİ', 'KOMİSYON DURUM', 'KESİN ASKI TARİHİ'];
 // GÜNCELLEME: Detay tablosu için yeni başlık listesi
@@ -544,6 +544,16 @@ function parseLists(workbook, sheetName) {
     ucusKiyDurumList = json.map(row => row['UÇUŞ KIYMETLENDİRME DURUM']).filter(Boolean);
     komisyonDurumList = json.map(row => row['KOMİSYON DURUM']).filter(Boolean);
     degerlendirmeDurumList = json.map(row => row['DEĞERLENDİRME DURUM']).filter(Boolean);
+    
+    // Ana tablolar için "DURUMU" sütununu oku
+    const durumListesiFromSheet = json.map(row => row['DURUMU']).filter(Boolean);
+    if (durumListesiFromSheet.length > 0) {
+        durumlar = durumListesiFromSheet;
+    } else {
+        // Excel'de sütun bulunamazsa veya boşsa, eski hardcoded listeyi kullan
+        console.warn('Excel "Liste" sayfasında "DURUMU" sütunu bulunamadı veya boş. Varsayılan durum listesi kullanılıyor.');
+        durumlar = ['YER TESLİMİ YAPILDI', 'HERHANGİ BİRŞEY YAPILMADI', 'TAPU KAYIT KARŞILAŞTIRMA', 'BİLİRKİŞİ YEMİN/ADA-MEVKİ İLAN', 'ARAZİ DEVAM EDİYOR', 'DEĞERLENDİRMEDE', 'ASKI İLANINA HAZIRLANIYOR', 'BİLGİLENDİRME İLANINDA', 'KOMİSYON AŞAMASINDA', 'KESİN ASKIDA', 'DEVİR YAPILDI', 'TESCİL AŞAMASINDA', 'İHALEDEN/PROGRAMDAN ÇIKARILDI', 'KESİN ASKIDAN İNDİ. BEKLEMEDE', 'DEPREM NEDENİYLE ASKI YENİLENECEK', 'VERİLER ELEKTRONİK ORTAMDA HAZIR', 'ORMAN ASKISI', 'TESCİLİ BİTTİ'];
+    }
 }
 
 async function fetchFromGitHub() {
@@ -1207,5 +1217,6 @@ window.addEventListener('resize', setupTopScrollbar);
 
 </body>
 </html>
+
 
 
