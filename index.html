@@ -141,7 +141,7 @@
         button:disabled { background-color: #cccccc; cursor: not-allowed; opacity: 0.7; }
         table { width: 100%; border-collapse: collapse; margin-top: 10px; table-layout: auto; }
         th, td { border: 1px solid #ddd; padding: 10px; text-align: left; vertical-align: middle; }
-        th { background-color: #007bff; color: white; font-size: 14px; }
+        th { background-color: #007bff; color: white; font-size: 14px; position: sticky; top: 0; z-index: 2;}
         tr:nth-child(even) { background-color: #f2f2f2; }
         select, input { width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
         input[readonly], select[disabled] { background-color: #e9ecef; cursor: not-allowed; }
@@ -223,6 +223,67 @@
             gap: 5px;
             min-width: 220px; /* İki tarih kutusunun sığması için */
         }
+
+        /* Sütun Sabitleme ve Gizleme Stilleri */
+        .sticky-col {
+            position: -webkit-sticky;
+            position: sticky;
+            background-color: white;
+            z-index: 1;
+        }
+        tr:nth-child(even) .sticky-col {
+            background-color: #f2f2f2;
+        }
+        .col-hidden-by-user {
+            display: none;
+        }
+
+        /* Sütun Yönetim Modalı */
+        #col-toggle-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+            z-index: 2000;
+            display: none;
+            justify-content: center;
+            align-items: center;
+        }
+        #col-toggle-content {
+            background: white;
+            padding: 25px;
+            border-radius: 10px;
+            width: 90%;
+            max-width: 500px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+        }
+        #col-toggle-content h3 {
+            margin-top: 0;
+            color: #0056b3;
+            border-bottom: 1px solid #ccc;
+            padding-bottom: 10px;
+        }
+        #col-toggle-checklist {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+        #col-toggle-checklist label {
+            display: flex;
+            align-items: center;
+            font-size: 16px;
+        }
+        #col-toggle-checklist input {
+            width: auto;
+            margin-right: 10px;
+        }
+        #col-toggle-close {
+            display: block;
+            margin-left: auto;
+        }
     </style>
 </head>
 <body>
@@ -258,6 +319,10 @@
                 <span id="aramaTemizleBtn">&#10006;</span>
             </div>
             <select id="durumFiltresi"></select>
+             <button id="colToggleBtn" class="info">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-layout-three-columns" viewBox="0 0 16 16"><path d="M0 1.5A1.5 1.5 0 0 1 1.5 0h13A1.5 1.5 0 0 1 16 1.5v13a1.5 1.5 0 0 1-1.5 1.5h-13A1.5 1.5 0 0 1 0 14.5v-13zM1.5 1a.5.5 0 0 0-.5.5v13a.5.5 0 0 0 .5.5h13a.5.5 0 0 0 .5-.5v-13a.5.5 0 0 0-.5-.5h-13z"/><path d="M5 1.5v13h1V1.5H5zm5 0v13h1V1.5h-1z"/></svg>
+                Sütunları Yönet
+            </button>
             <button id="githubKaydetBtn" class="success" disabled>
                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8"/></svg>
                 Kaydet
@@ -274,6 +339,14 @@
 </div>
 <div id="toast"></div>
 
+<div id="col-toggle-modal">
+    <div id="col-toggle-content">
+        <h3>Sütunları Göster/Gizle</h3>
+        <div id="col-toggle-checklist"></div>
+        <button id="col-toggle-close" class="danger">Kapat</button>
+    </div>
+</div>
+
 <script>
 // !!! KULLANICI BİLGİLERİ !!!
 const GITHUB_KULLANICI_ADI = "gokhangeo";
@@ -287,21 +360,25 @@ const GITHUB_TOKEN = token_part1 + token_part2;
 // Global Değişkenler
 const API_URL = `https://api.github.com/repos/${GITHUB_KULLANICI_ADI}/${GITHUB_REPO_ADI}/contents/${DOSYA_YOLU}`;
 let currentFileSHA = '';
-let personelListesi = [], ilceListesi = [], uygulamaListesi = [];
+let personelListesi = [], fullPersonelListesi = [], ilceListesi = [], uygulamaListesi = [];
 let guncellemeData = [], isTakipData = [];
 let ucusKiyDurumList = [], komisyonDurumList = [], degerlendirmeDurumList = [];
 
 let durumlar = []; // Durum listesi artık dinamik olarak yüklenecek
 const EXCEL_HEADERS_MAIN = ['Tamamlandı', 'İLÇE', 'BİRİM', 'UYGULAMA', 'GÖREVLİ PERSONELLER', 'PARSEL SAYISI', 'BLOK SAYISI', 'ALAN(Ha)', 'İHALELİ/MÜDÜRLÜK', 'İŞE BAŞLAMA/YER TESLİMİ', 'İHALE BİTİŞ TARİHİ', 'DURUMU'];
 const EXCEL_HEADERS_DETAIL = ['İLÇE', 'BİRİM', 'PARSEL SAYISI', 'İDÖ PARSEL SAYISI', 'TOPLAM PARSEL', 'İŞE BAŞLAMA', 'BİTİŞ TARİHİ', 'LİDAR/YERSEL ÖLÇÜM TARİHİ(YAPILAN)', 'ARAZİ YERSEL ÖLÇÜM TARİHİ(YAPILAN)', 'UÇUŞ TARİHİ(YAPILAN)', 'UÇUŞ KIYMETLENDİRME DURUM', 'DEĞERLENDİRME DURUM', 'ORMAN ASKI TARİHİ', 'BİLGİLENDİRME İLANI TARİHİ', 'KOMİSYON DURUM', 'KESİN ASKI TARİHİ'];
-// GÜNCELLEME: Detay tablosu için yeni başlık listesi
 const DISPLAY_HEADERS_DETAIL = ['İLÇE', 'BİRİM', 'PARSEL SAYISI', 'İDÖ PARSEL SAYISI', 'TOPLAM PARSEL', 'İşe Başlama / Bitiş Tarihi', 'LİDAR/YERSEL ÖLÇÜM TARİHİ(YAPILAN)', 'ARAZİ YERSEL ÖLÇÜM TARİHİ(YAPILAN)', 'UÇUŞ TARİHİ(YAPILAN)', 'UÇUŞ KIYMETLENDİRME DURUM', 'DEĞERLENDİRME DURUM', 'ORMAN ASKI TARİHİ', 'BİLGİLENDİRME İLANI TARİHİ', 'KOMİSYON DURUM', 'KESİN ASKI TARİHİ'];
+
+// Sütun görünürlüğü için sabitler
+let columnVisibility = {};
+const TOGGLEABLE_COLS = ['UYGULAMA', 'GÖREVLİ PERSONELLER', 'PARSEL SAYISI', 'BLOK SAYISI', 'ALAN(Ha)', 'İŞE BAŞLAMA/YER TESLİMİ', 'İHALE BİTİŞ TARİHİ', 'DURUMU'];
+const STICKY_COLS_COUNT = 3; // Onay Kutusu, İlçe, Birim
 
 
 document.addEventListener('DOMContentLoaded', function() {
-    // Arka plan animasyonunu başlat
     initAnimatedBackground();
     checkLoginStatus();
+    loadColumnVisibility();
     
     // Event Listeners
     document.getElementById('aramaKutusu').addEventListener('keyup', filtrele);
@@ -310,6 +387,12 @@ document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('githubKaydetBtn').addEventListener('click', saveToGitHub);
     document.getElementById('excelIndirBtn').addEventListener('click', excelIndir);
     document.getElementById('tableContainer').addEventListener('change', handleTableChange);
+    document.getElementById('colToggleBtn').addEventListener('click', () => {
+        document.getElementById('col-toggle-modal').style.display = 'flex';
+    });
+    document.getElementById('col-toggle-close').addEventListener('click', () => {
+        document.getElementById('col-toggle-modal').style.display = 'none';
+    });
 });
 
 function checkLoginStatus() {
@@ -575,12 +658,23 @@ async function fetchFromGitHub() {
         const personelSheet = workbook.Sheets['Personel'];
         if (personelSheet) {
             const personel_json = XLSX.utils.sheet_to_json(personelSheet, { header: 1 });
-            personelListesi = personel_json.slice(1)
+            // 1. Populate the full list first
+            fullPersonelListesi = personel_json.slice(1)
                 .filter(row => row && row[0] && row[1])
                 .map(row => `${row[0]} (${row[1]})`);
+
+            // 2. Create the filtered list for the UI from the full list
+            personelListesi = fullPersonelListesi.filter(personelString => {
+                const match = personelString.match(/\(([^)]+)\)$/); // Get text in parentheses (the title)
+                if (!match || !match[1]) return false;
+                const unvan = match[1].toUpperCase();
+                return unvan.includes('MÜHENDİS') || unvan.includes('TEKNİKER') || unvan.includes('TEKNİSYEN');
+            });
         } else {
             personelListesi = [];
+            fullPersonelListesi = [];
         }
+
 
         ilceListesi = readSheetAsList(workbook, 'İlçe');
         uygulamaListesi = readSheetAsList(workbook, 'Uygulama');
@@ -590,6 +684,8 @@ async function fetchFromGitHub() {
         guncellemeData = XLSX.utils.sheet_to_json(workbook.Sheets['Güncelleme'] || {});
 
         renderAllTables(isTakipData, guncellemeData);
+        setupColumnToggleModal();
+        applyColumnVisibility();
 
         document.getElementById('loader').style.display = 'none';
         document.getElementById('githubKaydetBtn').disabled = false;
@@ -705,7 +801,6 @@ function renderAllTables(mainData, detailData) {
         else if (h === 'İDÖ PARSEL SAYISI') headerText += ` (${totalIdoParsel})`;
         else if (h === 'TOPLAM PARSEL') headerText += ` (${totalToplamParsel})`;
         
-        // GÜNCELLEME: Sütunlara özel class'lar ekleniyor
         let thClass = '';
         if (h === 'İLÇE' || h === 'BİRİM') {
             thClass = 'class="col-wide"';
@@ -735,8 +830,8 @@ function showTab(uygulamaAdi) {
         }
     });
     filtrele();
-    // GÜNCELLEME: DOM güncellendikten sonra kaydırma çubuğunu ayarlamak için timeout kullanıldı.
-    setTimeout(setupTopScrollbar, 0);
+    setTimeout(setupTopScrollbar, 50);
+    setTimeout(applyStickyColumns, 50);
 }
 
 async function saveToGitHub() {
@@ -754,7 +849,12 @@ async function saveToGitHub() {
         XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(mainData, {header: EXCEL_HEADERS_MAIN, cellDates:true}), 'İş Takip Listesi');
         XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(detailData, {header: EXCEL_HEADERS_DETAIL, cellDates:true}), 'Güncelleme');
         
-        const personelData = [['ad', 'unvan'], ...personelListesi.map(p => { const m = p.match(/(.*) \((.*)\)/); return m ? [m[1].trim(), m[2].trim()] : [p, '']; })];
+        // DÜZELTME: Re-fetch'i kaldır, global tam listeyi kullan
+        const personelData = [['ad', 'unvan'], ...fullPersonelListesi.map(p => { 
+            const m = p.match(/(.*) \((.*)\)/); 
+            return m ? [m[1].trim(), m[2].trim()] : [p, '']; 
+        })];
+        
         XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(personelData), 'Personel');
         XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([['İlçe'], ...ilceListesi.map(i => [i])]), 'İlçe');
         XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([['Uygulama'], ...uygulamaListesi.map(u => [u])]), 'Uygulama');
@@ -775,15 +875,15 @@ async function saveToGitHub() {
         const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'binary' });
         const base64Content = btoa(wbout);
 
-        const response = await fetch(API_URL, {
+        const putResponse = await fetch(API_URL, {
             method: 'PUT',
             headers: { 'Authorization': `token ${GITHUB_TOKEN}`, 'Content-Type': 'application/json' },
             body: JSON.stringify({ message: `İş Takip Güncellemesi - ${new Date().toLocaleString()}`, content: base64Content, sha: currentFileSHA })
         });
 
-        if (!response.ok) throw new Error(`GitHub API Hatası: ${response.status} - ${response.statusText}`);
+        if (!putResponse.ok) throw new Error(`GitHub API Hatası: ${putResponse.status} - ${putResponse.statusText}`);
         
-        const responseData = await response.json();
+        const responseData = await putResponse.json();
         currentFileSHA = responseData.content.sha;
         setUyari('Değişiklikler başarıyla kaydedildi! Veriler yenileniyor...', 'basari');
         markAsClean();
@@ -838,7 +938,6 @@ function getGuncellemeDetailDataFromUI() {
         const newRow = {};
         const cells = row.querySelectorAll('td');
         
-        // Directly map cells to the correct Excel headers based on their display order.
         newRow['İLÇE']                                 = cells[0].querySelector('input').value;
         newRow['BİRİM']                                 = cells[1].querySelector('input').value;
         newRow['PARSEL SAYISI']                         = cells[2].querySelector('input').value;
@@ -878,8 +977,10 @@ function createRowElement(data = {}, tabName) {
             return `<option value="${item}" ${isSelected ? 'selected' : ''}>${item}</option>`;
         }).join('');
     };
+    
+    // DÜZELTME: Seçili personeli tam listeden bul
     const selectedPersonel = data['GÖREVLİ PERSONELLER'] ? String(data['GÖREVLİ PERSONELLER']).split(', ').map(name => {
-        return personelListesi.find(p => p.toUpperCase().startsWith(name.trim().toUpperCase())) || name.trim();
+        return fullPersonelListesi.find(p => p.toUpperCase().startsWith(name.trim().toUpperCase())) || name.trim();
     }) : [];
 
     newRow.innerHTML = `
@@ -903,6 +1004,14 @@ function createRowElement(data = {}, tabName) {
     
     const personelSelect = $(newRow).find('.personel-select');
     personelSelect.select2({ placeholder: "Personel Seçin" });
+    
+    // Filtrelenmiş listede olmayan ama atanmış olan personeli seçeneklere ekle
+    selectedPersonel.forEach(person => {
+        if (!personelListesi.includes(person)) {
+            personelSelect.append(new Option(person, person, true, true));
+        }
+    });
+
     personelSelect.val(selectedPersonel).trigger('change.select2');
     return newRow;
 }
@@ -922,7 +1031,7 @@ function createGuncellemeDetailRowElement(data) {
             tdClass = 'class="col-wide"';
             const value = data[header] || '';
             cellHTML = `<input type="text" data-header="${header}" value="${value}" readonly title="${value}">`;
-        } else if (header.includes('SAYISI') || header.includes('TOPLAM PARSEL')) { // DÜZELTME: "TOPLAM PARSEL" de sayı olarak ele alınıyor
+        } else if (header.includes('SAYISI') || header.includes('TOPLAM PARSEL')) {
             tdClass = 'class="col-narrow"';
             const value = data[header] || '';
             cellHTML = `<input type="number" data-header="${header}" value="${value}" readonly title="${value}">`;
@@ -956,7 +1065,6 @@ function createGuncellemeDetailRowElement(data) {
 
 function excelDateToJSDate(serial) {
     if (!serial || isNaN(serial) || serial <= 0) return serial;
-    // Excel'in başlangıç tarihi 1899-12-30 olarak alınır (1900 artık yıl hatası uyumluluğu için).
     const excelEpoch = new Date(1899, 11, 30, 12, 0, 0);
     excelEpoch.setDate(excelEpoch.getDate() + Number(serial));
     return excelEpoch;
@@ -1030,8 +1138,6 @@ function filtrele() {
 
 function checkRowMatch(row, aramaFilter, durumFilter) {
     const cells = row.getElementsByTagName("td");
-    
-    // Farklı tablo yapıları için esnek kontrol
     const isMainTable = cells.length === 12;
     
     if (isMainTable) {
@@ -1048,12 +1154,10 @@ function checkRowMatch(row, aramaFilter, durumFilter) {
         const durumText = durumSelect.value.toUpperCase();
         
         const combinedText = `${ilceText} ${birimText} ${personelText}`;
-        
         const textMatch = aramaFilter === '' || combinedText.includes(aramaFilter);
         const durumMatch = durumFilter === '' || durumText === durumFilter;
-
         return textMatch && durumMatch;
-    } else { // Detay tablosu için filtreleme
+    } else { 
         const ilceInput = cells[0].querySelector('input');
         const birimInput = cells[1].querySelector('input');
         if(!ilceInput || !birimInput) return true;
@@ -1092,23 +1196,18 @@ function toggleGroup(tbody) {
 function excelIndir() {
     const mainData = getTableDataFromUI();
     const detailData = getGuncellemeDetailDataFromUI();
-
     const wb = XLSX.utils.book_new();
-    
     const wsMain = XLSX.utils.json_to_sheet(mainData, {header: EXCEL_HEADERS_MAIN});
     wsMain['!cols'] = getColumnWidths(mainData, EXCEL_HEADERS_MAIN);
     XLSX.utils.book_append_sheet(wb, wsMain, 'İş Takip Listesi');
-    
     const wsDetail = XLSX.utils.json_to_sheet(detailData, {header: EXCEL_HEADERS_DETAIL});
     wsDetail['!cols'] = getColumnWidths(detailData, EXCEL_HEADERS_DETAIL);
     XLSX.utils.book_append_sheet(wb, wsDetail, 'Güncelleme Detay');
-
     XLSX.writeFile(wb, `IhaleTakip_Indirilen_${new Date().toISOString().slice(0,10)}.xlsx`);
 }
 
 function getColumnWidths(data, headers) {
     const widths = headers.map(header => ({ wch: header.length })); 
-
     data.forEach(row => {
         headers.forEach((header, i) => {
             const cellValue = row[header] ? String(row[header]) : '';
@@ -1117,11 +1216,9 @@ function getColumnWidths(data, headers) {
             }
         });
     });
-
     widths.forEach(width => {
-        width.wch = Math.min(Math.max(width.wch, 10), 40) + 2; // Min 10, Max 40 karakter + padding
+        width.wch = Math.min(Math.max(width.wch, 10), 40) + 2;
     });
-
     return widths;
 }
 
@@ -1146,21 +1243,13 @@ function applyDistrictBorders() {
     const colors = ['#ff6347', '#4682b4', '#32cd32', '#ff8c00', '#9370db', '#00ced1', '#f08080'];
     let colorIndex = 0;
     let lastIlce = null;
-
-    // Determine which column has the district name
     const isDetailTable = activeTable.id === 'guncellemeDetailTable';
     const ilceColumnIndex = isDetailTable ? 0 : 1;
 
-    // Clear all special borders first
-    rows.forEach(row => {
-        row.style.borderTop = '';
-    });
+    rows.forEach(row => { row.style.borderTop = ''; });
 
-    // Apply borders to the first visible row of each new district
     rows.forEach(row => {
-        if (row.style.display === 'none') {
-            return; // Skip hidden rows
-        }
+        if (row.style.display === 'none') return; 
 
         const ilceCell = row.cells[ilceColumnIndex];
         if (!ilceCell) return;
@@ -1171,7 +1260,6 @@ function applyDistrictBorders() {
         const currentIlce = currentIlceElement.value;
 
         if (currentIlce !== lastIlce) {
-            // New visible group starts
             row.style.borderTop = `3px solid ${colors[colorIndex % colors.length]}`;
             colorIndex++;
             lastIlce = currentIlce;
@@ -1179,51 +1267,122 @@ function applyDistrictBorders() {
     });
 }
 
-/**
- * Sets up and synchronizes a top horizontal scrollbar with the main table container's scrollbar.
- * This makes it easier to navigate wide tables.
- */
 function setupTopScrollbar() {
     const tableContainer = document.getElementById('tableContainer');
     const topScrollbarWrapper = document.getElementById('top-scrollbar-wrapper');
     const topScrollbarContent = document.getElementById('top-scrollbar-content');
-
-    // Hide the top scrollbar if the table content doesn't overflow
     const hasOverflow = tableContainer.scrollWidth > tableContainer.clientWidth;
     topScrollbarWrapper.style.display = hasOverflow ? 'block' : 'none';
 
     if (!hasOverflow) return;
 
-    // Set the width of the dummy content to match the table's actual scrollable width
     topScrollbarContent.style.width = tableContainer.scrollWidth + 'px';
-
-    let isSyncing = false; // A flag to prevent scroll event feedback loops
-
-    // Sync scrolling from the main table container to the top scrollbar
+    let isSyncing = false;
     tableContainer.onscroll = function() {
         if (isSyncing) return;
         isSyncing = true;
         topScrollbarWrapper.scrollLeft = tableContainer.scrollLeft;
         isSyncing = false;
     };
-
-    // Sync scrolling from the top scrollbar to the main table container
     topScrollbarWrapper.onscroll = function() {
         if (isSyncing) return;
         isSyncing = true;
-        tableContainer.scrollLeft = topScrollbarWrapper.scrollLeft; // DÜZELTME: Tabloyu kaydır
+        tableContainer.scrollLeft = topScrollbarWrapper.scrollLeft;
         isSyncing = false;
     };
 }
 
-// Re-calculate scrollbar on window resize
-window.addEventListener('resize', setupTopScrollbar);
+// --- Yeni Fonksiyonlar (Sütun Yönetimi ve Sabitleme) ---
+
+function loadColumnVisibility() {
+    const saved = localStorage.getItem('columnVisibility');
+    if (saved) {
+        columnVisibility = JSON.parse(saved);
+    } else {
+        TOGGLEABLE_COLS.forEach(header => {
+            columnVisibility[header] = true; // Default to all visible
+        });
+    }
+}
+
+function saveColumnVisibility() {
+    localStorage.setItem('columnVisibility', JSON.stringify(columnVisibility));
+}
+
+function setupColumnToggleModal() {
+    const checklist = document.getElementById('col-toggle-checklist');
+    checklist.innerHTML = '';
+    
+    TOGGLEABLE_COLS.forEach(header => {
+        const isVisible = columnVisibility[header] !== false;
+        const label = document.createElement('label');
+        label.innerHTML = `<input type="checkbox" data-header="${header}" ${isVisible ? 'checked' : ''}> ${header}`;
+        checklist.appendChild(label);
+    });
+
+    checklist.querySelectorAll('input').forEach(checkbox => {
+        checkbox.addEventListener('change', (e) => {
+            const header = e.target.dataset.header;
+            columnVisibility[header] = e.target.checked;
+            saveColumnVisibility();
+            applyColumnVisibility();
+        });
+    });
+}
+
+function applyColumnVisibility() {
+    const masterHeaders = EXCEL_HEADERS_MAIN;
+
+    TOGGLEABLE_COLS.forEach(header => {
+        const colIndex = masterHeaders.indexOf(header);
+        if (colIndex === -1) return;
+
+        const isVisible = columnVisibility[header] !== false;
+        const nthChildSelector = `:nth-child(${colIndex + 1})`;
+        
+        document.querySelectorAll(`.table-wrapper:not([data-group="Güncelleme Detay"]) table th${nthChildSelector}, .table-wrapper:not([data-group="Güncelleme Detay"]) table td${nthChildSelector}`).forEach(cell => {
+            if (isVisible) {
+                cell.classList.remove('col-hidden-by-user');
+            } else {
+                cell.classList.add('col-hidden-by-user');
+            }
+        });
+    });
+
+    setTimeout(applyStickyColumns, 0); 
+}
+
+function applyStickyColumns() {
+    const activeTable = document.querySelector('.table-wrapper.active table:not(#guncellemeDetailTable)');
+    if (!activeTable) return;
+
+    activeTable.querySelectorAll('thead th, tbody tr:not(.group-header-row) td').forEach(cell => {
+        cell.classList.remove('sticky-col');
+        cell.style.left = '';
+    });
+
+    const rows = activeTable.querySelectorAll('thead tr, tbody tr:not(.group-header-row)');
+    rows.forEach(row => {
+        let leftOffset = 0;
+        const cells = row.querySelectorAll('th, td');
+        for (let i = 0; i < STICKY_COLS_COUNT; i++) {
+            if (cells[i]) {
+                if (cells[i].style.display === 'none') continue; // Skip hidden cells
+                cells[i].classList.add('sticky-col');
+                cells[i].style.left = leftOffset + 'px';
+                leftOffset += cells[i].offsetWidth;
+            }
+        }
+    });
+}
+
+window.addEventListener('resize', () => {
+    setupTopScrollbar();
+    applyStickyColumns();
+});
 
 </script>
 
 </body>
 </html>
-
-
-
 
