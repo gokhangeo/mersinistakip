@@ -208,82 +208,44 @@
             height: 1px; /* İçerik yüksekliği önemli değil */
         }
         
-        /* GÜNCELLEME: Sütun genişliklerini ayarlamak için yeni sınıflar */
-        #guncellemeDetailTable .col-wide {
-            min-width: 130px;
-            white-space: nowrap;
-        }
-        #guncellemeDetailTable .col-narrow {
-            white-space: normal; /* Başlığın alta kaymasına izin ver */
-            width: 100px; /* Sayısal sütunlar için daha dar bir genişlik */
-        }
-        .date-cell-container {
-            display: flex;
-            align-items: center;
-            gap: 5px;
-            min-width: 220px; /* İki tarih kutusunun sığması için */
-        }
+        #guncellemeDetailTable .col-wide { min-width: 130px; white-space: nowrap; }
+        #guncellemeDetailTable .col-narrow { white-space: normal; width: 100px; }
+        .date-cell-container { display: flex; align-items: center; gap: 5px; min-width: 220px; }
 
         /* Sütun Sabitleme ve Gizleme Stilleri */
-        .sticky-col {
-            position: -webkit-sticky;
-            position: sticky;
-            background-color: white;
-            z-index: 1;
-        }
-        tr:nth-child(even) .sticky-col {
-            background-color: #f2f2f2;
-        }
-        .col-hidden-by-user {
-            display: none;
-        }
+        .sticky-col { position: -webkit-sticky; position: sticky; background-color: white; z-index: 1; }
+        tr:nth-child(even) .sticky-col { background-color: #f2f2f2; }
+        .col-hidden-by-user { display: none !important; }
 
-        /* Sütun Yönetim Modalı */
-        #col-toggle-modal {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0,0,0,0.5);
-            z-index: 2000;
-            display: none;
-            justify-content: center;
-            align-items: center;
+        /* Modal Stilleri */
+        .modal {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background-color: rgba(0,0,0,0.5); z-index: 2000;
+            display: none; justify-content: center; align-items: center;
         }
-        #col-toggle-content {
-            background: white;
-            padding: 25px;
-            border-radius: 10px;
-            width: 90%;
-            max-width: 500px;
+        .modal-content {
+            background: white; padding: 25px; border-radius: 10px;
+            width: 90%; max-width: 500px;
             box-shadow: 0 5px 15px rgba(0,0,0,0.3);
         }
-        #col-toggle-content h3 {
-            margin-top: 0;
-            color: #0056b3;
-            border-bottom: 1px solid #ccc;
-            padding-bottom: 10px;
+        .modal-content h3 {
+            margin-top: 0; color: #0056b3;
+            border-bottom: 1px solid #ccc; padding-bottom: 10px;
         }
+        .modal-close-btn { display: block; margin-left: auto; }
+
         #col-toggle-checklist {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-            gap: 15px;
-            margin: 20px 0;
+            display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+            gap: 15px; margin: 20px 0;
         }
-        #col-toggle-checklist label {
-            display: flex;
-            align-items: center;
-            font-size: 16px;
-        }
-        #col-toggle-checklist input {
-            width: auto;
-            margin-right: 10px;
-        }
-        #col-toggle-close {
-            display: block;
-            margin-left: auto;
-        }
+        #col-toggle-checklist label { display: flex; align-items: center; font-size: 16px; }
+        #col-toggle-checklist input { width: auto; margin-right: 10px; }
+        
+        #personel-info-list { list-style-type: none; padding: 0; }
+        #personel-info-list li { padding: 8px; border-bottom: 1px solid #eee; }
+        #personel-info-list li:last-child { border-bottom: none; }
+
+        .personel-btn-cell { text-align: center; }
     </style>
 </head>
 <body>
@@ -339,13 +301,24 @@
 </div>
 <div id="toast"></div>
 
-<div id="col-toggle-modal">
-    <div id="col-toggle-content">
+<!-- Sütun Yönetim Modalı -->
+<div id="col-toggle-modal" class="modal">
+    <div class="modal-content">
         <h3>Sütunları Göster/Gizle</h3>
         <div id="col-toggle-checklist"></div>
-        <button id="col-toggle-close" class="danger">Kapat</button>
+        <button id="col-toggle-close" class="danger modal-close-btn">Kapat</button>
     </div>
 </div>
+
+<!-- Personel Bilgi Modalı -->
+<div id="personel-info-modal" class="modal">
+    <div class="modal-content">
+        <h3 id="personel-info-header">Görevli Personeller</h3>
+        <ul id="personel-info-list"></ul>
+        <button id="personel-info-close" class="danger modal-close-btn">Kapat</button>
+    </div>
+</div>
+
 
 <script>
 // !!! KULLANICI BİLGİLERİ !!!
@@ -364,14 +337,15 @@ let personelListesi = [], fullPersonelListesi = [], ilceListesi = [], uygulamaLi
 let guncellemeData = [], isTakipData = [];
 let ucusKiyDurumList = [], komisyonDurumList = [], degerlendirmeDurumList = [];
 
-let durumlar = []; // Durum listesi artık dinamik olarak yüklenecek
-const EXCEL_HEADERS_MAIN = ['Tamamlandı', 'İLÇE', 'BİRİM', 'UYGULAMA', 'GÖREVLİ PERSONELLER', 'PARSEL SAYISI', 'BLOK SAYISI', 'ALAN(Ha)', 'İHALELİ/MÜDÜRLÜK', 'İŞE BAŞLAMA/YER TESLİMİ', 'İHALE BİTİŞ TARİHİ', 'DURUMU'];
+let durumlar = [];
+const EXCEL_HEADERS_MAIN = ['Tamamlandı', 'İLÇE', 'BİRİM', 'UYGULAMA', 'PERSONEL', 'GÖREVLİ PERSONELLER', 'PARSEL SAYISI', 'BLOK SAYISI', 'ALAN(Ha)', 'İHALELİ/MÜDÜRLÜK', 'İŞE BAŞLAMA/YER TESLİMİ', 'İHALE BİTİŞ TARİHİ', 'DURUMU'];
 const EXCEL_HEADERS_DETAIL = ['İLÇE', 'BİRİM', 'PARSEL SAYISI', 'İDÖ PARSEL SAYISI', 'TOPLAM PARSEL', 'İŞE BAŞLAMA', 'BİTİŞ TARİHİ', 'LİDAR/YERSEL ÖLÇÜM TARİHİ(YAPILAN)', 'ARAZİ YERSEL ÖLÇÜM TARİHİ(YAPILAN)', 'UÇUŞ TARİHİ(YAPILAN)', 'UÇUŞ KIYMETLENDİRME DURUM', 'DEĞERLENDİRME DURUM', 'ORMAN ASKI TARİHİ', 'BİLGİLENDİRME İLANI TARİHİ', 'KOMİSYON DURUM', 'KESİN ASKI TARİHİ'];
 const DISPLAY_HEADERS_DETAIL = ['İLÇE', 'BİRİM', 'PARSEL SAYISI', 'İDÖ PARSEL SAYISI', 'TOPLAM PARSEL', 'İşe Başlama / Bitiş Tarihi', 'LİDAR/YERSEL ÖLÇÜM TARİHİ(YAPILAN)', 'ARAZİ YERSEL ÖLÇÜM TARİHİ(YAPILAN)', 'UÇUŞ TARİHİ(YAPILAN)', 'UÇUŞ KIYMETLENDİRME DURUM', 'DEĞERLENDİRME DURUM', 'ORMAN ASKI TARİHİ', 'BİLGİLENDİRME İLANI TARİHİ', 'KOMİSYON DURUM', 'KESİN ASKI TARİHİ'];
 
 // Sütun görünürlüğü için sabitler
 let columnVisibility = {};
-const TOGGLEABLE_COLS = ['UYGULAMA', 'GÖREVLİ PERSONELLER', 'PARSEL SAYISI', 'BLOK SAYISI', 'ALAN(Ha)', 'İŞE BAŞLAMA/YER TESLİMİ', 'İHALE BİTİŞ TARİHİ', 'DURUMU'];
+const TOGGLEABLE_COLS_MAIN = ['UYGULAMA', 'PERSONEL', 'GÖREVLİ PERSONELLER', 'PARSEL SAYISI', 'BLOK SAYISI', 'ALAN(Ha)', 'İŞE BAŞLAMA/YER TESLİMİ', 'İHALE BİTİŞ TARİHİ', 'DURUMU'];
+const TOGGLEABLE_COLS_DETAIL = ['PARSEL SAYISI', 'İDÖ PARSEL SAYISI', 'TOPLAM PARSEL', 'İşe Başlama / Bitiş Tarihi', 'LİDAR/YERSEL ÖLÇÜM TARİHİ(YAPILAN)', 'ARAZİ YERSEL ÖLÇÜM TARİHİ(YAPILAN)', 'UÇUŞ TARİHİ(YAPILAN)', 'UÇUŞ KIYMETLENDİRME DURUM', 'DEĞERLENDİRME DURUM', 'ORMAN ASKI TARİHİ', 'BİLGİLENDİRME İLANI TARİHİ', 'KOMİSYON DURUM', 'KESİN ASKI TARİHİ'];
 const STICKY_COLS_COUNT = 3; // Onay Kutusu, İlçe, Birim
 
 
@@ -387,11 +361,17 @@ document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('githubKaydetBtn').addEventListener('click', saveToGitHub);
     document.getElementById('excelIndirBtn').addEventListener('click', excelIndir);
     document.getElementById('tableContainer').addEventListener('change', handleTableChange);
+    document.getElementById('tableContainer').addEventListener('click', handleTableClick);
+
+    // Modal Listeners
     document.getElementById('colToggleBtn').addEventListener('click', () => {
+        setupColumnToggleModal();
         document.getElementById('col-toggle-modal').style.display = 'flex';
     });
-    document.getElementById('col-toggle-close').addEventListener('click', () => {
-        document.getElementById('col-toggle-modal').style.display = 'none';
+    document.querySelectorAll('.modal-close-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            btn.closest('.modal').style.display = 'none';
+        });
     });
 });
 
@@ -515,6 +495,37 @@ function handleLogin() {
         setTimeout(() => {
             loginBox.classList.remove('shake');
         }, 500);
+    }
+}
+
+
+function handleTableClick(event) {
+    const target = event.target;
+    if (target.classList.contains('personel-info-btn') || target.closest('.personel-info-btn')) {
+        const button = target.closest('.personel-info-btn');
+        const rowKey = button.closest('tr').dataset.rowKey;
+        const [ilce, birim] = rowKey.split('|');
+        const dataRow = isTakipData.find(r => r['İLÇE'] == ilce && r['BİRİM'] == birim);
+
+        if (dataRow) {
+            const personelNames = dataRow['GÖREVLİ PERSONELLER'] ? String(dataRow['GÖREVLİ PERSONELLER']).split(', ') : [];
+            const personelModalList = document.getElementById('personel-info-list');
+            personelModalList.innerHTML = '';
+
+            if (personelNames.length > 0) {
+                personelNames.forEach(name => {
+                    const personelDetails = fullPersonelListesi.find(p => p.toUpperCase().startsWith(name.trim().toUpperCase()));
+                    const li = document.createElement('li');
+                    li.textContent = personelDetails || name.trim();
+                    personelModalList.appendChild(li);
+                });
+            } else {
+                personelModalList.innerHTML = '<li>Bu işe atanmış personel bulunmamaktadır.</li>';
+            }
+            
+            document.getElementById('personel-info-header').textContent = `${ilce} - ${birim} Personelleri`;
+            document.getElementById('personel-info-modal').style.display = 'flex';
+        }
     }
 }
 
@@ -684,7 +695,6 @@ async function fetchFromGitHub() {
         guncellemeData = XLSX.utils.sheet_to_json(workbook.Sheets['Güncelleme'] || {});
 
         renderAllTables(isTakipData, guncellemeData);
-        setupColumnToggleModal();
         applyColumnVisibility();
 
         document.getElementById('loader').style.display = 'none';
@@ -728,7 +738,7 @@ function renderAllTables(mainData, detailData) {
     const totalParsel = calculateColumnSum(mainData, 'PARSEL SAYISI');
     const totalBlok = calculateColumnSum(mainData, 'BLOK SAYISI');
     const totalAlan = calculateColumnSum(mainData, 'ALAN(Ha)').toFixed(2);
-    allTable.innerHTML = `<thead><tr><th class="check-cell">&#10004;</th><th>İLÇE</th><th>BİRİM</th><th>UYGULAMA</th><th>GÖREVLİ PERSONELLER</th><th>PARSEL SAYISI (${totalParsel})</th><th>BLOK SAYISI (${totalBlok})</th><th>ALAN(Ha) (${totalAlan})</th><th class="col-ihaleli">İHALELİ/MÜDÜRLÜK</th><th>İŞE BAŞLAMA/YER TESLİMİ</th><th>İHALE BİTİŞ TARİHİ</th><th>DURUMU</th></tr></thead>`;
+    allTable.innerHTML = `<thead><tr><th class="check-cell">&#10004;</th><th>İLÇE</th><th>BİRİM</th><th>UYGULAMA</th><th>PERSONEL</th><th style="display:none;">GÖREVLİ PERSONELLER</th><th>PARSEL SAYISI (${totalParsel})</th><th>BLOK SAYISI (${totalBlok})</th><th>ALAN(Ha) (${totalAlan})</th><th class="col-ihaleli">İHALELİ/MÜDÜRLÜK</th><th>İŞE BAŞLAMA/YER TESLİMİ</th><th>İHALE BİTİŞ TARİHİ</th><th>DURUMU</th></tr></thead>`;
     allWrapper.appendChild(allTable);
     tableContainer.appendChild(allWrapper);
 
@@ -738,7 +748,7 @@ function renderAllTables(mainData, detailData) {
         headerRow.className = 'group-header-row';
         headerRow.onclick = (e) => { if (e.target.tagName !== 'BUTTON') toggleGroup(tbody); };
         headerRow.insertCell().innerHTML = `<h3><span>${uygulama} (<span class="group-count">${groupedData[uygulama].length}</span> iş)</span><button class="group-toggle-btn" onclick="event.stopPropagation(); toggleGroup(this.closest('tbody'))">Kapat</button></h3>`;
-        headerRow.cells[0].colSpan = 12; // Colspan updated to 12
+        headerRow.cells[0].colSpan = EXCEL_HEADERS_MAIN.length;
         groupedData[uygulama].forEach(rowData => tbody.appendChild(createRowElement(rowData, 'Tümü')));
         allTable.appendChild(tbody);
     }
@@ -762,7 +772,7 @@ function renderAllTables(mainData, detailData) {
         const grupBlok = calculateColumnSum(groupedData[uygulama], 'BLOK SAYISI');
         const grupAlan = calculateColumnSum(groupedData[uygulama], 'ALAN(Ha)').toFixed(2);
 
-        table.innerHTML = `<thead><tr><th class="check-cell">&#10004;</th><th>İLÇE</th><th>BİRİM</th><th class="col-uygulama">UYGULAMA</th><th>GÖREVLİ PERSONELLER</th><th>PARSEL SAYISI (${grupParsel})</th><th>${blokSayisiHeader} (${grupBlok})</th><th class="col-alan">ALAN(Ha) (${grupAlan})</th><th class="col-ihaleli">İHALELİ/MÜDÜRLÜK</th><th>İŞE BAŞLAMA/YER TESLİMİ</th><th>İHALE BİTİŞ TARİHİ</th><th>DURUMU</th></tr></thead>`;
+        table.innerHTML = `<thead><tr><th class="check-cell">&#10004;</th><th>İLÇE</th><th>BİRİM</th><th class="col-uygulama">UYGULAMA</th><th>PERSONEL</th><th style="display:none;">GÖREVLİ PERSONELLER</th><th>PARSEL SAYISI (${grupParsel})</th><th>${blokSayisiHeader} (${grupBlok})</th><th class="col-alan">ALAN(Ha) (${grupAlan})</th><th class="col-ihaleli">İHALELİ/MÜDÜRLÜK</th><th>İŞE BAŞLAMA/YER TESLİMİ</th><th>İHALE BİTİŞ TARİHİ</th><th>DURUMU</th></tr></thead>`;
         const singleTbody = document.createElement('tbody');
         groupedData[uygulama].forEach(rowData => singleTbody.appendChild(createRowElement(rowData, uygulama)));
         table.appendChild(singleTbody);
@@ -807,7 +817,7 @@ function renderAllTables(mainData, detailData) {
         } else if (h.includes('SAYISI')) {
             thClass = 'class="col-narrow"';
         }
-        detailThead += `<th ${thClass}>${headerText}</th>`;
+        detailThead += `<th data-header="${h}">${headerText}</th>`;
     });
     detailThead += `</tr></thead>`;
     detailTable.innerHTML = detailThead;
@@ -830,6 +840,7 @@ function showTab(uygulamaAdi) {
         }
     });
     filtrele();
+    applyColumnVisibility();
     setTimeout(setupTopScrollbar, 50);
     setTimeout(applyStickyColumns, 50);
 }
@@ -846,10 +857,15 @@ async function saveToGitHub() {
 
         const wb = XLSX.utils.book_new();
         
-        XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(mainData, {header: EXCEL_HEADERS_MAIN, cellDates:true}), 'İş Takip Listesi');
+        const mainSheetData = mainData.map(row => {
+            const newRow = {...row};
+            delete newRow.PERSONEL; // Remove the temporary 'PERSONEL' column before saving
+            return newRow;
+        });
+
+        XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(mainSheetData, {header: EXCEL_HEADERS_MAIN.filter(h => h !== 'PERSONEL'), cellDates:true}), 'İş Takip Listesi');
         XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(detailData, {header: EXCEL_HEADERS_DETAIL, cellDates:true}), 'Güncelleme');
         
-        // DÜZELTME: Re-fetch'i kaldır, global tam listeyi kullan
         const personelData = [['ad', 'unvan'], ...fullPersonelListesi.map(p => { 
             const m = p.match(/(.*) \((.*)\)/); 
             return m ? [m[1].trim(), m[2].trim()] : [p, '']; 
@@ -909,7 +925,7 @@ function getTableDataFromUI() {
         const key = row.dataset.rowKey;
         if (key && !uniqueKeys.has(key)) {
             const cells = row.querySelectorAll('td');
-            const personnelWithTitles = $(cells[4]).find('.personel-select').val() || [];
+            const personnelWithTitles = $(cells[5]).find('.personel-select').val() || [];
             const personnelWithoutTitles = personnelWithTitles.map(p => p.replace(/ \(.+\)$/, '').trim());
 
             data.push({
@@ -917,14 +933,15 @@ function getTableDataFromUI() {
                 'İLÇE': cells[1].querySelector('select').value,
                 'BİRİM': cells[2].querySelector('input').value,
                 'UYGULAMA': cells[3].querySelector('select').value,
+                'PERSONEL': '', // This is just a placeholder for the button column
                 'GÖREVLİ PERSONELLER': personnelWithoutTitles.join(', '),
-                'PARSEL SAYISI': cells[5].querySelector('input').value,
-                'BLOK SAYISI': cells[6].querySelector('input').value,
-                'ALAN(Ha)': cells[7].querySelector('input').value,
+                'PARSEL SAYISI': cells[6].querySelector('input').value,
+                'BLOK SAYISI': cells[7].querySelector('input').value,
+                'ALAN(Ha)': cells[8].querySelector('input').value,
                 'İHALELİ/MÜDÜRLÜK': 'İhaleli',
-                'İŞE BAŞLAMA/YER TESLİMİ': cells[9].querySelector('input').value,
-                'İHALE BİTİŞ TARİHİ': cells[10].querySelector('input').value,
-                'DURUMU': cells[11].querySelector('select').value
+                'İŞE BAŞLAMA/YER TESLİMİ': cells[10].querySelector('input').value,
+                'İHALE BİTİŞ TARİHİ': cells[11].querySelector('input').value,
+                'DURUMU': cells[12].querySelector('select').value
             });
             uniqueKeys.add(key);
         }
@@ -978,7 +995,6 @@ function createRowElement(data = {}, tabName) {
         }).join('');
     };
     
-    // DÜZELTME: Seçili personeli tam listeden bul
     const selectedPersonel = data['GÖREVLİ PERSONELLER'] ? String(data['GÖREVLİ PERSONELLER']).split(', ').map(name => {
         return fullPersonelListesi.find(p => p.toUpperCase().startsWith(name.trim().toUpperCase())) || name.trim();
     }) : [];
@@ -987,15 +1003,20 @@ function createRowElement(data = {}, tabName) {
         <td class="check-cell"><input type="checkbox" data-header="Tamamlandı" ${isChecked ? 'checked' : ''}></td>
         <td><select data-header="İLÇE" disabled title="${data['İLÇE'] || ''}">${createOptions(ilceListesi, data['İLÇE'])}</select></td>
         <td><input type="text" data-header="BİRİM" value="${data['BİRİM'] || ''}" readonly title="${data['BİRİM'] || ''}"></td>
-        <td class="col-uygulama"><select data-header="UYGULAMA">${createOptions(uygulamaListesi, data['UYGULAMA'])}</select></td>
-        <td>
+        <td><select data-header="UYGULAMA">${createOptions(uygulamaListesi, data['UYGULAMA'])}</select></td>
+        <td class="personel-btn-cell">
+             <button class="personel-info-btn" title="Personelleri Görüntüle">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-people-fill" viewBox="0 0 16 16"><path d="M7 14s-1 0-1-1 1-4 5-4 5 3 5 4-1 1-1 1H7zm4-6a3 3 0 1 0 0-6 3 3 0 0 0 0 6z"/><path fill-rule="evenodd" d="M5.216 14A2.238 2.238 0 0 1 5 13c0-1.355.68-2.75 1.936-3.72A6.325 6.325 0 0 0 5 9c-4 0-5 3-5 4s1 1 1 1h4.216zM4.5 8a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5z"/></svg>
+            </button>
+        </td>
+        <td style="display:none;">
             <div class="personnel-wrapper" ${!isPersonnelEditable ? `onclick="showToast('Personel değişikliği sadece \\'Tümü\\' sekmesinden yapılabilir.')"` : ''}>
                 <select class="personel-select" data-header="GÖREVLİ PERSONELLER" multiple="multiple" ${!isPersonnelEditable ? 'disabled' : ''}>${createOptions(personelListesi, null)}</select>
             </div>
         </td>
         <td><input type="number" data-header="PARSEL SAYISI" value="${data['PARSEL SAYISI'] || ''}" readonly title="${data['PARSEL SAYISI'] || ''}"></td>
         <td><input type="number" data-header="BLOK SAYISI" value="${data['BLOK SAYISI'] || ''}" readonly title="${data['BLOK SAYISI'] || ''}"></td>
-        <td class="col-alan"><input type="number" data-header="ALAN(Ha)" value="${data['ALAN(Ha)'] || ''}" readonly title="${data['ALAN(Ha)'] || ''}"></td>
+        <td><input type="number" data-header="ALAN(Ha)" value="${data['ALAN(Ha)'] || ''}" readonly title="${data['ALAN(Ha)'] || ''}"></td>
         <td class="col-ihaleli"><select data-header="İHALELİ/MÜDÜRLÜK"><option value="İhaleli" ${data['İHALELİ/MÜDÜRLÜK'] === 'İhaleli' ? 'selected' : ''}>İhaleli</option><option value="Müdürlük" ${data['İHALELİ/MÜDÜRLÜK'] === 'Müdürlük' ? 'selected' : ''}>Müdürlük</option></select></td>
         <td><input type="date" data-header="İŞE BAŞLAMA/YER TESLİMİ" value="${formatDate(excelDateToJSDate(data['İŞE BAŞLAMA/YER TESLİMİ']))}" readonly title="${formatDate(excelDateToJSDate(data['İŞE BAŞLAMA/YER TESLİMİ']))}"></td>
         <td><input type="date" data-header="İHALE BİTİŞ TARİHİ" value="${formatDate(excelDateToJSDate(data['İHALE BİTİŞ TARİHİ']))}" readonly title="${formatDate(excelDateToJSDate(data['İHALE BİTİŞ TARİHİ']))}"></td>
@@ -1005,7 +1026,6 @@ function createRowElement(data = {}, tabName) {
     const personelSelect = $(newRow).find('.personel-select');
     personelSelect.select2({ placeholder: "Personel Seçin" });
     
-    // Filtrelenmiş listede olmayan ama atanmış olan personeli seçeneklere ekle
     selectedPersonel.forEach(person => {
         if (!personelListesi.includes(person)) {
             personelSelect.append(new Option(person, person, true, true));
@@ -1026,6 +1046,7 @@ function createGuncellemeDetailRowElement(data) {
     DISPLAY_HEADERS_DETAIL.forEach(header => {
         let cellHTML = '';
         let tdClass = '';
+        const headerKey = header === 'İşe Başlama / Bitiş Tarihi' ? 'İŞE BAŞLAMA' : header;
 
         if (header === 'İLÇE' || header === 'BİRİM') {
             tdClass = 'class="col-wide"';
@@ -1055,6 +1076,7 @@ function createGuncellemeDetailRowElement(data) {
         }
         
         const td = document.createElement('td');
+        td.dataset.header = headerKey;
         if (tdClass) td.className = tdClass.replace('class="', '').replace('"', '');
         td.innerHTML = cellHTML;
         newRow.appendChild(td);
@@ -1138,13 +1160,13 @@ function filtrele() {
 
 function checkRowMatch(row, aramaFilter, durumFilter) {
     const cells = row.getElementsByTagName("td");
-    const isMainTable = cells.length === 12;
+    const isMainTable = cells.length > 12; // Adjusted for new column
     
     if (isMainTable) {
         const ilceSelect = cells[1].querySelector('select');
         const birimInput = cells[2].querySelector('input');
-        const personelSelect = $(cells[4]).find('.personel-select');
-        const durumSelect = cells[11].querySelector('select');
+        const personelSelect = $(cells[5]).find('.personel-select');
+        const durumSelect = cells[12].querySelector('select');
 
         if (!ilceSelect || !birimInput || !personelSelect.length || !durumSelect) return true;
         
@@ -1292,16 +1314,18 @@ function setupTopScrollbar() {
     };
 }
 
-// --- Yeni Fonksiyonlar (Sütun Yönetimi ve Sabitleme) ---
+// --- Sütun Yönetimi ve Sabitleme ---
 
 function loadColumnVisibility() {
     const saved = localStorage.getItem('columnVisibility');
     if (saved) {
         columnVisibility = JSON.parse(saved);
     } else {
-        TOGGLEABLE_COLS.forEach(header => {
-            columnVisibility[header] = true; // Default to all visible
+        // Default visibility
+        [...TOGGLEABLE_COLS_MAIN, ...TOGGLEABLE_COLS_DETAIL].forEach(header => {
+            columnVisibility[header] = true;
         });
+        columnVisibility['GÖREVLİ PERSONELLER'] = false; // Hide this by default
     }
 }
 
@@ -1312,8 +1336,12 @@ function saveColumnVisibility() {
 function setupColumnToggleModal() {
     const checklist = document.getElementById('col-toggle-checklist');
     checklist.innerHTML = '';
+    const activeTabGroup = document.querySelector('.table-wrapper.active').dataset.group;
+    const isDetailTab = activeTabGroup === 'Güncelleme Detay';
     
-    TOGGLEABLE_COLS.forEach(header => {
+    const columnsToShow = isDetailTab ? TOGGLEABLE_COLS_DETAIL : TOGGLEABLE_COLS_MAIN;
+
+    columnsToShow.forEach(header => {
         const isVisible = columnVisibility[header] !== false;
         const label = document.createElement('label');
         label.innerHTML = `<input type="checkbox" data-header="${header}" ${isVisible ? 'checked' : ''}> ${header}`;
@@ -1331,21 +1359,21 @@ function setupColumnToggleModal() {
 }
 
 function applyColumnVisibility() {
-    const masterHeaders = EXCEL_HEADERS_MAIN;
-
-    TOGGLEABLE_COLS.forEach(header => {
-        const colIndex = masterHeaders.indexOf(header);
+    // Apply to Main Tables
+    TOGGLEABLE_COLS_MAIN.forEach(header => {
+        const colIndex = EXCEL_HEADERS_MAIN.indexOf(header);
         if (colIndex === -1) return;
-
         const isVisible = columnVisibility[header] !== false;
-        const nthChildSelector = `:nth-child(${colIndex + 1})`;
-        
-        document.querySelectorAll(`.table-wrapper:not([data-group="Güncelleme Detay"]) table th${nthChildSelector}, .table-wrapper:not([data-group="Güncelleme Detay"]) table td${nthChildSelector}`).forEach(cell => {
-            if (isVisible) {
-                cell.classList.remove('col-hidden-by-user');
-            } else {
-                cell.classList.add('col-hidden-by-user');
-            }
+        document.querySelectorAll(`.table-wrapper:not([data-group="Güncelleme Detay"]) table th:nth-child(${colIndex + 1}), .table-wrapper:not([data-group="Güncelleme Detay"]) table td:nth-child(${colIndex + 1})`).forEach(cell => {
+            cell.classList.toggle('col-hidden-by-user', !isVisible);
+        });
+    });
+
+    // Apply to Detail Table
+    TOGGLEABLE_COLS_DETAIL.forEach(header => {
+        const isVisible = columnVisibility[header] !== false;
+        document.querySelectorAll(`#guncellemeDetailTable th[data-header="${header}"], #guncellemeDetailTable td[data-header="${header}"]`).forEach(cell => {
+            cell.classList.toggle('col-hidden-by-user', !isVisible);
         });
     });
 
@@ -1366,8 +1394,7 @@ function applyStickyColumns() {
         let leftOffset = 0;
         const cells = row.querySelectorAll('th, td');
         for (let i = 0; i < STICKY_COLS_COUNT; i++) {
-            if (cells[i]) {
-                if (cells[i].style.display === 'none') continue; // Skip hidden cells
+            if (cells[i] && !cells[i].classList.contains('col-hidden-by-user')) {
                 cells[i].classList.add('sticky-col');
                 cells[i].style.left = leftOffset + 'px';
                 leftOffset += cells[i].offsetWidth;
