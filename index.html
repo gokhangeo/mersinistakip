@@ -178,7 +178,10 @@
         .table-wrapper[data-group="GÜNCELLEME"] .col-uygulama,
         .table-wrapper[data-group="2/B"] .col-tarih,
         .table-wrapper[data-group="GÜNCELLEME"] .col-tarih,
-        .table-wrapper[data-group="2/B"] .col-parsel { /* YENİ KURAL */
+        .table-wrapper[data-group="2/B"] .col-parsel,
+        .table-wrapper[data-group="Müdürlük"] .check-cell,
+        .table-wrapper[data-group="Müdürlük"] .col-uygulama,
+        .table-wrapper[data-group="Müdürlük"] .col-tarih {
             display: none;
         }
 
@@ -226,20 +229,59 @@
         }
         .modal-content {
             background: white; padding: 25px; border-radius: 10px;
-            width: 90%; max-width: 500px;
+            width: 90%; max-width: 600px; /* Genişletildi */
             box-shadow: 0 5px 15px rgba(0,0,0,0.3);
         }
         .modal-content h3 {
             margin-top: 0; color: #0056b3;
             border-bottom: 1px solid #ccc; padding-bottom: 10px;
         }
+        .modal-footer {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            margin-top: 20px;
+        }
         .modal-close-btn { display: block; margin-left: auto; }
         
         #personel-info-list { list-style-type: none; padding: 0; }
         #personel-info-list li { padding: 8px; border-bottom: 1px solid #eee; }
         #personel-info-list li:last-child { border-bottom: none; }
-
         .personel-btn-cell { text-align: center; }
+
+        /* Personel Rapor Stilleri */
+        .personel-rapor-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 20px;
+        }
+        .personel-kart {
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 15px;
+            background-color: #f9f9f9;
+        }
+        .personel-kart h4 {
+            margin-top: 0;
+            color: #0056b3;
+            border-bottom: 1px solid #ccc;
+            padding-bottom: 8px;
+        }
+        .durum-grup {
+            margin-bottom: 10px;
+        }
+        .durum-grup strong {
+            font-size: 14px;
+        }
+        .durum-grup ul {
+            list-style-type: none;
+            padding-left: 15px;
+            margin: 5px 0 0;
+        }
+        .durum-grup li {
+            font-size: 12px;
+            padding: 2px 0;
+        }
     </style>
 </head>
 <body>
@@ -291,12 +333,16 @@
 </div>
 <div id="toast"></div>
 
-<!-- Personel Bilgi Modalı -->
-<div id="personel-info-modal" class="modal">
+<!-- Personel Yönetim Modalı -->
+<div id="personel-modal" class="modal">
     <div class="modal-content">
-        <h3 id="personel-info-header">Görevli Personeller</h3>
-        <ul id="personel-info-list"></ul>
-        <button id="personel-info-close" class="danger modal-close-btn">Kapat</button>
+        <h3 id="personel-modal-header">Personel Yönetimi</h3>
+        <p>Bu iş için görevli personelleri seçin.</p>
+        <select id="personel-modal-select" multiple="multiple" style="width: 100%;"></select>
+        <div class="modal-footer">
+            <button id="personel-modal-cancel" class="danger modal-close-btn">İptal</button>
+            <button id="personel-modal-save" class="success">Personeli Güncelle</button>
+        </div>
     </div>
 </div>
 
@@ -314,7 +360,7 @@ const GITHUB_TOKEN = token_part1 + token_part2;
 // Global Değişkenler
 const API_URL = `https://api.github.com/repos/${GITHUB_KULLANICI_ADI}/${GITHUB_REPO_ADI}/contents/${DOSYA_YOLU}`;
 let currentFileSHA = '';
-let personelListesi = [], fullPersonelListesi = [], ilceListesi = [], uygulamaListesi = [];
+let personelListesi = [], fullPersonelListesi = [], muhendisListesi = [], ilceListesi = [], uygulamaListesi = [];
 let guncellemeData = [], isTakipData = [];
 let ucusKiyDurumList = [], komisyonDurumList = [], degerlendirmeDurumList = [];
 
@@ -323,6 +369,7 @@ const EXCEL_HEADERS_MAIN = ['Tamamlandı', 'İLÇE', 'BİRİM', 'UYGULAMA', 'PER
 const EXCEL_HEADERS_DETAIL = ['İLÇE', 'BİRİM', 'PARSEL SAYISI', 'İDÖ PARSEL SAYISI', 'TOPLAM PARSEL', 'İŞE BAŞLAMA', 'BİTİŞ TARİHİ', 'LİDAR/YERSEL ÖLÇÜM TARİHİ(YAPILAN)', 'ARAZİ YERSEL ÖLÇÜM TARİHİ(YAPILAN)', 'UÇUŞ TARİHİ(YAPILAN)', 'UÇUŞ KIYMETLENDİRME DURUM', 'DEĞERLENDİRME DURUM', 'ORMAN ASKI TARİHİ', 'BİLGİLENDİRME İLANI TARİHİ', 'KOMİSYON DURUM', 'KESİN ASKI TARİHİ'];
 const DISPLAY_HEADERS_DETAIL = ['İLÇE', 'BİRİM', 'PARSEL SAYISI', 'İDÖ PARSEL SAYISI', 'TOPLAM PARSEL', 'İşe Başlama / Bitiş Tarihi', 'LİDAR/YERSEL ÖLÇÜM TARİHİ(YAPILAN)', 'ARAZİ YERSEL ÖLÇÜM TARİHİ(YAPILAN)', 'UÇUŞ TARİHİ(YAPILAN)', 'UÇUŞ KIYMETLENDİRME DURUM', 'DEĞERLENDİRME DURUM', 'ORMAN ASKI TARİHİ', 'BİLGİLENDİRME İLANI TARİHİ', 'KOMİSYON DURUM', 'KESİN ASKI TARİHİ'];
 const STICKY_COLS_COUNT = 3; // Onay Kutusu, İlçe, Birim
+let currentEditingRowKey = null;
 
 
 document.addEventListener('DOMContentLoaded', function() {
@@ -344,6 +391,7 @@ document.addEventListener('DOMContentLoaded', function() {
             btn.closest('.modal').style.display = 'none';
         });
     });
+    document.getElementById('personel-modal-save').addEventListener('click', savePersonelChanges);
 });
 
 function checkLoginStatus() {
@@ -474,28 +522,34 @@ function handleTableClick(event) {
     const target = event.target;
     if (target.classList.contains('personel-info-btn') || target.closest('.personel-info-btn')) {
         const button = target.closest('.personel-info-btn');
-        const rowKey = button.closest('tr').dataset.rowKey;
-        const [ilce, birim] = rowKey.split('|');
+        currentEditingRowKey = button.closest('tr').dataset.rowKey;
+        const [ilce, birim] = currentEditingRowKey.split('|');
         const dataRow = isTakipData.find(r => r['İLÇE'] == ilce && r['BİRİM'] == birim);
 
         if (dataRow) {
-            const personelNames = dataRow['GÖREVLİ PERSONELLER'] ? String(dataRow['GÖREVLİ PERSONELLER']).split(', ') : [];
-            const personelModalList = document.getElementById('personel-info-list');
-            personelModalList.innerHTML = '';
-
-            if (personelNames.length > 0) {
-                personelNames.forEach(name => {
-                    const personelDetails = fullPersonelListesi.find(p => p.toUpperCase().startsWith(name.trim().toUpperCase()));
-                    const li = document.createElement('li');
-                    li.textContent = personelDetails || name.trim();
-                    personelModalList.appendChild(li);
-                });
-            } else {
-                personelModalList.innerHTML = '<li>Bu işe atanmış personel bulunmamaktadır.</li>';
-            }
+            document.getElementById('personel-modal-header').textContent = `${ilce} - ${birim} Personel Yönetimi`;
             
-            document.getElementById('personel-info-header').textContent = `${ilce} - ${birim} Personelleri`;
-            document.getElementById('personel-info-modal').style.display = 'flex';
+            const personelModalSelect = $('#personel-modal-select');
+            personelModalSelect.html(''); // Clear previous options
+            
+            // Populate with the filtered list
+            personelListesi.forEach(person => {
+                personelModalSelect.append(new Option(person, person, false, false));
+            });
+
+            const selectedPersonel = dataRow['GÖREVLİ PERSONELLER'] ? String(dataRow['GÖREVLİ PERSONELLER']).split(', ').map(name => {
+                return fullPersonelListesi.find(p => p.toUpperCase().startsWith(name.trim().toUpperCase())) || name.trim();
+            }) : [];
+
+            // Add assigned personnel to the list if they are not in the filtered list
+            selectedPersonel.forEach(person => {
+                if (!personelListesi.includes(person)) {
+                    personelModalSelect.append(new Option(person, person, true, true));
+                }
+            });
+            
+            personelModalSelect.val(selectedPersonel).trigger('change');
+            document.getElementById('personel-modal').style.display = 'flex';
         }
     }
 }
@@ -640,21 +694,26 @@ async function fetchFromGitHub() {
         const personelSheet = workbook.Sheets['Personel'];
         if (personelSheet) {
             const personel_json = XLSX.utils.sheet_to_json(personelSheet, { header: 1 });
-            // 1. Populate the full list first
             fullPersonelListesi = personel_json.slice(1)
                 .filter(row => row && row[0] && row[1])
                 .map(row => `${row[0]} (${row[1]})`);
 
-            // 2. Create the filtered list for the UI from the full list
-            personelListesi = fullPersonelListesi.filter(personelString => {
-                const match = personelString.match(/\(([^)]+)\)$/); // Get text in parentheses (the title)
-                if (!match || !match[1]) return false;
-                const unvan = match[1].toUpperCase();
-                return unvan.includes('MÜHENDİS') || unvan.includes('TEKNİKER') || unvan.includes('TEKNİSYEN');
-            });
+            const unvanFiltrele = (unvanListesi) => {
+                return fullPersonelListesi.filter(personelString => {
+                    const match = personelString.match(/\(([^)]+)\)$/);
+                    if (!match || !match[1]) return false;
+                    const unvan = match[1].toUpperCase();
+                    return unvanListesi.some(u => unvan.includes(u));
+                });
+            };
+
+            personelListesi = unvanFiltrele(['MÜHENDİS', 'TEKNİKER', 'TEKNİSYEN']);
+            muhendisListesi = unvanFiltrele(['MÜHENDİS']);
+
         } else {
             personelListesi = [];
             fullPersonelListesi = [];
+            muhendisListesi = [];
         }
 
 
@@ -665,6 +724,11 @@ async function fetchFromGitHub() {
         isTakipData = XLSX.utils.sheet_to_json(workbook.Sheets['İş Takip Listesi'] || {});
         guncellemeData = XLSX.utils.sheet_to_json(workbook.Sheets['Güncelleme'] || {});
         
+        $('#personel-modal-select').select2({
+            placeholder: "Personel Seçin",
+            dropdownParent: $('#personel-modal')
+        });
+
         renderAllTables(isTakipData, guncellemeData);
 
         document.getElementById('loader').style.display = 'none';
@@ -687,14 +751,17 @@ function renderAllTables(mainData, detailData) {
     tableContainer.innerHTML = '';
     tabsContainer.innerHTML = '';
 
-    const groupedData = mainData.reduce((acc, row) => {
+    const mudurlukIsleri = mainData.filter(row => row['İHALELİ/MÜDÜRLÜK'] === 'Müdürlük');
+    const ihaleIsleri = mainData.filter(row => row['İHALELİ/MÜDÜRLÜK'] !== 'Müdürlük');
+
+    const groupedData = ihaleIsleri.reduce((acc, row) => {
         const groupName = row['UYGULAMA'] || 'Diğer İşler';
         if (!acc[groupName]) acc[groupName] = [];
         acc[groupName].push(row);
         return acc;
     }, {});
 
-    // "Tümü" Sekmesi ve Tablosu
+    // "Tümü" Sekmesi
     const allTabBtn = document.createElement('button');
     allTabBtn.className = 'tab-btn active';
     allTabBtn.textContent = 'Tümü';
@@ -705,9 +772,9 @@ function renderAllTables(mainData, detailData) {
     allWrapper.className = 'table-wrapper active';
     allWrapper.dataset.group = 'Tümü';
     const allTable = document.createElement('table');
-    const totalParsel = calculateColumnSum(mainData, 'PARSEL SAYISI');
-    const totalBlok = calculateColumnSum(mainData, 'BLOK SAYISI');
-    const totalAlan = calculateColumnSum(mainData, 'ALAN(Ha)').toFixed(2);
+    const totalParsel = calculateColumnSum(ihaleIsleri, 'PARSEL SAYISI');
+    const totalBlok = calculateColumnSum(ihaleIsleri, 'BLOK SAYISI');
+    const totalAlan = calculateColumnSum(ihaleIsleri, 'ALAN(Ha)').toFixed(2);
     allTable.innerHTML = `<thead><tr><th class="check-cell">&#10004;</th><th>İLÇE</th><th>BİRİM</th><th class="col-uygulama">UYGULAMA</th><th>PERSONEL</th><th style="display:none;">GÖREVLİ PERSONELLER</th><th class="col-parsel">PARSEL SAYISI (${totalParsel})</th><th>BLOK SAYISI (${totalBlok})</th><th class="col-alan">ALAN(Ha) (${totalAlan})</th><th class="col-tarih">İŞE BAŞLAMA/YER TESLİMİ</th><th class="col-tarih">İHALE BİTİŞ TARİHİ</th><th>DURUMU</th></tr></thead>`;
     allWrapper.appendChild(allTable);
     tableContainer.appendChild(allWrapper);
@@ -718,12 +785,12 @@ function renderAllTables(mainData, detailData) {
         headerRow.className = 'group-header-row';
         headerRow.onclick = (e) => { if (e.target.tagName !== 'BUTTON') toggleGroup(tbody); };
         headerRow.insertCell().innerHTML = `<h3><span>${uygulama} (<span class="group-count">${groupedData[uygulama].length}</span> iş)</span><button class="group-toggle-btn" onclick="event.stopPropagation(); toggleGroup(this.closest('tbody'))">Kapat</button></h3>`;
-        headerRow.cells[0].colSpan = 12; // Adjust colspan
+        headerRow.cells[0].colSpan = 12;
         groupedData[uygulama].forEach(rowData => tbody.appendChild(createRowElement(rowData, 'Tümü')));
         allTable.appendChild(tbody);
     }
     
-    // Diğer Ana Sekmeler ve Tabloları
+    // Diğer Ana Sekmeler
     for (const uygulama in groupedData) {
         const tab = document.createElement('button');
         tab.className = 'tab-btn';
@@ -763,7 +830,47 @@ function renderAllTables(mainData, detailData) {
         tableContainer.appendChild(tableWrapper);
     }
 
-    // "Güncelleme Detay" Sekmesi ve Tablosu
+    // Müdürlük Sekmesi
+    if (mudurlukIsleri.length > 0) {
+        const mudurlukTabBtn = document.createElement('button');
+        mudurlukTabBtn.className = 'tab-btn';
+        mudurlukTabBtn.textContent = `Müdürlük (${mudurlukIsleri.length})`;
+        mudurlukTabBtn.dataset.uygulama = 'Müdürlük';
+        mudurlukTabBtn.onclick = () => showTab('Müdürlük');
+        tabsContainer.appendChild(mudurlukTabBtn);
+
+        const mudurlukWrapper = document.createElement('div');
+        mudurlukWrapper.className = 'table-wrapper';
+        mudurlukWrapper.dataset.group = 'Müdürlük';
+        const mudurlukTable = document.createElement('table');
+        
+        const grupParsel = calculateColumnSum(mudurlukIsleri, 'PARSEL SAYISI');
+        const grupBlok = calculateColumnSum(mudurlukIsleri, 'BLOK SAYISI');
+        const grupAlan = calculateColumnSum(mudurlukIsleri, 'ALAN(Ha)').toFixed(2);
+
+        mudurlukTable.innerHTML = `<thead><tr>
+            <th class="check-cell">&#10004;</th>
+            <th>İLÇE</th>
+            <th>BİRİM</th>
+            <th class="col-uygulama">UYGULAMA</th>
+            <th>PERSONEL</th>
+            <th style="display:none;">GÖREVLİ PERSONELLER</th>
+            <th class="col-parsel">PARSEL SAYISI (${grupParsel})</th>
+            <th>BLOK SAYISI (${grupBlok})</th>
+            <th class="col-alan">ALAN(Ha) (${grupAlan})</th>
+            <th class="col-tarih">İŞE BAŞLAMA/YER TESLİMİ</th>
+            <th class="col-tarih">İHALE BİTİŞ TARİHİ</th>
+            <th>DURUMU</th>
+        </tr></thead>`;
+        const mudurlukTbody = document.createElement('tbody');
+        mudurlukIsleri.forEach(rowData => mudurlukTbody.appendChild(createRowElement(rowData, 'Müdürlük')));
+        mudurlukTable.appendChild(mudurlukTbody);
+        mudurlukWrapper.appendChild(mudurlukTable);
+        tableContainer.appendChild(mudurlukWrapper);
+    }
+
+
+    // "Güncelleme Detay" Sekmesi
     const detailTabBtn = document.createElement('button');
     detailTabBtn.className = 'tab-btn';
     detailTabBtn.textContent = 'Güncelleme Detay';
@@ -810,6 +917,20 @@ function renderAllTables(mainData, detailData) {
     detailTable.appendChild(detailTbody);
     detailWrapper.appendChild(detailTable);
     tableContainer.appendChild(detailWrapper);
+
+    // Personel Raporu Sekmesi
+    const reportTabBtn = document.createElement('button');
+    reportTabBtn.className = 'tab-btn';
+    reportTabBtn.textContent = 'Personel Durum Raporu';
+    reportTabBtn.dataset.uygulama = 'Personel Raporu';
+    reportTabBtn.onclick = () => showTab('Personel Raporu');
+    tabsContainer.appendChild(reportTabBtn);
+
+    const reportWrapper = document.createElement('div');
+    reportWrapper.className = 'table-wrapper';
+    reportWrapper.dataset.group = 'Personel Raporu';
+    reportWrapper.appendChild(createPersonelReport());
+    tableContainer.appendChild(reportWrapper);
 }
 
 
@@ -903,7 +1024,7 @@ function getTableDataFromUI() {
     const data = [];
     const uniqueKeys = new Set();
     
-    document.querySelectorAll('.table-wrapper:not([data-group="Güncelleme Detay"]) tbody tr:not(.group-header-row)').forEach(row => {
+    document.querySelectorAll('.table-wrapper:not([data-group="Güncelleme Detay"]):not([data-group="Personel Raporu"]) tbody tr:not(.group-header-row)').forEach(row => {
         const key = row.dataset.rowKey;
         if (key && !uniqueKeys.has(key)) {
             const cells = row.querySelectorAll('td');
@@ -920,7 +1041,7 @@ function getTableDataFromUI() {
                 'PARSEL SAYISI': cells[6].querySelector('input').value,
                 'BLOK SAYISI': cells[7].querySelector('input').value,
                 'ALAN(Ha)': cells[8].querySelector('input').value,
-                'İHALELİ/MÜDÜRLÜK': 'İhaleli', // Assuming this is constant
+                'İHALELİ/MÜDÜRLÜK': cells[1].querySelector('input[type="hidden"]').value,
                 'İŞE BAŞLAMA/YER TESLİMİ': cells[9].querySelector('input').value,
                 'İHALE BİTİŞ TARİHİ': cells[10].querySelector('input').value,
                 'DURUMU': cells[11].querySelector('select').value
@@ -967,7 +1088,7 @@ function createRowElement(data = {}, tabName) {
     const isChecked = data['Tamamlandı'] === 'EVET';
     if(isChecked) newRow.classList.add('tamamlandi');
 
-    const isPersonnelEditable = tabName === 'Tümü';
+    const isPersonnelEditable = true; // Make it always editable from the modal
 
     const createOptions = (list, selected) => {
         const selectedUpper = selected ? String(selected).toUpperCase() : null;
@@ -983,17 +1104,20 @@ function createRowElement(data = {}, tabName) {
 
     newRow.innerHTML = `
         <td class="check-cell"><input type="checkbox" data-header="Tamamlandı" ${isChecked ? 'checked' : ''}></td>
-        <td><select data-header="İLÇE" disabled title="${data['İLÇE'] || ''}">${createOptions(ilceListesi, data['İLÇE'])}</select></td>
+        <td>
+            <select data-header="İLÇE" disabled title="${data['İLÇE'] || ''}">${createOptions(ilceListesi, data['İLÇE'])}</select>
+            <input type="hidden" data-header="İHALELİ/MÜDÜRLÜK" value="${data['İHALELİ/MÜDÜRLÜK'] || 'İhaleli'}">
+        </td>
         <td><input type="text" data-header="BİRİM" value="${data['BİRİM'] || ''}" readonly title="${data['BİRİM'] || ''}"></td>
         <td class="col-uygulama"><select data-header="UYGULAMA">${createOptions(uygulamaListesi, data['UYGULAMA'])}</select></td>
         <td class="personel-btn-cell">
-             <button class="personel-info-btn" title="Personelleri Görüntüle">
+             <button class="personel-info-btn" title="Personelleri Yönet">
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-people-fill" viewBox="0 0 16 16"><path d="M7 14s-1 0-1-1 1-4 5-4 5 3 5 4-1 1-1 1H7zm4-6a3 3 0 1 0 0-6 3 3 0 0 0 0 6z"/><path fill-rule="evenodd" d="M5.216 14A2.238 2.238 0 0 1 5 13c0-1.355.68-2.75 1.936-3.72A6.325 6.325 0 0 0 5 9c-4 0-5 3-5 4s1 1 1 1h4.216zM4.5 8a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5z"/></svg>
             </button>
         </td>
         <td style="display:none;">
-            <div class="personnel-wrapper" ${!isPersonnelEditable ? `onclick="showToast('Personel değişikliği sadece \\'Tümü\\' sekmesinden yapılabilir.')"` : ''}>
-                <select class="personel-select" data-header="GÖREVLİ PERSONELLER" multiple="multiple" ${!isPersonnelEditable ? 'disabled' : ''}>${createOptions(personelListesi, null)}</select>
+            <div class="personnel-wrapper">
+                <select class="personel-select" data-header="GÖREVLİ PERSONELLER" multiple="multiple">${createOptions(personelListesi, null)}</select>
             </div>
         </td>
         <td class="col-parsel"><input type="number" data-header="PARSEL SAYISI" value="${data['PARSEL SAYISI'] || ''}" readonly title="${data['PARSEL SAYISI'] || ''}"></td>
@@ -1317,6 +1441,80 @@ function applyStickyColumns() {
         }
     });
 }
+
+function savePersonelChanges() {
+    if (!currentEditingRowKey) return;
+    const [ilce, birim] = currentEditingRowKey.split('|');
+    const dataRow = isTakipData.find(r => r['İLÇE'] == ilce && r['BİRİM'] == birim);
+    
+    if(dataRow) {
+        const selectedPersonnel = $('#personel-modal-select').val() || [];
+        const personnelWithoutTitles = selectedPersonnel.map(p => p.replace(/ \(.+\)$/, '').trim());
+        dataRow['GÖREVLİ PERSONELLER'] = personnelWithoutTitles.join(', ');
+        
+        // Update the hidden select in the table row for data consistency
+        const rowInTable = document.querySelector(`tr[data-row-key="${currentEditingRowKey}"]`);
+        if (rowInTable) {
+            const hiddenSelect = $(rowInTable).find('.personel-select');
+            hiddenSelect.val(selectedPersonnel).trigger('change.select2');
+        }
+
+        markAsDirty();
+        document.getElementById('personel-modal').style.display = 'none';
+        showToast('Personel listesi güncellendi. Kaydetmeyi unutmayın.');
+    }
+}
+
+function createPersonelReport() {
+    const reportContainer = document.createElement('div');
+    reportContainer.className = 'personel-rapor-container';
+
+    const reportData = {};
+
+    muhendisListesi.forEach(personel => {
+        reportData[personel] = {};
+    });
+
+    isTakipData.forEach(is => {
+        const personeller = is['GÖREVLİ PERSONELLER'] ? String(is['GÖREVLİ PERSONELLER']).split(', ') : [];
+        personeller.forEach(pName => {
+            const personelFullName = fullPersonelListesi.find(p => p.toUpperCase().startsWith(pName.trim().toUpperCase()));
+            if (personelFullName && muhendisListesi.includes(personelFullName)) {
+                const durum = is['DURUMU'] || 'Belirtilmemiş';
+                if (!reportData[personelFullName][durum]) {
+                    reportData[personelFullName][durum] = [];
+                }
+                reportData[personelFullName][durum].push(`${is['İLÇE']} - ${is['BİRİM']}`);
+            }
+        });
+    });
+
+    for (const personel in reportData) {
+        const kart = document.createElement('div');
+        kart.className = 'personel-kart';
+        
+        let kartHTML = `<h4>${personel}</h4>`;
+        
+        const durumGruplari = Object.keys(reportData[personel]).sort();
+        if (durumGruplari.length > 0) {
+            durumGruplari.forEach(durum => {
+                kartHTML += `<div class="durum-grup"><strong>${durum} (${reportData[personel][durum].length} iş):</strong><ul>`;
+                reportData[personel][durum].forEach(isDetay => {
+                    kartHTML += `<li>${isDetay}</li>`;
+                });
+                kartHTML += `</ul></div>`;
+            });
+        } else {
+            kartHTML += '<p>Atanmış iş bulunmamaktadır.</p>';
+        }
+
+        kart.innerHTML = kartHTML;
+        reportContainer.appendChild(kart);
+    }
+    
+    return reportContainer;
+}
+
 
 window.addEventListener('resize', () => {
     setupTopScrollbar();
