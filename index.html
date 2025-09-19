@@ -1397,7 +1397,7 @@ function applyStickyColumns() {
             if (cells[i] && !cells[i].classList.contains('col-hidden-by-user')) {
                 cells[i].classList.add('sticky-col');
                 cells[i].style.left = leftOffset + 'px';
-                leftOffset += cells[i].offsetWidth;
+                leftOffset += cells[i].getBoundingClientRect().width;
             }
         }
     });
@@ -1412,4 +1412,5 @@ window.addEventListener('resize', () => {
 
 </body>
 </html>
+
 
