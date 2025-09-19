@@ -365,12 +365,12 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Modal Listeners
     document.getElementById('colToggleBtn').addEventListener('click', () => {
+        setupColumnToggleModal(); // Always setup the modal
         const activeTabGroup = document.querySelector('.table-wrapper.active').dataset.group;
-        if (activeTabGroup !== '2/B' && activeTabGroup !== 'GÜNCELLEME' && activeTabGroup !== 'Güncelleme Detay') {
-            setupColumnToggleModal();
-            document.getElementById('col-toggle-modal').style.display = 'flex';
+        if (activeTabGroup === 'Tümü' || activeTabGroup === 'Güncelleme Detay') {
+             document.getElementById('col-toggle-modal').style.display = 'flex';
         } else {
-            showToast('Sütun yönetimi sadece "Tümü" sekmesinde aktiftir.');
+            showToast('Sütun yönetimi sadece "Tümü" ve "Güncelleme Detay" sekmelerinde aktiftir.');
         }
     });
     document.querySelectorAll('.modal-close-btn').forEach(btn => {
@@ -1364,23 +1364,39 @@ function setupColumnToggleModal() {
 }
 
 function applyColumnVisibility() {
-    // Apply to Main Tables
-    TOGGLEABLE_COLS_MAIN.forEach(header => {
-        const colIndex = EXCEL_HEADERS_MAIN.indexOf(header);
-        if (colIndex === -1) return;
-        const isVisible = columnVisibility[header] !== false;
-        document.querySelectorAll(`.table-wrapper:not([data-group="Güncelleme Detay"]) table th:nth-child(${colIndex + 1}), .table-wrapper:not([data-group="Güncelleme Detay"]) table td:nth-child(${colIndex + 1})`).forEach(cell => {
-            cell.classList.toggle('col-hidden-by-user', !isVisible);
-        });
-    });
+    const activeTabGroup = document.querySelector('.table-wrapper.active').dataset.group;
 
-    // Apply to Detail Table
-    TOGGLEABLE_COLS_DETAIL.forEach(header => {
-        const isVisible = columnVisibility[header] !== false;
-        document.querySelectorAll(`#guncellemeDetailTable th[data-header="${header}"], #guncellemeDetailTable td[data-header="${header}"]`).forEach(cell => {
-            cell.classList.toggle('col-hidden-by-user', !isVisible);
-        });
-    });
+    // Reset all columns first
+    document.querySelectorAll('.col-hidden-by-user').forEach(cell => cell.classList.remove('col-hidden-by-user'));
+
+    if (activeTabGroup === 'Tümü' || activeTabGroup === 'Güncelleme Detay') {
+        // Apply to Main Tables if 'Tümü' is active
+        if (activeTabGroup === 'Tümü') {
+            TOGGLEABLE_COLS_MAIN.forEach(header => {
+                const colIndex = EXCEL_HEADERS_MAIN.indexOf(header);
+                if (colIndex === -1) return;
+                const isVisible = columnVisibility[header] !== false;
+                if (!isVisible) {
+                    document.querySelectorAll(`.table-wrapper[data-group="Tümü"] table th:nth-child(${colIndex + 1}), .table-wrapper[data-group="Tümü"] table td:nth-child(${colIndex + 1})`).forEach(cell => {
+                        cell.classList.add('col-hidden-by-user');
+                    });
+                }
+            });
+        }
+
+        // Apply to Detail Table if it's active
+        if (activeTabGroup === 'Güncelleme Detay') {
+            TOGGLEABLE_COLS_DETAIL.forEach(header => {
+                const isVisible = columnVisibility[header] !== false;
+                if (!isVisible) {
+                    document.querySelectorAll(`#guncellemeDetailTable th[data-header="${header}"], #guncellemeDetailTable td[data-header="${header}"]`).forEach(cell => {
+                        cell.classList.add('col-hidden-by-user');
+                    });
+                }
+            });
+        }
+    }
+    // For other tabs (2/B, GÜNCELLEME), no custom visibility is applied, so they will show their default columns.
 
     setTimeout(applyStickyColumns, 0); 
 }
@@ -1417,6 +1433,7 @@ window.addEventListener('resize', () => {
 
 </body>
 </html>
+
 
 
 
