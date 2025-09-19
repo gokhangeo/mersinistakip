@@ -344,8 +344,8 @@ const DISPLAY_HEADERS_DETAIL = ['İLÇE', 'BİRİM', 'PARSEL SAYISI', 'İDÖ PAR
 
 // Sütun görünürlüğü için sabitler
 let columnVisibility = {};
-const TOGGLEABLE_COLS_MAIN = ['UYGULAMA', 'PERSONEL', 'GÖREVLİ PERSONELLER', 'PARSEL SAYISI', 'BLOK SAYISI', 'ALAN(Ha)', 'İŞE BAŞLAMA/YER TESLİMİ', 'İHALE BİTİŞ TARİHİ', 'DURUMU'];
-const TOGGLEABLE_COLS_DETAIL = ['PARSEL SAYISI', 'İDÖ PARSEL SAYISI', 'TOPLAM PARSEL', 'İşe Başlama / Bitiş Tarihi', 'LİDAR/YERSEL ÖLÇÜM TARİHİ(YAPILAN)', 'ARAZİ YERSEL ÖLÇÜM TARİHİ(YAPILAN)', 'UÇUŞ TARİHİ(YAPILAN)', 'UÇUŞ KIYMETLENDİRME DURUM', 'DEĞERLENDİRME DURUM', 'ORMAN ASKI TARİHİ', 'BİLGİLENDİRME İLANI TARİHİ', 'KOMİSYON DURUM', 'KESİN ASKI TARİHİ'];
+const TOGGLEABLE_COLS_MAIN = ['İLÇE', 'BİRİM', 'UYGULAMA', 'PERSONEL', 'GÖREVLİ PERSONELLER', 'PARSEL SAYISI', 'BLOK SAYISI', 'ALAN(Ha)', 'İŞE BAŞLAMA/YER TESLİMİ', 'İHALE BİTİŞ TARİHİ', 'DURUMU'];
+const TOGGLEABLE_COLS_DETAIL = ['İLÇE', 'BİRİM', 'PARSEL SAYISI', 'İDÖ PARSEL SAYISI', 'TOPLAM PARSEL', 'İşe Başlama / Bitiş Tarihi', 'LİDAR/YERSEL ÖLÇÜM TARİHİ(YAPILAN)', 'ARAZİ YERSEL ÖLÇÜM TARİHİ(YAPILAN)', 'UÇUŞ TARİHİ(YAPILAN)', 'UÇUŞ KIYMETLENDİRME DURUM', 'DEĞERLENDİRME DURUM', 'ORMAN ASKI TARİHİ', 'BİLGİLENDİRME İLANI TARİHİ', 'KOMİSYON DURUM', 'KESİN ASKI TARİHİ'];
 const STICKY_COLS_COUNT = 3; // Onay Kutusu, İlçe, Birim
 
 
@@ -1348,12 +1348,18 @@ function setupColumnToggleModal() {
 
     columnsToShow.forEach(header => {
         const isVisible = columnVisibility[header] !== false;
+        const isDisabled = header === 'İLÇE' || header === 'BİRİM';
         const label = document.createElement('label');
-        label.innerHTML = `<input type="checkbox" data-header="${header}" ${isVisible ? 'checked' : ''}> ${header}`;
+        label.innerHTML = `<input type="checkbox" data-header="${header}" ${isVisible ? 'checked' : ''} ${isDisabled ? 'disabled' : ''}> ${header}`;
+        if(isDisabled) {
+            label.title = "Bu sütun her zaman görünür.";
+            label.style.color = '#888';
+            label.style.cursor = 'not-allowed';
+        }
         checklist.appendChild(label);
     });
 
-    checklist.querySelectorAll('input').forEach(checkbox => {
+    checklist.querySelectorAll('input:not([disabled])').forEach(checkbox => {
         checkbox.addEventListener('change', (e) => {
             const header = e.target.dataset.header;
             columnVisibility[header] = e.target.checked;
@@ -1433,6 +1439,7 @@ window.addEventListener('resize', () => {
 
 </body>
 </html>
+
 
 
 
