@@ -532,22 +532,16 @@ function handleTableClick(event) {
             const personelModalSelect = $('#personel-modal-select');
             personelModalSelect.html(''); // Clear previous options
             
-            // Populate with the filtered list
-            personelListesi.forEach(person => {
+            // DÜZELTME: Modalı filtrelenmiş liste yerine TÜM personel listesiyle doldur.
+            fullPersonelListesi.forEach(person => {
                 personelModalSelect.append(new Option(person, person, false, false));
             });
 
             const selectedPersonel = dataRow['GÖREVLİ PERSONELLER'] ? String(dataRow['GÖREVLİ PERSONELLER']).split(', ').map(name => {
                 return fullPersonelListesi.find(p => p.toUpperCase().startsWith(name.trim().toUpperCase())) || name.trim();
             }) : [];
-
-            // Add assigned personnel to the list if they are not in the filtered list
-            selectedPersonel.forEach(person => {
-                if (!personelListesi.includes(person)) {
-                    personelModalSelect.append(new Option(person, person, true, true));
-                }
-            });
             
+            // Atanmış personeli seçili hale getir.
             personelModalSelect.val(selectedPersonel).trigger('change');
             document.getElementById('personel-modal').style.display = 'flex';
         }
@@ -1475,6 +1469,7 @@ function createPersonelReport() {
         reportData[personel] = {};
     });
 
+    // DÜZELTME: Raporun hem ihaleli hem de müdürlük işlerini kapsaması için tüm isTakipData'yı kullan.
     isTakipData.forEach(is => {
         const personeller = is['GÖREVLİ PERSONELLER'] ? String(is['GÖREVLİ PERSONELLER']).split(', ') : [];
         personeller.forEach(pName => {
@@ -1525,4 +1520,6 @@ window.addEventListener('resize', () => {
 
 </body>
 </html>
+
+
 
