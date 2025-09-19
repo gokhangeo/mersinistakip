@@ -365,8 +365,13 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Modal Listeners
     document.getElementById('colToggleBtn').addEventListener('click', () => {
-        setupColumnToggleModal();
-        document.getElementById('col-toggle-modal').style.display = 'flex';
+        const activeTabGroup = document.querySelector('.table-wrapper.active').dataset.group;
+        if (activeTabGroup !== '2/B' && activeTabGroup !== 'GÜNCELLEME' && activeTabGroup !== 'Güncelleme Detay') {
+            setupColumnToggleModal();
+            document.getElementById('col-toggle-modal').style.display = 'flex';
+        } else {
+            showToast('Sütun yönetimi sadece "Tümü" sekmesinde aktiftir.');
+        }
     });
     document.querySelectorAll('.modal-close-btn').forEach(btn => {
         btn.addEventListener('click', () => {
@@ -1412,5 +1417,6 @@ window.addEventListener('resize', () => {
 
 </body>
 </html>
+
 
 
