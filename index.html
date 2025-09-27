@@ -288,6 +288,7 @@
 
 <canvas id="dynamic-bg"></canvas>
 
+<!-- 
 <div id="login-overlay">
     <div id="login-box">
         <h2>İHALE TAKİP</h2>
@@ -303,6 +304,7 @@
         <p class="login-copyright">© Gökhan ELGÜL tarafından tasarlanmıştır.</p>
     </div>
 </div>
+-->
 
 <div id="main-app-container">
     <div class="container">
@@ -395,26 +397,9 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 function checkLoginStatus() {
-    if (sessionStorage.getItem('isLoggedIn') === 'true') {
-        document.getElementById('login-overlay').style.display = 'none';
-        document.getElementById('main-app-container').style.display = 'block';
-        fetchFromGitHub();
-    } else {
-        const loginButton = document.getElementById('login-button');
-        const usernameInput = document.getElementById('username');
-        const passwordInput = document.getElementById('password');
-        const rememberMe = document.getElementById('remember-me');
-
-        const savedUser = localStorage.getItem('rememberedUser');
-        if (savedUser) {
-            usernameInput.value = savedUser;
-            rememberMe.checked = true;
-        }
-
-        loginButton.addEventListener('click', handleLogin);
-        passwordInput.addEventListener('keypress', (event) => { if (event.key === 'Enter') handleLogin(); });
-        usernameInput.addEventListener('keypress', (event) => { if (event.key === 'Enter') handleLogin(); });
-    }
+    // Şifre girişi kaldırıldı, uygulama doğrudan başlatılıyor.
+    document.getElementById('main-app-container').style.display = 'block';
+    fetchFromGitHub();
 }
 
 
@@ -482,7 +467,7 @@ function initAnimatedBackground() {
     }
 }
 
-
+/*
 function handleLogin() {
     const usernameInput = document.getElementById('username');
     const passwordInput = document.getElementById('password');
@@ -516,7 +501,7 @@ function handleLogin() {
         }, 500);
     }
 }
-
+*/
 
 function handleTableClick(event) {
     const target = event.target;
@@ -1520,6 +1505,4 @@ window.addEventListener('resize', () => {
 
 </body>
 </html>
-
-
 
