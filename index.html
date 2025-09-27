@@ -760,7 +760,7 @@ function renderAllTables(mainData, detailData) {
     const totalParsel = calculateColumnSum(ihaleIsleri, 'PARSEL SAYISI');
     const totalBlok = calculateColumnSum(ihaleIsleri, 'BLOK SAYISI');
     const totalAlan = calculateColumnSum(ihaleIsleri, 'ALAN(Ha)').toFixed(2);
-    allTable.innerHTML = `<thead><tr><th class="check-cell">&#10004;</th><th>İLÇE</th><th>BİRİM</th><th class="col-uygulama">UYGULAMA</th><th>PERSONEL</th><th style="display:none;">GÖREVLİ PERSONELLER</th><th class="col-parsel">PARSEL SAYISI (${totalParsel})</th><th>BLOK SAYISI (${totalBlok})</th><th class="col-alan">ALAN(Ha) (${totalAlan})</th><th class="col-tarih">İŞE BAŞLAMA/YER TESLİMİ</th><th class="col-tarih">İHALE BİTİŞ TARİHİ</th><th>DURUMU</th></tr></thead>`;
+    allTable.innerHTML = `<thead><tr><th class="check-cell">&#10004;</th><th>İLÇE</th><th>BİRİM</th><th class="col-uygulama">UYGULAMA</th><th>PERSONEL</th><th style="display:none;">GÖREVLİ PERSONELLER</th><th class="col-parsel">PARSEL (${totalParsel})</th><th>BLOK (${totalBlok})</th><th class="col-alan">ALAN(Ha) (${totalAlan})</th><th class="col-tarih">İŞE BAŞLAMA/YER TESLİMİ</th><th class="col-tarih">İHALE BİTİŞ TARİHİ</th><th>DURUMU</th></tr></thead>`;
     allWrapper.appendChild(allTable);
     tableContainer.appendChild(allWrapper);
 
@@ -788,7 +788,7 @@ function renderAllTables(mainData, detailData) {
         tableWrapper.className = 'table-wrapper';
         tableWrapper.dataset.group = uygulama;
         const table = document.createElement('table');
-        const blokSayisiHeader = uygulama === 'GÜNCELLEME' ? 'İDÖ SAYISI' : 'BLOK SAYISI';
+        const blokSayisiHeader = uygulama === 'GÜNCELLEME' ? 'İDÖ' : 'BLOK';
         
         const grupParsel = calculateColumnSum(groupedData[uygulama], 'PARSEL SAYISI');
         const grupBlok = calculateColumnSum(groupedData[uygulama], 'BLOK SAYISI');
@@ -801,7 +801,7 @@ function renderAllTables(mainData, detailData) {
             <th class="col-uygulama">UYGULAMA</th>
             <th>PERSONEL</th>
             <th style="display:none;">GÖREVLİ PERSONELLER</th>
-            <th class="col-parsel">PARSEL SAYISI (${grupParsel})</th>
+            <th class="col-parsel">PARSEL (${grupParsel})</th>
             <th>${blokSayisiHeader} (${grupBlok})</th>
             <th class="col-alan">ALAN(Ha) (${grupAlan})</th>
             <th class="col-tarih">İŞE BAŞLAMA/YER TESLİMİ</th>
@@ -840,8 +840,8 @@ function renderAllTables(mainData, detailData) {
             <th class="col-uygulama">UYGULAMA</th>
             <th>PERSONEL</th>
             <th style="display:none;">GÖREVLİ PERSONELLER</th>
-            <th class="col-parsel">PARSEL SAYISI (${grupParsel})</th>
-            <th>BLOK SAYISI (${grupBlok})</th>
+            <th class="col-parsel">PARSEL (${grupParsel})</th>
+            <th>BLOK (${grupBlok})</th>
             <th class="col-alan">ALAN(Ha) (${grupAlan})</th>
             <th class="col-tarih">İŞE BAŞLAMA/YER TESLİMİ</th>
             <th class="col-tarih">İHALE BİTİŞ TARİHİ</th>
@@ -882,8 +882,8 @@ function renderAllTables(mainData, detailData) {
         if (h === 'UÇUŞ KIYMETLENDİRME DURUM') headerText += ` (${ucusYapildiCount})`;
         else if (h === 'DEĞERLENDİRME DURUM') headerText += ` (${degerlendirmeYapildiCount})`;
         else if (h === 'KOMİSYON DURUM') headerText += ` (${komisyonYapildiCount})`;
-        else if (h === 'PARSEL SAYISI') headerText += ` (${totalParselDetay})`;
-        else if (h === 'İDÖ PARSEL SAYISI') headerText += ` (${totalIdoParsel})`;
+        else if (h === 'PARSEL SAYISI') headerText = `PARSEL (${totalParselDetay})`;
+        else if (h === 'İDÖ PARSEL SAYISI') headerText = `İDÖ PARSEL (${totalIdoParsel})`;
         else if (h === 'TOPLAM PARSEL') headerText += ` (${totalToplamParsel})`;
         
         let thClass = '';
@@ -1536,6 +1536,7 @@ window.addEventListener('resize', () => {
 
 </body>
 </html>
+
 
 
 
