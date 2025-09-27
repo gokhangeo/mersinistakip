@@ -266,6 +266,12 @@
             color: #0056b3;
             border-bottom: 1px solid #ccc;
             padding-bottom: 8px;
+            cursor: pointer;
+            user-select: none;
+        }
+        .personel-kart-icerik {
+            display: none;
+            padding-top: 10px;
         }
         .durum-grup {
             margin-bottom: 10px;
@@ -922,6 +928,14 @@ function showTab(uygulamaAdi) {
             btn.classList.add('active');
         }
     });
+
+    const kayitSayaci = document.getElementById('kayitSayaci');
+    if (uygulamaAdi === 'Personel Raporu') {
+        kayitSayaci.style.display = 'none';
+    } else {
+        kayitSayaci.style.display = 'block';
+    }
+
     filtrele();
     setTimeout(setupTopScrollbar, 50);
     setTimeout(applyStickyColumns, 50);
@@ -1482,7 +1496,9 @@ function createPersonelReport() {
             toplamIsSayisi += reportData[personel][durum].length;
         });
 
-        let kartHTML = `<h4>${personel} (${toplamIsSayisi} iş)</h4>`;
+        let kartHTML = `<h4 onclick="togglePersonelDetay(this)">${personel} (${toplamIsSayisi} iş)</h4>`;
+        
+        kartHTML += '<div class="personel-kart-icerik">';
         
         durumGruplari.forEach(durum => {
             kartHTML += `<div class="durum-grup"><strong>${durum} (${reportData[personel][durum].length} iş):</strong><ul>`;
@@ -1492,11 +1508,22 @@ function createPersonelReport() {
             kartHTML += `</ul></div>`;
         });
 
+        kartHTML += '</div>';
+
         kart.innerHTML = kartHTML;
         reportContainer.appendChild(kart);
     }
     
     return reportContainer;
+}
+
+function togglePersonelDetay(headerElement) {
+    const content = headerElement.nextElementSibling;
+    if (content.style.display === "block") {
+        content.style.display = "none";
+    } else {
+        content.style.display = "block";
+    }
 }
 
 
@@ -1509,6 +1536,8 @@ window.addEventListener('resize', () => {
 
 </body>
 </html>
+
+
 
 
 
