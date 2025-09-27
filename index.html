@@ -681,7 +681,7 @@ async function fetchFromGitHub() {
                 return fullPersonelListesi.filter(personelString => {
                     const match = personelString.match(/\(([^)]+)\)$/);
                     if (!match || !match[1]) return false;
-                    const unvan = match[1].toUpperCase();
+                    const unvan = match[1].toLocaleUpperCase('tr-TR');
                     return unvanListesi.some(u => unvan.includes(u));
                 });
             };
@@ -1450,16 +1450,18 @@ function createPersonelReport() {
 
     const reportData = {};
 
-    muhendisListesi.forEach(personel => {
-        reportData[personel] = {};
-    });
-
-    // DÜZELTME: Raporun hem ihaleli hem de müdürlük işlerini kapsaması için tüm isTakipData'yı kullan.
+    // Rapor verisini oluştur
     isTakipData.forEach(is => {
         const personeller = is['GÖREVLİ PERSONELLER'] ? String(is['GÖREVLİ PERSONELLER']).split(', ') : [];
         personeller.forEach(pName => {
-            const personelFullName = fullPersonelListesi.find(p => p.toUpperCase().startsWith(pName.trim().toUpperCase()));
+            const pNameUpper = pName.trim().toLocaleUpperCase('tr-TR');
+            const personelFullName = fullPersonelListesi.find(p => p.toLocaleUpperCase('tr-TR').startsWith(pNameUpper));
+            
+            // Sadece mühendis listesindekileri rapora dahil et
             if (personelFullName && muhendisListesi.includes(personelFullName)) {
+                if (!reportData[personelFullName]) {
+                    reportData[personelFullName] = {};
+                }
                 const durum = is['DURUMU'] || 'Belirtilmemiş';
                 if (!reportData[personelFullName][durum]) {
                     reportData[personelFullName][durum] = [];
@@ -1469,24 +1471,26 @@ function createPersonelReport() {
         });
     });
 
+    // Sadece işi olan personeller için kart oluştur
     for (const personel in reportData) {
         const kart = document.createElement('div');
         kart.className = 'personel-kart';
         
-        let kartHTML = `<h4>${personel}</h4>`;
-        
         const durumGruplari = Object.keys(reportData[personel]).sort();
-        if (durumGruplari.length > 0) {
-            durumGruplari.forEach(durum => {
-                kartHTML += `<div class="durum-grup"><strong>${durum} (${reportData[personel][durum].length} iş):</strong><ul>`;
-                reportData[personel][durum].forEach(isDetay => {
-                    kartHTML += `<li>${isDetay}</li>`;
-                });
-                kartHTML += `</ul></div>`;
+        let toplamIsSayisi = 0;
+        durumGruplari.forEach(durum => {
+            toplamIsSayisi += reportData[personel][durum].length;
+        });
+
+        let kartHTML = `<h4>${personel} (${toplamIsSayisi} iş)</h4>`;
+        
+        durumGruplari.forEach(durum => {
+            kartHTML += `<div class="durum-grup"><strong>${durum} (${reportData[personel][durum].length} iş):</strong><ul>`;
+            reportData[personel][durum].sort().forEach(isDetay => {
+                kartHTML += `<li>${isDetay}</li>`;
             });
-        } else {
-            kartHTML += '<p>Atanmış iş bulunmamaktadır.</p>';
-        }
+            kartHTML += `</ul></div>`;
+        });
 
         kart.innerHTML = kartHTML;
         reportContainer.appendChild(kart);
@@ -1505,4 +1509,7 @@ window.addEventListener('resize', () => {
 
 </body>
 </html>
+
+
+
 
