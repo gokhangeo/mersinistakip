@@ -287,6 +287,20 @@
             font-size: 12px;
             padding: 2px 0;
         }
+        .col-ilce {
+            display: none;
+        }
+        .district-label {
+            /* Konumlandırma artık JavaScript ile yapılıyor */
+            font-size: 11px;
+            font-weight: bold;
+            color: white;
+            padding: 1px 5px;
+            border-radius: 4px;
+            z-index: 3;
+            pointer-events: none; /* Tıklamayı engellememesi için */
+            white-space: nowrap;
+        }
     </style>
 </head>
 <body>
@@ -759,7 +773,7 @@ function renderAllTables(mainData, detailData) {
     const totalParsel = calculateColumnSum(ihaleIsleri, 'PARSEL SAYISI');
     const totalBlok = calculateColumnSum(ihaleIsleri, 'BLOK SAYISI');
     const totalAlan = calculateColumnSum(ihaleIsleri, 'ALAN(Ha)').toFixed(2);
-    allTable.innerHTML = `<thead><tr><th class="check-cell">&#10004;</th><th>İLÇE</th><th>BİRİM</th><th class="col-uygulama">UYGULAMA</th><th>PERSONEL</th><th style="display:none;">GÖREVLİ PERSONELLER</th><th class="col-parsel">PARSEL (${totalParsel})</th><th>BLOK (${totalBlok})</th><th class="col-alan">ALAN(Ha) (${totalAlan})</th><th class="col-tarih">İŞE BAŞLAMA/YER TESLİMİ</th><th class="col-tarih">İHALE BİTİŞ TARİHİ</th><th>DURUMU</th></tr></thead>`;
+    allTable.innerHTML = `<thead><tr><th class="check-cell">&#10004;</th><th class="col-ilce">İLÇE</th><th>BİRİM</th><th class="col-uygulama">UYGULAMA</th><th>PERSONEL</th><th style="display:none;">GÖREVLİ PERSONELLER</th><th class="col-parsel">PARSEL (${totalParsel})</th><th>BLOK (${totalBlok})</th><th class="col-alan">ALAN(Ha) (${totalAlan})</th><th class="col-tarih">İŞE BAŞLAMA/YER TESLİMİ</th><th class="col-tarih">İHALE BİTİŞ TARİHİ</th><th>DURUMU</th></tr></thead>`;
     allWrapper.appendChild(allTable);
     tableContainer.appendChild(allWrapper);
 
@@ -769,7 +783,7 @@ function renderAllTables(mainData, detailData) {
         headerRow.className = 'group-header-row';
         headerRow.onclick = (e) => { if (e.target.tagName !== 'BUTTON') toggleGroup(tbody); };
         headerRow.insertCell().innerHTML = `<h3><span>${uygulama} (<span class="group-count">${groupedData[uygulama].length}</span> iş)</span><button class="group-toggle-btn" onclick="event.stopPropagation(); toggleGroup(this.closest('tbody'))">Kapat</button></h3>`;
-        headerRow.cells[0].colSpan = 12;
+        headerRow.cells[0].colSpan = 11;
         groupedData[uygulama].forEach(rowData => tbody.appendChild(createRowElement(rowData, 'Tümü')));
         allTable.appendChild(tbody);
     }
@@ -795,7 +809,7 @@ function renderAllTables(mainData, detailData) {
 
         table.innerHTML = `<thead><tr>
             <th class="check-cell">&#10004;</th>
-            <th>İLÇE</th>
+            <th class="col-ilce">İLÇE</th>
             <th>BİRİM</th>
             <th class="col-uygulama">UYGULAMA</th>
             <th>PERSONEL</th>
@@ -834,7 +848,7 @@ function renderAllTables(mainData, detailData) {
 
         mudurlukTable.innerHTML = `<thead><tr>
             <th class="check-cell">&#10004;</th>
-            <th>İLÇE</th>
+            <th class="col-ilce">İLÇE</th>
             <th>BİRİM</th>
             <th class="col-uygulama">UYGULAMA</th>
             <th>PERSONEL</th>
@@ -1096,7 +1110,7 @@ function createRowElement(data = {}, tabName) {
 
     newRow.innerHTML = `
         <td class="check-cell"><input type="checkbox" data-header="Tamamlandı" ${isChecked ? 'checked' : ''}></td>
-        <td>
+        <td class="col-ilce">
             <select data-header="İLÇE" disabled title="${data['İLÇE'] || ''}">${createOptions(ilceListesi, data['İLÇE'])}</select>
             <input type="hidden" data-header="İHALELİ/MÜDÜRLÜK" value="${data['İHALELİ/MÜDÜRLÜK'] || 'İhaleli'}">
         </td>
@@ -1356,16 +1370,23 @@ function calculateColumnSum(data, columnName) {
 
 function applyDistrictBorders() {
     const activeTable = document.querySelector('.table-wrapper.active table');
-    if (!activeTable) return;
+    if (!activeTable || activeTable.id === 'guncellemeDetailTable') return; // Sadece ana tablolarda çalışsın
+    const tableWrapper = activeTable.closest('.table-wrapper');
+    if (!tableWrapper) return;
 
+    // Stil ve etiketleri temizle
+    tableWrapper.style.position = 'relative'; // Konumlandırma için
+    tableWrapper.querySelectorAll('.district-label').forEach(label => label.remove());
+    
     const rows = activeTable.querySelectorAll('tbody tr:not(.group-header-row)');
+    rows.forEach(row => { row.style.borderTop = ''; });
+    
     const colors = ['#ff6347', '#4682b4', '#32cd32', '#ff8c00', '#9370db', '#00ced1', '#f08080'];
     let colorIndex = 0;
     let lastIlce = null;
-    const isDetailTable = activeTable.id === 'guncellemeDetailTable';
-    const ilceColumnIndex = isDetailTable ? 0 : 1;
-
-    rows.forEach(row => { row.style.borderTop = ''; });
+    const ilceColumnIndex = 1; // İlçe sütunu her zaman 1. index'te (0'dan başlayarak)
+    
+    const tableWrapperRect = tableWrapper.getBoundingClientRect();
 
     rows.forEach(row => {
         if (row.style.display === 'none') return; 
@@ -1379,7 +1400,28 @@ function applyDistrictBorders() {
         const currentIlce = currentIlceElement.value;
 
         if (currentIlce !== lastIlce) {
-            row.style.borderTop = `3px solid ${colors[colorIndex % colors.length]}`;
+            const color = colors[colorIndex % colors.length];
+            row.style.borderTop = `3px solid ${color}`;
+
+            const referenceCell = row.cells[ilceColumnIndex - 1]; // İlçe'den önceki hücre (checkbox)
+            if(!referenceCell) return;
+
+            // Etiketi dinamik olarak konumlandır
+            const rowRect = row.getBoundingClientRect();
+            const referenceCellRect = referenceCell.getBoundingClientRect();
+
+            const label = document.createElement('div');
+            label.className = 'district-label';
+            label.textContent = currentIlce;
+            label.style.backgroundColor = color;
+            
+            // Konumu tableWrapper'a göre ayarla
+            label.style.position = 'absolute';
+            label.style.top = (rowRect.top - tableWrapperRect.top - 9) + 'px';
+            label.style.left = (referenceCellRect.right - tableWrapperRect.left) + 'px';
+            
+            tableWrapper.appendChild(label);
+
             colorIndex++;
             lastIlce = currentIlce;
         }
@@ -1529,17 +1571,12 @@ function togglePersonelDetay(headerElement) {
 window.addEventListener('resize', () => {
     setupTopScrollbar();
     applyStickyColumns();
+    applyDistrictBorders();
 });
 
 </script>
 
 </body>
 </html>
-
-
-
-
-
-
 
 
