@@ -179,7 +179,6 @@
         .table-wrapper[data-group="2/B"] .col-tarih,
         .table-wrapper[data-group="GÜNCELLEME"] .col-tarih,
         .table-wrapper[data-group="2/B"] .col-parsel,
-        .table-wrapper[data-group="Müdürlük"] .check-cell,
         .table-wrapper[data-group="Müdürlük"] .col-tarih {
             display: none;
         }
@@ -614,6 +613,18 @@ function handleTableChange(event) {
              document.querySelectorAll(`tr[data-row-key="${rowKey}"]`).forEach(syncRow => {
                 syncRow.classList.toggle('tamamlandi', target.checked);
              });
+
+            // Find the corresponding data record in the main list
+            const [ilce, birim] = rowKey.split('|');
+            const dataRecord = isTakipData.find(r => r['İLÇE'] == ilce && r['BİRİM'] == birim);
+
+            // Only apply strikethrough to the detail page if the task type is 'GÜNCELLEME'
+            if (dataRecord && dataRecord['UYGULAMA'] === 'GÜNCELLEME') {
+                const detailRow = document.querySelector(`#guncellemeDetailTable tr[data-row-key="${rowKey}"]`);
+                if (detailRow) {
+                    detailRow.classList.toggle('tamamlandi', target.checked);
+                }
+            }
         }
 
         markAsDirty();
@@ -1157,6 +1168,11 @@ function createGuncellemeDetailRowElement(data) {
     const rowKey = `${data['İLÇE']}|${data['BİRİM']}`;
     newRow.dataset.rowKey = rowKey;
 
+    const mainDataRow = isTakipData.find(r => r['İLÇE'] === data['İLÇE'] && r['BİRİM'] === data['BİRİM'] && r['UYGULAMA'] === 'GÜNCELLEME');
+    if (mainDataRow && mainDataRow['Tamamlandı'] === 'EVET') {
+        newRow.classList.add('tamamlandi');
+    }
+
     const createOptions = (list, selected) => `<option value=""></option>` + list.map(item => `<option value="${item}" ${item === selected ? 'selected' : ''}>${item}</option>`).join('');
     
     DISPLAY_HEADERS_DETAIL.forEach(header => {
@@ -1420,7 +1436,7 @@ function applyDistrictBorders() {
             label.style.position = 'absolute';
             label.style.top = (row.getBoundingClientRect().top - tableWrapperRect.top - 9) + 'px';
 
-            if(isDetailTable) {
+            if (isDetailTable) {
                  label.style.left = '5px';
             } else {
                 const referenceCell = row.cells[ilceColumnIndex - 1]; // Checkbox cell
