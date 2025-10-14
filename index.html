@@ -290,6 +290,9 @@
         .col-ilce {
             display: none;
         }
+        #guncellemeDetailTable .col-ilce-detail {
+            display: none;
+        }
         .district-label {
             /* Konumlandırma artık JavaScript ile yapılıyor */
             font-size: 11px;
@@ -900,12 +903,14 @@ function renderAllTables(mainData, detailData) {
         else if (h === 'TOPLAM PARSEL') headerText += ` (${totalToplamParsel})`;
         
         let thClass = '';
-        if (h === 'İLÇE' || h === 'BİRİM') {
+        if (h === 'İLÇE') {
+            thClass = 'class="col-wide col-ilce-detail"';
+        } else if (h === 'BİRİM') {
             thClass = 'class="col-wide"';
         } else if (h.includes('SAYISI')) {
             thClass = 'class="col-narrow"';
         }
-        detailThead += `<th data-header="${h}">${headerText}</th>`;
+        detailThead += `<th ${thClass} data-header="${h}">${headerText}</th>`;
     });
     detailThead += `</tr></thead>`;
     detailTable.innerHTML = detailThead;
@@ -1159,7 +1164,11 @@ function createGuncellemeDetailRowElement(data) {
         let tdClass = '';
         const headerKey = header === 'İşe Başlama / Bitiş Tarihi' ? 'İŞE BAŞLAMA' : header;
 
-        if (header === 'İLÇE' || header === 'BİRİM') {
+        if (header === 'İLÇE') {
+            tdClass = 'class="col-wide col-ilce-detail"';
+            const value = data[header] || '';
+            cellHTML = `<input type="text" data-header="${header}" value="${value}" readonly title="${value}">`;
+        } else if (header === 'BİRİM') {
             tdClass = 'class="col-wide"';
             const value = data[header] || '';
             cellHTML = `<input type="text" data-header="${header}" value="${value}" readonly title="${value}">`;
@@ -1370,7 +1379,7 @@ function calculateColumnSum(data, columnName) {
 
 function applyDistrictBorders() {
     const activeTable = document.querySelector('.table-wrapper.active table');
-    if (!activeTable || activeTable.id === 'guncellemeDetailTable') return; // Sadece ana tablolarda çalışsın
+    if (!activeTable) return;
     const tableWrapper = activeTable.closest('.table-wrapper');
     if (!tableWrapper) return;
 
@@ -1384,7 +1393,8 @@ function applyDistrictBorders() {
     const colors = ['#ff6347', '#4682b4', '#32cd32', '#ff8c00', '#9370db', '#00ced1', '#f08080'];
     let colorIndex = 0;
     let lastIlce = null;
-    const ilceColumnIndex = 1; // İlçe sütunu her zaman 1. index'te (0'dan başlayarak)
+    const isDetailTable = activeTable.id === 'guncellemeDetailTable';
+    const ilceColumnIndex = isDetailTable ? 0 : 1;
     
     const tableWrapperRect = tableWrapper.getBoundingClientRect();
 
@@ -1403,22 +1413,21 @@ function applyDistrictBorders() {
             const color = colors[colorIndex % colors.length];
             row.style.borderTop = `3px solid ${color}`;
 
-            const referenceCell = row.cells[ilceColumnIndex - 1]; // İlçe'den önceki hücre (checkbox)
-            if(!referenceCell) return;
-
-            // Etiketi dinamik olarak konumlandır
-            const rowRect = row.getBoundingClientRect();
-            const referenceCellRect = referenceCell.getBoundingClientRect();
-
             const label = document.createElement('div');
             label.className = 'district-label';
             label.textContent = currentIlce;
             label.style.backgroundColor = color;
-            
-            // Konumu tableWrapper'a göre ayarla
             label.style.position = 'absolute';
-            label.style.top = (rowRect.top - tableWrapperRect.top - 9) + 'px';
-            label.style.left = (referenceCellRect.right - tableWrapperRect.left) + 'px';
+            label.style.top = (row.getBoundingClientRect().top - tableWrapperRect.top - 9) + 'px';
+
+            if(isDetailTable) {
+                 label.style.left = '5px';
+            } else {
+                const referenceCell = row.cells[ilceColumnIndex - 1]; // Checkbox cell
+                if(referenceCell) {
+                   label.style.left = (referenceCell.getBoundingClientRect().right - tableWrapperRect.left) + 'px';
+                }
+            }
             
             tableWrapper.appendChild(label);
 
@@ -1578,5 +1587,6 @@ window.addEventListener('resize', () => {
 
 </body>
 </html>
+
 
 
