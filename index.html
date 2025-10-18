@@ -321,10 +321,14 @@
             width: 100%;
             box-sizing: border-box;
         }
-        .note-edit-container button {
+        .note-edit-buttons {
+            display: flex;
+            justify-content: flex-end;
+            gap: 5px;
+        }
+        .note-edit-buttons button {
             padding: 5px 10px;
             font-size: 12px;
-            align-self: flex-end;
         }
     </style>
 </head>
@@ -1647,7 +1651,10 @@ function createNotesTable() {
                 noteCell.innerHTML = `
                     <div class="note-edit-container">
                         <textarea rows="4">${noteText || ''}</textarea>
-                        <button class="note-save-inline success">Kaydet</button>
+                        <div class="note-edit-buttons">
+                            <button class="note-delete-inline danger">Sil</button>
+                            <button class="note-save-inline success">Kaydet</button>
+                        </div>
                     </div>
                 `;
 
@@ -1668,6 +1675,20 @@ function createNotesTable() {
 
                     markAsDirty();
                     showToast('Not güncellendi. Kaydetmeyi unutmayın.');
+                });
+
+                noteCell.querySelector('.note-delete-inline').addEventListener('click', () => {
+                    const dataRow = isTakipData.find(r => `${r['İLÇE']}|${r['BİRİM']}` === rowKey);
+                    dataRow['NOTLAR'] = '';
+
+                    tr.remove(); // Satırı tablodan kaldır
+                    
+                    document.querySelectorAll(`tr[data-row-key="${rowKey}"] .not-btn`).forEach(btn => {
+                        btn.classList.remove('has-note');
+                    });
+
+                    markAsDirty();
+                    showToast('Not silindi. Kaydetmeyi unutmayın.');
                 });
             });
 
