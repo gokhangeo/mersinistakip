@@ -340,6 +340,10 @@
         .table-wrapper[data-group="Personel Raporu"] h2:first-of-type {
             margin-top: 0;
         }
+        #guncellemeDetailTable th[data-header="İLÇE"],
+        #guncellemeDetailTable td.col-ilce-detail {
+            display: none;
+        }
     </style>
 </head>
 <body>
@@ -1334,7 +1338,7 @@ function durumFiltresiDoldur() {
 function filtrele() {
     const aramaInput = document.getElementById('aramaKutusu');
     const durumInput = document.getElementById('durumFiltresi');
-    const aramaFilter = aramaInput.value.toUpperCase();
+    const aramaFilter = aramaInput.value.toLocaleUpperCase('tr-TR');
     const durumFilter = durumInput.value.toUpperCase();
     const temizleBtn = document.getElementById('aramaTemizleBtn');
     let toplamGorunenSatir = 0;
@@ -1376,34 +1380,49 @@ function filtrele() {
 }
 
 function checkRowMatch(row, aramaFilter, durumFilter) {
-    const cells = row.getElementsByTagName("td");
-    const isMainTable = cells.length > 12; // Check against a reasonable number
+    const isMainTable = row.closest('table').id !== 'guncellemeDetailTable';
     
     if (isMainTable) {
+        const cells = row.getElementsByTagName("td");
+        if (cells.length < 13) return true; // Header row vs. için koruma
+
         const ilceSelect = cells[1].querySelector('select');
         const birimInput = cells[2].querySelector('input');
-        const personelSelect = $(cells[6]).find('.personel-select'); // Hidden but data exists
-        const durumSelect = cells[cells.length - 1].querySelector('select'); // Always the last cell
-
-        if (!ilceSelect || !birimInput || !personelSelect.length || !durumSelect) return true;
         
-        const ilceText = ilceSelect.value.toUpperCase();
-        const birimText = birimInput.value.toUpperCase();
-        const personelText = (personelSelect.val() || []).join(', ').toUpperCase();
+        // Arama için tüm personelleri içeren bir metin oluştur
+        const key = row.dataset.rowKey;
+        const dataRow = isTakipData.find(r => `${r['İLÇE']}|${r['BİRİM']}` === key);
+        const personelText = (dataRow && dataRow['GÖREVLİ PERSONELLER']) ? dataRow['GÖREVLİ PERSONELLER'].toLocaleUpperCase('tr-TR') : "";
+
+        const durumSelect = cells[cells.length - 1].querySelector('select');
+
+        if (!ilceSelect || !birimInput || !durumSelect) return true;
+        
+        const ilceText = ilceSelect.value.toLocaleUpperCase('tr-TR');
+        const birimText = birimInput.value.toLocaleUpperCase('tr-TR');
         const durumText = durumSelect.value.toUpperCase();
         
         const combinedText = `${ilceText} ${birimText} ${personelText}`;
         const textMatch = aramaFilter === '' || combinedText.includes(aramaFilter);
         const durumMatch = durumFilter === '' || durumText === durumFilter;
         return textMatch && durumMatch;
-    } else { 
+    } else { // Güncelleme Detay Tablosu
+        const cells = row.getElementsByTagName("td");
+        if (cells.length < 2) return true;
+
         const ilceInput = cells[0].querySelector('input');
         const birimInput = cells[1].querySelector('input');
         if(!ilceInput || !birimInput) return true;
+        
+        const key = row.dataset.rowKey;
+        const dataRow = isTakipData.find(r => `${r['İLÇE']}|${r['BİRİM']}` === key);
+        const personelText = (dataRow && dataRow['GÖREVLİ PERSONELLER']) ? dataRow['GÖREVLİ PERSONELLER'].toLocaleUpperCase('tr-TR') : "";
 
-        const ilceText = ilceInput.value.toUpperCase();
-        const birimText = birimInput.value.toUpperCase();
-        const combinedText = `${ilceText} ${birimText}`;
+        const ilceText = ilceInput.value.toLocaleUpperCase('tr-TR');
+        const birimText = birimInput.value.toLocaleUpperCase('tr-TR');
+        const combinedText = `${ilceText} ${birimText} ${personelText}`;
+        
+        // Durum filtresi bu tablo için geçerli değil, sadece metin araması yapılıyor.
         return aramaFilter === '' || combinedText.includes(aramaFilter);
     }
 }
@@ -1855,5 +1874,4 @@ window.addEventListener('resize', () => {
 
 </body>
 </html>
-
 
