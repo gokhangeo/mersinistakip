@@ -330,6 +330,16 @@
             padding: 5px 10px;
             font-size: 12px;
         }
+        .table-wrapper[data-group="Personel Raporu"] h2 {
+            color: #0056b3;
+            border-bottom: 2px solid #0056b3;
+            padding-bottom: 5px;
+            margin-top: 20px;
+            margin-bottom: 15px;
+        }
+        .table-wrapper[data-group="Personel Raporu"] h2:first-of-type {
+            margin-top: 0;
+        }
     </style>
 </head>
 <body>
@@ -423,7 +433,7 @@ const GITHUB_TOKEN = token_part1 + token_part2;
 // Global Değişkenler
 const API_URL = `https://api.github.com/repos/${GITHUB_KULLANICI_ADI}/${GITHUB_REPO_ADI}/contents/${DOSYA_YOLU}`;
 let currentFileSHA = '';
-let personelListesi = [], fullPersonelListesi = [], muhendisListesi = [], ilceListesi = [], uygulamaListesi = [];
+let personelListesi = [], fullPersonelListesi = [], muhendisListesi = [], teknikerListesi = [], ilceListesi = [], uygulamaListesi = [];
 let guncellemeData = [], isTakipData = [];
 let ucusKiyDurumList = [], komisyonDurumList = [], degerlendirmeDurumList = [];
 
@@ -762,11 +772,13 @@ async function fetchFromGitHub() {
 
             personelListesi = unvanFiltrele(['MÜHENDİS', 'TEKNİKER', 'TEKNİSYEN']);
             muhendisListesi = unvanFiltrele(['MÜHENDİS']);
+            teknikerListesi = unvanFiltrele(['TEKNİKER', 'TEKNİSYEN']);
 
         } else {
             personelListesi = [];
             fullPersonelListesi = [];
             muhendisListesi = [];
+            teknikerListesi = [];
         }
 
 
@@ -1743,9 +1755,9 @@ function createNotesTable() {
 
 function createPersonelReport() {
     const reportContainer = document.createElement('div');
-    reportContainer.className = 'personel-rapor-container';
 
-    const reportData = {};
+    const muhendisReportData = {};
+    const teknikerReportData = {};
 
     isTakipData.forEach(is => {
         const personeller = is['GÖREVLİ PERSONELLER'] ? String(is['GÖREVLİ PERSONELLER']).split(', ') : [];
@@ -1753,7 +1765,16 @@ function createPersonelReport() {
             const pNameUpper = pName.trim().toLocaleUpperCase('tr-TR');
             const personelFullName = fullPersonelListesi.find(p => p.toLocaleUpperCase('tr-TR').startsWith(pNameUpper));
             
-            if (personelFullName && muhendisListesi.includes(personelFullName)) {
+            if (personelFullName) {
+                let reportData;
+                if (muhendisListesi.includes(personelFullName)) {
+                    reportData = muhendisReportData;
+                } else if (teknikerListesi.includes(personelFullName)) {
+                    reportData = teknikerReportData;
+                } else {
+                    return; // Skip if not in either list
+                }
+
                 if (!reportData[personelFullName]) {
                     reportData[personelFullName] = {};
                 }
@@ -1765,34 +1786,51 @@ function createPersonelReport() {
             }
         });
     });
+    
+    // Helper function to render a section
+    const renderSection = (data, title) => {
+        if (Object.keys(data).length === 0) return; // Don't render empty sections
 
-    for (const personel in reportData) {
-        const kart = document.createElement('div');
-        kart.className = 'personel-kart';
-        
-        const durumGruplari = Object.keys(reportData[personel]).sort();
-        let toplamIsSayisi = 0;
-        durumGruplari.forEach(durum => {
-            toplamIsSayisi += reportData[personel][durum].length;
-        });
+        const titleEl = document.createElement('h2');
+        titleEl.textContent = title;
+        reportContainer.appendChild(titleEl);
 
-        let kartHTML = `<h4 onclick="togglePersonelDetay(this)">${personel} (${toplamIsSayisi} iş)</h4>`;
-        
-        kartHTML += '<div class="personel-kart-icerik">';
-        
-        durumGruplari.forEach(durum => {
-            kartHTML += `<div class="durum-grup"><strong>${durum} (${reportData[personel][durum].length} iş):</strong><ul>`;
-            reportData[personel][durum].sort().forEach(isDetay => {
-                kartHTML += `<li>${isDetay}</li>`;
+        const sectionContainer = document.createElement('div');
+        sectionContainer.className = 'personel-rapor-container';
+
+        // Sort personnel names alphabetically before rendering
+        const sortedPersonnel = Object.keys(data).sort((a, b) => a.localeCompare(b, 'tr-TR'));
+
+        sortedPersonnel.forEach(personel => {
+            const kart = document.createElement('div');
+            kart.className = 'personel-kart';
+            
+            const durumGruplari = Object.keys(data[personel]).sort();
+            let toplamIsSayisi = 0;
+            durumGruplari.forEach(durum => {
+                toplamIsSayisi += data[personel][durum].length;
             });
-            kartHTML += `</ul></div>`;
+
+            let kartHTML = `<h4 onclick="togglePersonelDetay(this)">${personel} (${toplamIsSayisi} iş)</h4>`;
+            kartHTML += '<div class="personel-kart-icerik">';
+            
+            durumGruplari.forEach(durum => {
+                kartHTML += `<div class="durum-grup"><strong>${durum} (${data[personel][durum].length} iş):</strong><ul>`;
+                data[personel][durum].sort().forEach(isDetay => {
+                    kartHTML += `<li>${isDetay}</li>`;
+                });
+                kartHTML += `</ul></div>`;
+            });
+
+            kartHTML += '</div>';
+            kart.innerHTML = kartHTML;
+            sectionContainer.appendChild(kart);
         });
+        reportContainer.appendChild(sectionContainer);
+    };
 
-        kartHTML += '</div>';
-
-        kart.innerHTML = kartHTML;
-        reportContainer.appendChild(kart);
-    }
+    renderSection(muhendisReportData, 'Mühendis Durum Raporu');
+    renderSection(teknikerReportData, 'Tekniker Durum Raporu');
     
     return reportContainer;
 }
@@ -1817,4 +1855,5 @@ window.addEventListener('resize', () => {
 
 </body>
 </html>
+
 
