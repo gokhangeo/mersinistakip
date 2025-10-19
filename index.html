@@ -631,8 +631,10 @@ function handleSummaryCardClick(event) {
     // Eğer kartın kendisine tıklandıysa
     else {
         if (card.classList.contains('expanded')) {
-            // Eğer kart zaten açıksa, kapat.
+            // Eğer kart zaten açıksa, kapat ve filtreyi sıfırla.
             card.classList.remove('expanded');
+            document.getElementById('durumFiltresi').value = '';
+            filtrele();
         } else {
             // Değilse, diğer tüm kartları kapat ve bunu aç.
             document.querySelectorAll('.summary-card').forEach(c => c.classList.remove('expanded'));
@@ -1087,6 +1089,8 @@ function renderAllTables(mainData, detailData) {
 
 
 function showTab(uygulamaAdi) {
+    document.getElementById('durumFiltresi').value = '';
+
     document.querySelectorAll('.table-wrapper').forEach(w => w.classList.remove('active'));
     document.querySelector(`.table-wrapper[data-group="${uygulamaAdi}"]`).classList.add('active');
     
