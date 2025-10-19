@@ -344,6 +344,70 @@
         #guncellemeDetailTable td.col-ilce-detail {
             display: none;
         }
+        /* Özet Kart Stilleri */
+        #summary-cards-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-bottom: 25px;
+        }
+        .summary-card {
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            padding: 15px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-align: center;
+            height: 40px; /* Başlangıç yüksekliği */
+            overflow: hidden;
+        }
+        .summary-card.expanded {
+            height: auto;
+            min-height: 150px;
+        }
+        .summary-card h3 {
+            margin: 0;
+            color: white;
+            font-size: 18px;
+        }
+        .summary-card .card-content {
+             display: none; /* Başlangıçta gizli */
+        }
+        .summary-card.expanded .card-content {
+             display: block; /* Genişletilince görünür */
+             margin-top: 10px;
+        }
+        .summary-card .total-count {
+            font-size: 24px;
+            font-weight: bold;
+            color: #343a40;
+            margin-bottom: 10px;
+        }
+        .summary-card .status-breakdown {
+            font-size: 12px;
+            color: #495057;
+            text-align: left;
+            max-height: 100px;
+            overflow-y: auto;
+            padding-right: 10px; /* for scrollbar */
+        }
+        .summary-card .status-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 2px 0;
+        }
+        .status-item:hover {
+            background-color: rgba(0,0,0,0.05);
+            border-radius: 3px;
+        }
+        .card-2b { background-color: #007bff; }
+        .card-guncelleme { background-color: #28a745; }
+        .card-mudurluk { background-color: #fd7e14; }
+        .card-2b.expanded { background-color: #e7f1ff; border-left: 5px solid #007bff; }
+        .card-guncelleme.expanded { background-color: #d4edda; border-left: 5px solid #28a745; }
+        .card-mudurluk.expanded { background-color: #ffe8d6; border-left: 5px solid #fd7e14; }
+        .card-2b.expanded h3, .card-guncelleme.expanded h3, .card-mudurluk.expanded h3 { color: #343a40; }
     </style>
 </head>
 <body>
@@ -372,6 +436,7 @@
     <div class="container">
         <h1>İHALE TAKİP</h1>
         <p class="copyright">© Gökhan ELGÜL tarafından tasarlanmıştır.</p>
+        <div id="summary-cards-container"></div>
         <div id="uyari" style="padding: 15px; background-color: #fff3cd; color: #856404; border: 1px solid #ffeeba; border-radius: 5px; margin-bottom: 20px;">
             <strong>Durum:</strong> Sayfa yüklendi. Veriler çekiliyor...
         </div>
@@ -461,6 +526,8 @@ document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('excelIndirBtn').addEventListener('click', excelIndir);
     document.getElementById('tableContainer').addEventListener('change', handleTableChange);
     document.getElementById('tableContainer').addEventListener('click', handleTableClick);
+    document.getElementById('summary-cards-container').addEventListener('click', handleSummaryCardClick);
+
 
     // Modal Listeners
     document.querySelectorAll('.modal-close-btn').forEach(btn => {
@@ -543,41 +610,37 @@ function initAnimatedBackground() {
     }
 }
 
-/*
-function handleLogin() {
-    const usernameInput = document.getElementById('username');
-    const passwordInput = document.getElementById('password');
-    const loginError = document.getElementById('login-error');
-    const loginBox = document.getElementById('login-box');
-    const rememberMe = document.getElementById('remember-me').checked;
-    
-    const dogruKullaniciAdi = "mersinistakip";
-    const dogruSifre = "503344";
 
-    if (usernameInput.value === dogruKullaniciAdi && passwordInput.value === dogruSifre) {
-        sessionStorage.setItem('isLoggedIn', 'true'); 
-        if (rememberMe) {
-            localStorage.setItem('rememberedUser', usernameInput.value);
+function handleSummaryCardClick(event) {
+    const card = event.target.closest('.summary-card');
+    if (!card) return;
+
+    const statusItem = event.target.closest('.status-item');
+    const groupName = card.dataset.uygulama;
+
+    // Eğer bir durum satırına tıklandıysa
+    if (statusItem) {
+        event.stopPropagation(); // Kartın ana tıklama olayını engelle
+        const status = statusItem.dataset.status;
+        showTab(groupName);
+        setTimeout(() => {
+            document.getElementById('durumFiltresi').value = status;
+            filtrele();
+        }, 50);
+    } 
+    // Eğer kartın kendisine tıklandıysa
+    else {
+        if (card.classList.contains('expanded')) {
+            // Eğer kart zaten açıksa, kapat.
+            card.classList.remove('expanded');
         } else {
-            localStorage.removeItem('rememberedUser');
+            // Değilse, diğer tüm kartları kapat ve bunu aç.
+            document.querySelectorAll('.summary-card').forEach(c => c.classList.remove('expanded'));
+            card.classList.add('expanded');
         }
-
-        const loginOverlay = document.getElementById('login-overlay');
-        loginOverlay.style.opacity = '0';
-        setTimeout(() => {
-            loginOverlay.style.display = 'none';
-            document.getElementById('main-app-container').style.display = 'block';
-            fetchFromGitHub();
-        }, 500);
-    } else {
-        loginError.textContent = 'Kullanıcı adı veya şifre hatalı!';
-        loginBox.classList.add('shake');
-        setTimeout(() => {
-            loginBox.classList.remove('shake');
-        }, 500);
     }
 }
-*/
+
 
 function handleTableClick(event) {
     const target = event.target;
@@ -797,7 +860,8 @@ async function fetchFromGitHub() {
             placeholder: "Personel Seçin",
             dropdownParent: $('#personel-modal')
         });
-
+        
+        createSummaryCards();
         renderAllTables(isTakipData, guncellemeData);
 
         document.getElementById('loader').style.display = 'none';
@@ -1025,12 +1089,28 @@ function renderAllTables(mainData, detailData) {
 function showTab(uygulamaAdi) {
     document.querySelectorAll('.table-wrapper').forEach(w => w.classList.remove('active'));
     document.querySelector(`.table-wrapper[data-group="${uygulamaAdi}"]`).classList.add('active');
+    
     document.querySelectorAll('.tab-btn').forEach(btn => {
         btn.classList.remove('active');
         if (btn.dataset.uygulama === uygulamaAdi || (uygulamaAdi === 'Tümü' && btn.textContent === 'Tümü')) {
             btn.classList.add('active');
         }
     });
+
+    document.querySelectorAll('.summary-card').forEach(card => {
+        if (card.dataset.uygulama !== uygulamaAdi) {
+            card.classList.remove('expanded');
+        }
+    });
+
+    if (uygulamaAdi === 'Tümü') {
+         document.querySelectorAll('.summary-card').forEach(c => c.classList.remove('expanded'));
+    } else {
+        const activeCard = document.querySelector(`.summary-card[data-uygulama="${uygulamaAdi}"]`);
+        if (activeCard && !activeCard.classList.contains('expanded')) {
+            activeCard.classList.add('expanded');
+        }
+    }
 
     const kayitSayaci = document.getElementById('kayitSayaci');
     if (uygulamaAdi === 'Personel Raporu' || uygulamaAdi === 'Notlar') {
@@ -1768,6 +1848,48 @@ function createNotesTable() {
     table.appendChild(tbody);
     container.appendChild(table);
     return container;
+}
+
+function createSummaryCards() {
+    const container = document.getElementById('summary-cards-container');
+    container.innerHTML = '';
+    const groups = {
+        '2/B': { data: isTakipData.filter(r => r['UYGULAMA'] === '2/B' && r['İHALELİ/MÜDÜRLÜK'] !== 'Müdürlük'), colorClass: 'card-2b' },
+        'GÜNCELLEME': { data: isTakipData.filter(r => r['UYGULAMA'] === 'GÜNCELLEME' && r['İHALELİ/MÜDÜRLÜK'] !== 'Müdürlük'), colorClass: 'card-guncelleme' },
+        'Müdürlük': { data: isTakipData.filter(r => r['İHALELİ/MÜDÜRLÜK'] === 'Müdürlük'), colorClass: 'card-mudurluk' }
+    };
+
+    for (const groupName in groups) {
+        const group = groups[groupName];
+        if (group.data.length === 0) continue;
+
+        const card = document.createElement('div');
+        card.className = `summary-card ${group.colorClass}`;
+        card.dataset.uygulama = groupName;
+
+        const totalCount = group.data.length;
+        const statusCounts = group.data.reduce((acc, row) => {
+            const status = row['DURUMU'] || 'Belirsiz';
+            acc[status] = (acc[status] || 0) + 1;
+            return acc;
+        }, {});
+
+        let breakdownHTML = '<div class="status-breakdown">';
+        Object.entries(statusCounts).sort((a,b) => b[1] - a[1]).forEach(([status, count]) => {
+            breakdownHTML += `<div class="status-item" data-status="${status}"><span>${status}</span><strong>${count}</strong></div>`;
+        });
+        breakdownHTML += '</div>';
+
+        card.innerHTML = `
+            <h3>${groupName} İşleri</h3>
+            <div class="card-content">
+                <p class="total-count">${totalCount} İş</p>
+                ${breakdownHTML}
+            </div>
+        `;
+        
+        container.appendChild(card);
+    }
 }
 
 
