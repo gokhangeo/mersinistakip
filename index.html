@@ -304,7 +304,7 @@
             background-color: #ffc107; /* Warning color */
             color: #212529;
         }
-        #notlar-table td:nth-child(3), #notlar-table td:nth-child(4) {
+        #notlar-table td {
             white-space: pre-wrap; /* Notların düzgün görünmesi için */
             word-break: break-word;
         }
@@ -1109,12 +1109,7 @@ function showTab(uygulamaAdi) {
 
     if (uygulamaAdi === 'Tümü') {
          document.querySelectorAll('.summary-card').forEach(c => c.classList.remove('expanded'));
-    } else {
-        const activeCard = document.querySelector(`.summary-card[data-uygulama="${uygulamaAdi}"]`);
-        if (activeCard && !activeCard.classList.contains('expanded')) {
-            activeCard.classList.add('expanded');
-        }
-    }
+    } 
 
     const kayitSayaci = document.getElementById('kayitSayaci');
     if (uygulamaAdi === 'Personel Raporu' || uygulamaAdi === 'Notlar') {
@@ -1730,86 +1725,118 @@ function saveNoteChanges() {
     }
 }
 
+function extractDateFromNote(note) {
+    if (!note) return null;
+    const regex = /(\d{1,2})[./-](\d{1,2})[./-](\d{2,4})/;
+    const match = note.match(regex);
+    if (match) {
+        let day = parseInt(match[1], 10);
+        let month = parseInt(match[2], 10) - 1; // JS months are 0-indexed
+        let year = parseInt(match[3], 10);
+
+        if (year < 100) { // Handle 2-digit years
+            year += 2000;
+        }
+        if (day > 31 || month > 11) return null;
+
+        return new Date(year, month, day);
+    }
+    return null;
+}
+
 function createNotesTable() {
     const container = document.createElement('div');
     const table = document.createElement('table');
     table.id = 'notlar-table';
-    table.innerHTML = `<thead><tr><th>UYGULAMA</th><th>İLÇE</th><th>BİRİM</th><th>NOT</th></tr></thead>`;
+    table.innerHTML = `<thead><tr><th>UYGULAMA</th><th>İLÇE</th><th>BİRİM</th><th>GÖREVLİ MÜHENDİS</th><th>NOT</th></tr></thead>`;
     const tbody = document.createElement('tbody');
     
-    isTakipData.forEach(row => {
-        if (row['NOTLAR'] && row['NOTLAR'].trim() !== '') {
-            const tr = document.createElement('tr');
-            tr.className = 'note-row';
-            const rowKey = `${row['İLÇE']}|${row['BİRİM']}`;
-            tr.dataset.rowKey = rowKey;
-            tr.dataset.uygulama = row['UYGULAMA'];
+    const notesWithData = isTakipData
+        .filter(row => row['NOTLAR'] && row['NOTLAR'].trim() !== '')
+        .map(row => ({ ...row, extractedDate: extractDateFromNote(row['NOTLAR']) }));
 
-            tr.innerHTML = `
-                <td>${row['UYGULAMA']}</td>
-                <td>${row['İLÇE']}</td>
-                <td>${row['BİRİM']}</td>
-                <td class="note-cell">${row['NOTLAR']}</td>
-            `;
+    notesWithData.sort((a, b) => {
+        const dateA = a.extractedDate;
+        const dateB = b.extractedDate;
+        if (dateA && dateB) return dateA - dateB;
+        if (dateA) return -1;
+        if (dateB) return 1;
+        return 0;
+    });
+
+    notesWithData.forEach(row => {
+        const tr = document.createElement('tr');
+        tr.className = 'note-row';
+        const rowKey = `${row['İLÇE']}|${row['BİRİM']}`;
+        tr.dataset.rowKey = rowKey;
+        tr.dataset.uygulama = row['UYGULAMA'];
+
+        const engineers = (row['GÖREVLİ PERSONELLER'] || '')
+            .split(', ')
+            .map(name => name.trim())
+            .filter(name => {
+                const fullName = fullPersonelListesi.find(p => p.toLocaleUpperCase('tr-TR').startsWith(name.toLocaleUpperCase('tr-TR')));
+                return fullName && muhendisListesi.includes(fullName);
+            })
+            .join(', ');
+
+        tr.innerHTML = `
+            <td>${row['UYGULAMA']}</td>
+            <td>${row['İLÇE']}</td>
+            <td>${row['BİRİM']}</td>
+            <td>${engineers}</td>
+            <td class="note-cell">${row['NOTLAR']}</td>
+        `;
+        
+        tr.addEventListener('click', (e) => {
+                if (e.target.tagName === 'BUTTON' || e.target.tagName === 'TEXTAREA') return;
+
+            const noteCell = tr.querySelector('.note-cell');
+            if (noteCell.querySelector('.note-edit-container')) return;
             
-            tr.addEventListener('click', (e) => {
-                 if (e.target.tagName === 'BUTTON' || e.target.tagName === 'TEXTAREA') return;
+            const noteText = isTakipData.find(r => `${r['İLÇE']}|${r['BİRİM']}` === rowKey)['NOTLAR'];
 
-                const noteCell = tr.querySelector('.note-cell');
-                // Eğer düzenleme modu aktifse, tıklamayı yoksay
-                if (noteCell.querySelector('.note-edit-container')) {
-                    return;
-                }
-                
-                const noteText = isTakipData.find(r => `${r['İLÇE']}|${r['BİRİM']}` === rowKey)['NOTLAR'];
-
-                noteCell.innerHTML = `
-                    <div class="note-edit-container">
-                        <textarea rows="4">${noteText || ''}</textarea>
-                        <div class="note-edit-buttons">
-                            <button class="note-delete-inline danger">Sil</button>
-                            <button class="note-save-inline success">Kaydet</button>
-                        </div>
+            noteCell.innerHTML = `
+                <div class="note-edit-container">
+                    <textarea rows="4">${noteText || ''}</textarea>
+                    <div class="note-edit-buttons">
+                        <button class="note-delete-inline danger">Sil</button>
+                        <button class="note-save-inline success">Kaydet</button>
                     </div>
-                `;
+                </div>
+            `;
 
-                noteCell.querySelector('.note-save-inline').addEventListener('click', () => {
-                    const newNote = noteCell.querySelector('textarea').value;
-                    const dataRow = isTakipData.find(r => `${r['İLÇE']}|${r['BİRİM']}` === rowKey);
-                    dataRow['NOTLAR'] = newNote;
-
-                    noteCell.innerHTML = newNote; // Hücreyi eski haline getir
-                    
-                    document.querySelectorAll(`tr[data-row-key="${rowKey}"] .not-btn`).forEach(btn => {
-                        btn.classList.toggle('has-note', newNote && newNote.trim() !== '');
-                    });
-                    
-                    if (!newNote || newNote.trim() === '') {
-                        tr.remove(); // Not boşsa satırı tablodan kaldır
-                    }
-
-                    markAsDirty();
-                    showToast('Not güncellendi. Kaydetmeyi unutmayın.');
+            noteCell.querySelector('.note-save-inline').addEventListener('click', () => {
+                const newNote = noteCell.querySelector('textarea').value;
+                const dataRow = isTakipData.find(r => `${r['İLÇE']}|${r['BİRİM']}` === rowKey);
+                dataRow['NOTLAR'] = newNote;
+                noteCell.innerHTML = newNote;
+                
+                document.querySelectorAll(`tr[data-row-key="${rowKey}"] .not-btn`).forEach(btn => {
+                    btn.classList.toggle('has-note', newNote && newNote.trim() !== '');
                 });
-
-                noteCell.querySelector('.note-delete-inline').addEventListener('click', () => {
-                    const dataRow = isTakipData.find(r => `${r['İLÇE']}|${r['BİRİM']}` === rowKey);
-                    dataRow['NOTLAR'] = '';
-
-                    tr.remove(); // Satırı tablodan kaldır
-                    
-                    document.querySelectorAll(`tr[data-row-key="${rowKey}"] .not-btn`).forEach(btn => {
-                        btn.classList.remove('has-note');
-                    });
-
-                    markAsDirty();
-                    showToast('Not silindi. Kaydetmeyi unutmayın.');
-                });
+                
+                if (!newNote || newNote.trim() === '') {
+                    tr.remove();
+                }
+                markAsDirty();
+                showToast('Not güncellendi. Kaydetmeyi unutmayın.');
             });
 
+            noteCell.querySelector('.note-delete-inline').addEventListener('click', () => {
+                const dataRow = isTakipData.find(r => `${r['İLÇE']}|${r['BİRİM']}` === rowKey);
+                dataRow['NOTLAR'] = '';
+                tr.remove();
+                document.querySelectorAll(`tr[data-row-key="${rowKey}"] .not-btn`).forEach(btn => {
+                    btn.classList.remove('has-note');
+                });
+                markAsDirty();
+                showToast('Not silindi. Kaydetmeyi unutmayın.');
+            });
+        });
 
-            tbody.appendChild(tr);
-        }
+
+        tbody.appendChild(tr);
     });
 
     // Satır atlama işlevselliği
@@ -1820,14 +1847,12 @@ function createNotesTable() {
             const uygulama = row.dataset.uygulama;
 
             let targetTab = 'Tümü';
-            // Uygulama adına göre doğru sekmeyi bul
             document.querySelectorAll('#tabs .tab-btn').forEach(btn => {
                 if(btn.textContent.startsWith(uygulama)){
                     targetTab = uygulama;
                 }
             });
 
-            // Müdürlük işi olabilir, kontrol et
             const dataRow = isTakipData.find(r => `${r['İLÇE']}|${r['BİRİM']}` === rowKey);
             if(dataRow && dataRow['İHALELİ/MÜDÜRLÜK'] === 'Müdürlük') {
                 targetTab = 'Müdürlük';
