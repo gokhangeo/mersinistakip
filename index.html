@@ -258,19 +258,19 @@
         #personel-info-list li:last-child { border-bottom: none; }
         .action-btn-cell { text-align: center; }
 
-        /* Personel Rapor Stilleri */
-        .personel-rapor-container {
+        /* Personel & İlçe Rapor Stilleri */
+        .personel-rapor-container, .ilce-rapor-container {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
             gap: 20px;
         }
-        .personel-kart {
+        .personel-kart, .ilce-kart {
             border: 1px solid #ddd;
             border-radius: 8px;
             padding: 15px;
             background-color: #f9f9f9;
         }
-        .personel-kart h4 {
+        .personel-kart h4, .ilce-kart h4 {
             margin-top: 0;
             color: #0056b3;
             border-bottom: 1px solid #ccc;
@@ -278,24 +278,29 @@
             cursor: pointer;
             user-select: none;
         }
-        .personel-kart-icerik {
+        .personel-kart-icerik, .ilce-kart-icerik {
             display: none;
             padding-top: 10px;
         }
-        .durum-grup {
+        .durum-grup, .uygulama-grup { /* İlçe raporu için */
             margin-bottom: 10px;
         }
-        .durum-grup strong {
+        .durum-grup strong, .uygulama-grup strong {
             font-size: 14px;
         }
-        .durum-grup ul {
+        .durum-grup ul, .uygulama-grup ul {
             list-style-type: none;
             padding-left: 15px;
             margin: 5px 0 0;
         }
-        .durum-grup li {
+        .durum-grup li, .uygulama-grup li {
             font-size: 12px;
             padding: 2px 0;
+        }
+        .uygulama-grup ul li span { /* Durumu italik yap */
+             font-style: italic;
+             color: #6c757d;
+             margin-left: 5px;
         }
         .col-ilce {
             display: none;
@@ -341,14 +346,14 @@
             padding: 5px 10px;
             font-size: 12px;
         }
-        .table-wrapper[data-group="Personel Raporu"] h2 {
+        .table-wrapper[data-group="Personel Raporu"] h2, .table-wrapper[data-group="İlçe Raporu"] h2 {
             color: #0056b3;
             border-bottom: 2px solid #0056b3;
             padding-bottom: 5px;
             margin-top: 20px;
             margin-bottom: 15px;
         }
-        .table-wrapper[data-group="Personel Raporu"] h2:first-of-type {
+        .table-wrapper[data-group="Personel Raporu"] h2:first-of-type, .table-wrapper[data-group="İlçe Raporu"] h2:first-of-type {
             margin-top: 0;
         }
         #guncellemeDetailTable th[data-header="İLÇE"],
@@ -618,8 +623,8 @@ let ucusKiyDurumList = [], komisyonDurumList = [], degerlendirmeDurumList = [];
 let durumlar = [];
 const EXCEL_HEADERS_MAIN = ['Tamamlandı', 'İLÇE', 'BİRİM', 'UYGULAMA', 'PERSONEL', 'GÖREVLİ PERSONELLER', 'PARSEL SAYISI', 'BLOK SAYISI', 'ALAN(Ha)', 'İHALELİ/MÜDÜRLÜK', 'İŞE BAŞLAMA/YER TESLİMİ', 'İHALE BİTİŞ TARİHİ', 'DURUMU', 'NOTLAR'];
 const EXCEL_HEADERS_DETAIL = ['İLÇE', 'BİRİM', 'PARSEL SAYISI', 'İDÖ PARSEL SAYISI', 'TOPLAM PARSEL', 'İŞE BAŞLAMA', 'BİTİŞ TARİHİ', 'LİDAR/YERSEL ÖLÇÜM TARİHİ(YAPILAN)', 'ARAZİ YERSEL ÖLÇÜM TARİHİ(YAPILAN)', 'UÇUŞ TARİHİ(YAPILAN)', 'UÇUŞ KIYMETLENDİRME DURUM', 'DEĞERLENDİRME DURUM', 'ORMAN ASKI TARİHİ', 'BİLGİLENDİRME İLANI TARİHİ', 'KOMİSYON DURUM', 'KESİN ASKI TARİHİ'];
-// Güncellenen Görüntü Başlıkları (Detay sayfası için) - İşe başlama/bitiş, lidar ve orman askı kaldırıldı
-const DISPLAY_HEADERS_DETAIL = ['İLÇE', 'BİRİM', 'PARSEL SAYISI', 'İDÖ PARSEL SAYISI', 'TOPLAM PARSEL', 'ARAZİ YERSEL ÖLÇÜM TARİHİ(YAPILAN)', 'UÇUŞ TARİHİ(YAPILAN)', 'UÇUŞ KIYMETLENDİRME DURUM', 'DEĞERLENDİRME DURUM', 'BİLGİLENDİRME İLANI TARİHİ', 'KOMİSYON DURUM', 'KESİN ASKI TARİHİ'];
+// Güncellenen Görüntü Başlıkları (Detay sayfası için)
+const DISPLAY_HEADERS_DETAIL = EXCEL_HEADERS_DETAIL.filter(h => h && h !== 'İŞE BAŞLAMA' && h !== 'BİTİŞ TARİHİ' && h !== 'LİDAR/YERSEL ÖLÇÜM TARİHİ(YAPILAN)' && h !== 'ORMAN ASKI TARİHİ');
 
 const STICKY_COLS_COUNT = 3; // Onay Kutusu, İlçe, Birim
 let currentEditingRowKey = null;
@@ -776,7 +781,7 @@ function navigateToJob(ilce, birim, uygulama) {
         if (dataRow['İHALELİ/MÜDÜRLÜK'] === 'Müdürlük') {
             targetTab = 'Müdürlük';
         } else {
-            targetTab = uygulama; // Ana uygulama adı
+            targetTab = dataRow['UYGULAMA']; // Ana uygulama adı (uyarıdan gelen değil, ana veriden)
         }
     }
     
@@ -785,7 +790,17 @@ function navigateToJob(ilce, birim, uygulama) {
 
     // Kısa bir gecikme sonrası satıra odaklan ve vurgula
     setTimeout(() => {
-        const targetRow = document.querySelector(`.table-wrapper[data-group="${targetTab}"] tr[data-row-key="${rowKey}"]`);
+        // Hedef sekme wrapper'ını bul
+        const targetWrapper = document.querySelector(`.table-wrapper[data-group="${targetTab}"]`);
+        if (!targetWrapper) {
+             console.error(`Hedef sekme bulunamadı: ${targetTab}`);
+             // Tümü sekmesine geri dönmeyi dene
+             showTab('Tümü');
+             setTimeout(() => navigateToJobInAllTab(rowKey), 150);
+             return;
+        }
+
+        const targetRow = targetWrapper.querySelector(`tr[data-row-key="${rowKey}"]`);
         if(targetRow){
             targetRow.scrollIntoView({ behavior: 'smooth', block: 'center' });
             // Vurgulama efekti
@@ -799,28 +814,30 @@ function navigateToJob(ilce, birim, uygulama) {
             // Eğer Tümü sekmesinde değilse ve satır bulunamadıysa, Tümü sekmesine gitmeyi dene
             if (targetTab !== 'Tümü') {
                  showTab('Tümü');
-                 setTimeout(() => {
-                     const targetRowAll = document.querySelector(`.table-wrapper[data-group="Tümü"] tr[data-row-key="${rowKey}"]`);
-                     if (targetRowAll) {
-                         // Gerekirse grubu aç
-                         const tbody = targetRowAll.closest('tbody');
-                         const headerRow = tbody.querySelector('.group-header-row');
-                         if(headerRow && targetRowAll.style.display === 'none') {
-                             toggleGroup(tbody);
-                         }
-                         targetRowAll.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                         targetRowAll.style.transition = 'background-color 0.5s';
-                         targetRowAll.style.backgroundColor = '#fff3cd';
-                         setTimeout(() => {
-                             targetRowAll.style.backgroundColor = '';
-                         }, 2000);
-                     } else {
-                         console.error(`Satır Tümü sekmesinde de bulunamadı: ${rowKey}`);
-                     }
-                 }, 150); // Sekme geçişi için ek süre
+                 setTimeout(() => navigateToJobInAllTab(rowKey), 150); // Sekme geçişi için ek süre
             }
         }
     }, 100); // Sekme içeriğinin yüklenmesi için küçük bir gecikme
+}
+
+function navigateToJobInAllTab(rowKey) {
+     const targetRowAll = document.querySelector(`.table-wrapper[data-group="Tümü"] tr[data-row-key="${rowKey}"]`);
+     if (targetRowAll) {
+         // Gerekirse grubu aç
+         const tbody = targetRowAll.closest('tbody');
+         const headerRow = tbody.querySelector('.group-header-row');
+         if(headerRow && targetRowAll.style.display === 'none') {
+             toggleGroup(tbody);
+         }
+         targetRowAll.scrollIntoView({ behavior: 'smooth', block: 'center' });
+         targetRowAll.style.transition = 'background-color 0.5s';
+         targetRowAll.style.backgroundColor = '#fff3cd';
+         setTimeout(() => {
+             targetRowAll.style.backgroundColor = '';
+         }, 2000);
+     } else {
+         console.error(`Satır Tümü sekmesinde de bulunamadı: ${rowKey}`);
+     }
 }
 
 
@@ -1065,9 +1082,9 @@ function parseLists(workbook, sheetName) {
 async function fetchFromGitHub() {
     try {
         document.getElementById('loader').style.display = 'block'; // Yükleyiciyi göster
-        document.getElementById('uyari').style.display = 'block'; // "Veri çekiliyor" mesajını göster
-        document.getElementById('uyari').textContent = 'Durum: Veriler çekiliyor...';
         document.getElementById('alerts-container').style.display = 'none'; // Uyarıları geçici gizle
+        document.getElementById('uyari').style.display = 'block'; // "Veri çekiliyor" mesajını göster
+        document.getElementById('uyari').innerHTML = '<strong>Durum:</strong> Veriler çekiliyor...'; // İçeriği güncelle
 
         const response = await fetch(API_URL, { 
             headers: { 'Authorization': `token ${GITHUB_TOKEN}` },
@@ -1294,7 +1311,7 @@ function renderAllTables(mainData, detailData) {
 
     let detailThead = `<thead><tr>`;
     // Görüntülenecek başlıkları filtrele (EXCEL_HEADERS_DETAIL içinden)
-    const visibleExcelHeaders = EXCEL_HEADERS_DETAIL.filter(h => h && !h.startsWith('İŞE BAŞLAMA') && h !== 'BİTİŞ TARİHİ' && h !== 'LİDAR/YERSEL ÖLÇÜM TARİHİ(YAPILAN)' && h !== 'ORMAN ASKI TARİHİ');
+    const visibleExcelHeaders = EXCEL_HEADERS_DETAIL.filter(h => h && h !== 'İŞE BAŞLAMA' && h !== 'BİTİŞ TARİHİ' && h !== 'LİDAR/YERSEL ÖLÇÜM TARİHİ(YAPILAN)' && h !== 'ORMAN ASKI TARİHİ');
 
     visibleExcelHeaders.forEach(h => {
         let headerText = h.replace(/\(YAPILAN\)/, '').replace(' SAYISI', ''); // Başlığı kısalt
@@ -1358,6 +1375,20 @@ function renderAllTables(mainData, detailData) {
     reportWrapper.dataset.group = 'Personel Raporu';
     reportWrapper.appendChild(createPersonelReport());
     tableContainer.appendChild(reportWrapper);
+    
+    // İlçe Raporu Sekmesi
+    const ilceReportTabBtn = document.createElement('button');
+    ilceReportTabBtn.className = 'tab-btn';
+    ilceReportTabBtn.textContent = 'İlçe Durum Raporu';
+    ilceReportTabBtn.dataset.uygulama = 'İlçe Raporu'; // Yeni data-uygulama
+    ilceReportTabBtn.onclick = () => showTab('İlçe Raporu'); // Yeni sekme adı
+    tabsContainer.appendChild(ilceReportTabBtn);
+
+    const ilceReportWrapper = document.createElement('div');
+    ilceReportWrapper.className = 'table-wrapper';
+    ilceReportWrapper.dataset.group = 'İlçe Raporu'; // Yeni data-group
+    ilceReportWrapper.appendChild(createIlceReport()); // Yeni rapor oluşturma fonksiyonu
+    tableContainer.appendChild(ilceReportWrapper);
 }
 
 
@@ -1385,7 +1416,8 @@ function showTab(uygulamaAdi) {
     } 
 
     const kayitSayaci = document.getElementById('kayitSayaci');
-    if (uygulamaAdi === 'Personel Raporu' || uygulamaAdi === 'Notlar') {
+    // Yeni rapor sekmelerini de gizle
+    if (uygulamaAdi === 'Personel Raporu' || uygulamaAdi === 'Notlar' || uygulamaAdi === 'İlçe Raporu') { 
         kayitSayaci.style.display = 'none';
     } else {
         kayitSayaci.style.display = 'block';
@@ -1400,14 +1432,12 @@ async function saveToGitHub() {
     const btn = document.getElementById('githubKaydetBtn');
     btn.disabled = true;
     btn.innerHTML = 'Kaydediliyor...';
-    // setUyari("Değişiklikler gönderiliyor...", 'bilgi'); // Uyarı yerine container kullanılıyor
     const alertsContainer = document.getElementById('alerts-container'); // alerts-container kullanıldı
     alertsContainer.innerHTML = `<div class="alert-item"><strong>Durum:</strong> Değişiklikler gönderiliyor...</div>`;
 
 
     try {
         // Güncel veriyi UI'dan almak yerine, global değişkenlerden alıp güncelleyelim
-        // Bu, gizlenen sütunların verisinin kaybolmamasını sağlar.
         // Ana veri (isTakipData) zaten değişikliklerle güncelleniyor.
         // Detay verisi (guncellemeData) zaten değişikliklerle güncelleniyor (handleTableChange).
 
@@ -1570,7 +1600,7 @@ function createGuncellemeDetailRowElement(data) {
     const createOptions = (list, selected) => `<option value=""></option>` + list.map(item => `<option value="${item}" ${item === selected ? 'selected' : ''}>${item}</option>`).join('');
     
     // Görüntülenecek başlıkları filtrele (EXCEL_HEADERS_DETAIL içinden)
-     const visibleExcelHeaders = EXCEL_HEADERS_DETAIL.filter(h => h && !h.startsWith('İŞE BAŞLAMA') && h !== 'BİTİŞ TARİHİ' && h !== 'LİDAR/YERSEL ÖLÇÜM TARİHİ(YAPILAN)' && h !== 'ORMAN ASKI TARİHİ');
+     const visibleExcelHeaders = EXCEL_HEADERS_DETAIL.filter(h => h && h !== 'İŞE BAŞLAMA' && h !== 'BİTİŞ TARİHİ' && h !== 'LİDAR/YERSEL ÖLÇÜM TARİHİ(YAPILAN)' && h !== 'ORMAN ASKI TARİHİ');
 
     visibleExcelHeaders.forEach(header => {
         let cellHTML = '';
@@ -1774,14 +1804,15 @@ function checkRowMatch(row, aramaFilter, durumFilter) {
     } else { // Güncelleme Detay Tablosu
         const cells = row.getElementsByTagName("td");
         // Görünen hücre sayısı azaldı, ona göre kontrol et
-        const visibleExcelHeaders = EXCEL_HEADERS_DETAIL.filter(h => h && !h.startsWith('İŞE BAŞLAMA') && h !== 'BİTİŞ TARİHİ' && h !== 'LİDAR/YERSEL ÖLÇÜM TARİHİ(YAPILAN)' && h !== 'ORMAN ASKI TARİHİ');
-        if (cells.length < visibleExcelHeaders.length) return true;
+        const visibleHeaderCount = DISPLAY_HEADERS_DETAIL.filter(h => h !== 'İLÇE' && h !== 'İşe Başlama / Bitiş Tarihi').length;
+        if (cells.length < visibleHeaderCount) return true;
 
         // İlçe ve Birim indexleri değişti, doğru indexleri kullan
         const originalData = guncellemeData.find(r => `${r['İLÇE']}|${r['BİRİM']}` === row.dataset.rowKey);
         if (!originalData) return true; // Orijinal veri yoksa eşleşme yapma
         const ilceText = originalData['İLÇE'].toLocaleUpperCase('tr-TR');
-        const birimInput = cells[1].querySelector('input'); // BİRİM hala index 1'de (İLÇE gizli olduğu için)
+        // Birim input'u artık index 0'da (İlçe gizlendiği için)
+        const birimInput = cells[0].querySelector('input'); 
         
         const key = row.dataset.rowKey;
         const dataRow = isTakipData.find(r => `${r['İLÇE']}|${r['BİRİM']}` === key);
@@ -1887,7 +1918,6 @@ function applyDistrictBorders() {
     
     // İlçe verisini almak için doğru yolu bul
     const getIlceValue = (row) => {
-         // Her iki tablo tipi için de global veri setinden oku
          const key = row.dataset.rowKey;
          if (!key) return '';
          const dataRow = isDetailTable ? guncellemeData.find(r => `${r['İLÇE']}|${r['BİRİM']}` === key) : isTakipData.find(r => `${r['İLÇE']}|${r['BİRİM']}` === key);
@@ -1920,7 +1950,7 @@ function applyDistrictBorders() {
 
             if (isDetailTable) {
                  // Detay tablosunda ilk görünen hücreye göre hizala (Birim)
-                 const referenceCell = row.cells[1]; // BİRİM Sütunu (index 1)
+                 const referenceCell = row.cells[0]; // BİRİM Sütunu (index 0 - İlçe gizli olduğu için)
                  if (referenceCell) {
                       label.style.left = Math.max(5, referenceCell.offsetLeft - scrollLeft - label.offsetWidth - 10) + 'px'; // Biraz soluna, ama 5px'den az olmasın
                  } else {
@@ -1988,7 +2018,7 @@ function applyStickyColumns() {
         // STICKY_COLS_COUNT artık sabit değil, görünen hücrelere göre hesaplanmalı
         let visibleStickyCount = 0;
         for (let i = 0; i < cells.length && visibleStickyCount < 3; i++) { // İlk 3 GÖRÜNEN hücreyi sabitle
-            if (cells[i] && cells[i].offsetParent !== null) { 
+            if (cells[i] && cells[i].offsetParent !== null && !cells[i].classList.contains('col-ilce')) { // Gizli İlçe sütununu atla
                  cells[i].classList.add('sticky-col');
                  cells[i].style.left = leftOffset + 'px';
                  leftOffset += cells[i].getBoundingClientRect().width; 
@@ -2098,7 +2128,7 @@ function createNotesTable() {
         if (dateA && dateB) return dateA - dateB; // İki tarih varsa karşılaştır
         if (dateA) return -1; // Sadece a'da tarih varsa a öne gelsin
         if (dateB) return 1;  // Sadece b'de tarih varsa b öne gelsin
-        return 0; // İkisinde de tarih yoksa sıralama değişmesin
+        return 0; // İkisinde de tarih yoksa sıralama değişmez
     });
 
     notesWithData.forEach(row => {
@@ -2242,35 +2272,6 @@ function createSummaryCards() {
 
         const totalCount = group.data.length;
         
-        // Genel Tarih Aralığı (Sadece GÜNCELLEME için, guncellemeData'dan alır)
-        let dateRangeHTML = '';
-        if (group.isGuncelleme) {
-            let earliestStartDate = null;
-            let latestEndDate = null;
-            // Eşleşen detay verilerini bul
-             const detailDataForGroup = guncellemeData.filter(dRow => group.data.some(mainRow => mainRow['İLÇE'] === dRow['İLÇE'] && mainRow['BİRİM'] === dRow['BİRİM']));
-
-            detailDataForGroup.forEach(detailRow => {
-                const startDate = excelDateToJSDate(detailRow['İŞE BAŞLAMA']);
-                const endDate = excelDateToJSDate(detailRow['BİTİŞ TARİHİ']);
-
-                if (startDate instanceof Date && !isNaN(startDate)) {
-                    if (!earliestStartDate || startDate < earliestStartDate) {
-                        earliestStartDate = startDate;
-                    }
-                }
-                if (endDate instanceof Date && !isNaN(endDate)) {
-                    if (!latestEndDate || endDate > latestEndDate) {
-                        latestEndDate = endDate;
-                    }
-                }
-            });
-
-             if (earliestStartDate || latestEndDate) {
-                 dateRangeHTML = `<span class="project-date-range">(${earliestStartDate ? formatShortDate(earliestStartDate) : '...'} - ${latestEndDate ? formatShortDate(latestEndDate) : '...'})</span>`;
-             }
-        }
-
         // Durumları ve Tarihleri Al (Durumlar ana veriden, tarihler detay veriden)
         const statusMap = group.data.reduce((acc, row) => {
              const status = row['DURUMU'] || 'Belirsiz';
@@ -2286,11 +2287,22 @@ function createSummaryCards() {
              const count = items.length;
              breakdownHTML += `<div class="status-item" data-status="${status}"><span>${status}</span><strong>${count}</strong></div>`;
              
-             // GÜNCELLEME için alt liste (İLÇE - BİRİM) - Tarihler kaldırıldı
+             // GÜNCELLEME için alt liste (İLÇE - BİRİM ve Tarihler)
              if (group.isGuncelleme) {
                  breakdownHTML += `<ul>`;
                   items.forEach(item => { 
-                      breakdownHTML += `<li><span>${item['İLÇE']} - ${item['BİRİM']}</span></li>`;
+                      const detailRow = guncellemeData.find(d => d['İLÇE'] === item['İLÇE'] && d['BİRİM'] === item['BİRİM']);
+                      const startDate = detailRow ? excelDateToJSDate(detailRow['İŞE BAŞLAMA']) : null;
+                      const endDate = detailRow ? excelDateToJSDate(detailRow['BİTİŞ TARİHİ']) : null;
+                      let dateInfo = '';
+                      if (startDate && endDate) {
+                          dateInfo = ` (${formatShortDate(startDate)} - ${formatShortDate(endDate)})`;
+                      } else if (startDate) {
+                          dateInfo = ` (${formatShortDate(startDate)} - ...)`;
+                      } else if (endDate) {
+                          dateInfo = ` (... - ${formatShortDate(endDate)})`;
+                      }
+                      breakdownHTML += `<li><span>${item['İLÇE']} - ${item['BİRİM']}</span><span class="item-dates">${dateInfo}</span></li>`;
                   });
                   breakdownHTML += `</ul>`;
               }
@@ -2300,7 +2312,7 @@ function createSummaryCards() {
         card.innerHTML = `
             <h3>${groupName} İşleri</h3>
             <div class="card-content">
-                 <p class="total-count">${totalCount} İş ${dateRangeHTML}</p> 
+                 <p class="total-count">${totalCount} İş</p> 
                 ${breakdownHTML}
             </div>
         `;
@@ -2308,6 +2320,7 @@ function createSummaryCards() {
         container.appendChild(card);
     }
 }
+
 
 
 function createPersonelReport() {
@@ -2391,6 +2404,77 @@ function createPersonelReport() {
     
     return reportContainer;
 }
+
+// İlçe Raporu Oluşturma Fonksiyonu
+function createIlceReport() {
+    const reportContainer = document.createElement('div');
+    reportContainer.className = 'ilce-rapor-container'; // Yeni class
+
+    const ilceReportData = {};
+
+    isTakipData.forEach(is => {
+        const ilce = is['İLÇE'];
+        if (!ilce) return; // İlçe adı yoksa atla
+
+        if (!ilceReportData[ilce]) {
+            ilceReportData[ilce] = {};
+        }
+
+        const uygulamaTuru = is['İHALELİ/MÜDÜRLÜK'] === 'Müdürlük' ? 'Müdürlük' : (is['UYGULAMA'] || 'Diğer');
+        
+        if (!ilceReportData[ilce][uygulamaTuru]) {
+             ilceReportData[ilce][uygulamaTuru] = [];
+        }
+
+        ilceReportData[ilce][uygulamaTuru].push({
+            birim: is['BİRİM'],
+            durum: is['DURUMU'] || 'Belirtilmemiş'
+        });
+    });
+
+    // İlçeleri alfabetik sırala
+    const sortedIlceler = Object.keys(ilceReportData).sort((a, b) => a.localeCompare(b, 'tr-TR'));
+
+    sortedIlceler.forEach(ilce => {
+        const kart = document.createElement('div');
+        kart.className = 'ilce-kart'; // Yeni class
+
+        const uygulamaGruplari = Object.keys(ilceReportData[ilce]).sort();
+        let toplamIsSayisi = 0;
+        uygulamaGruplari.forEach(uygulama => {
+            toplamIsSayisi += ilceReportData[ilce][uygulama].length;
+        });
+
+        let kartHTML = `<h4 onclick="toggleIlceDetay(this)">${ilce} (${toplamIsSayisi} iş)</h4>`; // Yeni toggle fonksiyonu
+        kartHTML += '<div class="ilce-kart-icerik">'; // Yeni class
+
+        uygulamaGruplari.forEach(uygulama => {
+            kartHTML += `<div class="uygulama-grup"><strong>${uygulama} (${ilceReportData[ilce][uygulama].length} iş):</strong><ul>`;
+            // İşleri birime göre sırala
+            ilceReportData[ilce][uygulama].sort((a,b) => a.birim.localeCompare(b.birim, 'tr-TR')).forEach(isDetay => {
+                 kartHTML += `<li>${isDetay.birim} <span>(${isDetay.durum})</span></li>`;
+            });
+            kartHTML += `</ul></div>`;
+        });
+
+        kartHTML += '</div>';
+        kart.innerHTML = kartHTML;
+        reportContainer.appendChild(kart);
+    });
+    
+    return reportContainer;
+}
+
+// İlçe Kartı Açma/Kapama Fonksiyonu
+function toggleIlceDetay(headerElement) {
+    const content = headerElement.nextElementSibling;
+    if (content.style.display === "block") {
+        content.style.display = "none";
+    } else {
+        content.style.display = "block";
+    }
+}
+
 
 function togglePersonelDetay(headerElement) {
     const content = headerElement.nextElementSibling;
