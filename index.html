@@ -14,13 +14,13 @@
     <!-- Three.js for animated background -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <style>
-        body { 
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; 
-            color: #333; 
-            margin: 0; 
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            color: #333;
+            margin: 0;
             /* Arka plan rengi canvas tarafından sağlanacak */
         }
-        
+
         #dynamic-bg {
             position: fixed;
             top: 0;
@@ -56,12 +56,12 @@
             border: 1px solid rgba(255, 255, 255, 0.2);
             animation: fadeIn 0.7s ease-out forwards;
         }
-        
+
         @keyframes fadeIn {
             from { opacity: 0; transform: scale(0.9); }
             to { opacity: 1; transform: scale(1); }
         }
-        
+
         #login-box h2 {
             color: #0056b3;
             margin-bottom: 10px;
@@ -89,20 +89,20 @@
             background-color: #28a745;
             justify-content: center;
         }
-        
+
         #login-error {
             color: #dc3545;
             margin-bottom: 15px;
             height: 20px;
             font-weight: bold;
         }
-        
+
         .remember-me-container {
             display: flex;
             align-items: center;
             justify-content: flex-start; /* Sola hizala */
             margin-bottom: 20px;
-            margin-top: 5px; 
+            margin-top: 5px;
             font-size: 14px;
             color: #333;
         }
@@ -116,7 +116,7 @@
             font-size: 12px;
             color: #6c757d;
         }
-        
+
         .shake {
             animation: shake 0.5s;
         }
@@ -127,7 +127,7 @@
             20%, 40%, 60%, 80% { transform: translateX(10px); }
         }
 
-        #main-app-container { display: none; padding: 20px; background-color: #f4f7f6;} 
+        #main-app-container { display: none; padding: 20px; background-color: #f4f7f6;}
         .container { max-width: 1800px; margin: 0 auto; background-color: #ffffff; padding: 25px; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
         h1 { color: #0056b3; text-align: center; border-bottom: 2px solid #0056b3; padding-bottom: 10px; margin-bottom: 20px; }
         .copyright { text-align: center; margin-top: -15px; margin-bottom: 25px; font-size: 12px; color: #6c757d; }
@@ -150,13 +150,30 @@
         .tamamlandi { text-decoration: red line-through; text-decoration-thickness: 2px; opacity: 0.6; background-color: #f0f0f0 !important; }
         .tamamlandi select, .tamamlandi input, .tamamlandi .select2-container,
         #notlar-table tr.tamamlandi td { /* Notlar tablosundaki tamamlananları da çiz */
-            text-decoration: red line-through; 
+            text-decoration: red line-through;
             text-decoration-thickness: 2px;
             opacity: 0.6;
         }
          #notlar-table tr.tamamlandi {
              background-color: #f0f0f0 !important; /* Arka planı da hafif gri yap */
          }
+        /* Not satırı içindeki tamamlanmış görev */
+        .note-line.completed span {
+            text-decoration: line-through;
+            opacity: 0.7;
+            color: #6c757d;
+        }
+        .note-line {
+             display: flex;
+             align-items: center;
+             margin-bottom: 3px; /* Satırlar arası boşluk */
+        }
+        .note-line input[type="checkbox"] {
+            width: auto; /* Checkbox boyutunu ayarla */
+            margin-right: 8px;
+            cursor: pointer;
+        }
+
 
         .loader { border: 5px solid #f3f3f3; border-radius: 50%; border-top: 5px solid #3498db; width: 40px; height: 40px; animation: spin 2s linear infinite; margin: 20px auto; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
@@ -167,7 +184,7 @@
         #aramaKutusu { padding-right: 30px; }
         #aramaTemizleBtn { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); cursor: pointer; color: #888; display: none; }
         #kayitSayaci { margin-top: 10px; font-weight: bold; color: #0056b3; }
-        
+
         /* Sekme Stilleri */
         .tabs-container { border-bottom: 2px solid #dee2e6; margin-bottom: 20px; display: flex; flex-wrap: wrap; gap: 5px; }
         .tab-btn { background-color: #f8f9fa; color: #007bff; border: 1px solid #dee2e6; border-bottom: none; padding: 10px 15px; cursor: pointer; border-radius: 5px 5px 0 0; font-size: 16px; margin-bottom: -2px; }
@@ -219,7 +236,7 @@
         #top-scrollbar-content {
             height: 1px; /* İçerik yüksekliği önemli değil */
         }
-        
+
         #guncellemeDetailTable .col-wide { min-width: 130px; white-space: nowrap; }
         #guncellemeDetailTable .col-narrow { white-space: normal; width: 100px; }
         /* Gizlenen sütunlar için stiller */
@@ -261,7 +278,7 @@
             margin-top: 20px;
         }
         .modal-close-btn { display: block; margin-left: auto; }
-        
+
         #personel-info-list { list-style-type: none; padding: 0; }
         #personel-info-list li { padding: 8px; border-bottom: 1px solid #eee; }
         #personel-info-list li:last-child { border-bottom: none; }
@@ -332,7 +349,11 @@
         #notlar-table td {
             white-space: pre-wrap; /* Notların düzgün görünmesi için */
             word-break: break-word;
+            vertical-align: top; /* Checkboxların hizalanması için */
         }
+         #notlar-table .note-cell {
+             line-height: 1.6; /* Not satırları arası boşluk */
+         }
         .note-row:hover {
             background-color: #e9ecef;
             cursor: pointer;
@@ -476,7 +497,7 @@
         .card-guncelleme.expanded { background-color: #d4edda; border-left: 5px solid #28a745; }
         .card-mudurluk.expanded { background-color: #ffe8d6; border-left: 5px solid #fd7e14; }
         .card-2b.expanded h3, .card-guncelleme.expanded h3, .card-mudurluk.expanded h3 { color: #343a40; }
-        
+
         /* Uyarı Stilleri */
          #alerts-container {
              margin-top: -15px; /* Kartların altına daha yakın */
@@ -602,7 +623,7 @@
 <div id="not-modal" class="modal">
     <div class="modal-content">
         <h3 id="not-modal-header">İş Notları</h3>
-        <p>Bu iş için notlarınızı girin.</p>
+        <p>Bu iş için notlarınızı girin. Tamamlanan görevlerin başına '[x]' ekleyebilirsiniz.</p>
         <textarea id="not-modal-textarea" rows="10" style="width: 100%; font-family: inherit; font-size: 14px; padding: 8px; border-radius: 4px; border: 1px solid #ccc;"></textarea>
         <div class="modal-footer">
             <button id="not-modal-cancel" class="danger modal-close-btn">İptal</button>
@@ -888,6 +909,50 @@ function handleTableClick(event) {
 
 function handleTableChange(event) {
     const target = event.target;
+
+    // Notlar tablosundaki checkbox'lar için özel işlem
+    if (target.type === 'checkbox' && target.closest('#notlar-table')) {
+        const noteLineDiv = target.closest('.note-line');
+        const noteCell = target.closest('.note-cell');
+        const row = target.closest('tr');
+        if (!noteLineDiv || !noteCell || !row) return;
+
+        const lineIndex = parseInt(noteLineDiv.dataset.lineIndex);
+        const rowKey = row.dataset.rowKey;
+        const dataRow = isTakipData.find(r => `${r['İLÇE']}|${r['BİRİM']}` === rowKey);
+        
+        if (dataRow && dataRow['NOTLAR']) {
+            let notes = dataRow['NOTLAR'].split('\n');
+            if (notes[lineIndex]) {
+                if (target.checked) {
+                    if (notes[lineIndex].startsWith('[ ] ')) {
+                        notes[lineIndex] = '[x] ' + notes[lineIndex].substring(4);
+                    } else if (!notes[lineIndex].startsWith('[x] ')) {
+                         notes[lineIndex] = '[x] ' + notes[lineIndex]; // Eğer işaret yoksa ekle
+                    }
+                } else {
+                    if (notes[lineIndex].startsWith('[x] ')) {
+                        notes[lineIndex] = '[ ] ' + notes[lineIndex].substring(4);
+                    } else if (!notes[lineIndex].startsWith('[ ] ')) {
+                         notes[lineIndex] = '[ ] ' + notes[lineIndex]; // Eğer işaret yoksa ekle
+                    }
+                }
+                dataRow['NOTLAR'] = notes.join('\n');
+                noteLineDiv.classList.toggle('completed', target.checked);
+                
+                // Ana tablodaki not düğmesinin durumunu güncelle (not varsa sarı kalsın)
+                 document.querySelectorAll(`tr[data-row-key="${rowKey}"] .not-btn`).forEach(btn => {
+                     btn.classList.toggle('has-note', dataRow['NOTLAR'] && dataRow['NOTLAR'].trim() !== '');
+                 });
+
+                markAsDirty();
+            }
+        }
+        return; // Diğer change olaylarını tetikleme
+    }
+
+
+    // Diğer input/select değişiklikleri
     if (target.tagName === 'INPUT' || target.tagName === 'SELECT') {
         const row = target.closest('tr');
         if (!row || !row.dataset.rowKey) return;
@@ -896,7 +961,7 @@ function handleTableChange(event) {
         const header = target.dataset.header;
         
         let value;
-        if (target.type === 'checkbox') {
+        if (target.type === 'checkbox' && header === 'Tamamlandı') { // Sadece ana Tamamlandı checkbox'ı
             value = target.checked ? 'EVET' : 'HAYIR';
         } else if ($(target).hasClass('personel-select')) {
             value = $(target).val() || []; // Get array from select2
@@ -917,7 +982,10 @@ function handleTableChange(event) {
                     const personnelWithTitles = value;
                     const personnelWithoutTitles = personnelWithTitles.map(p => p.replace(/ \(.+\)$/, '').trim());
                     dataRow[header] = personnelWithoutTitles.join(', ');
-                } else {
+                } else if (header === 'Tamamlandı') { // Ana Tamamlandı checkbox'ı
+                     dataRow[header] = value;
+                }
+                 else {
                     dataRow[header] = value;
                 }
             }
@@ -928,7 +996,7 @@ function handleTableChange(event) {
             if (syncRow !== row) {
                 const syncTarget = syncRow.querySelector(`[data-header="${header}"]`);
                 if (syncTarget) {
-                    if (syncTarget.type === 'checkbox') {
+                    if (syncTarget.type === 'checkbox' && header === 'Tamamlandı') {
                         syncTarget.checked = (value === 'EVET');
                     } else if ($(syncTarget).hasClass('personel-select')) {
                          $(syncTarget).val(value).trigger('change.select2');
@@ -940,6 +1008,7 @@ function handleTableChange(event) {
             }
         });
         
+        // Ana Tamamlandı checkbox'ı değiştiğinde ilgili yerleri güncelle
         if (target.type === 'checkbox' && header === 'Tamamlandı') {
              document.querySelectorAll(`tr[data-row-key="${rowKey}"]`).forEach(syncRow => {
                 syncRow.classList.toggle('tamamlandi', target.checked);
@@ -947,17 +1016,18 @@ function handleTableChange(event) {
 
             const dataRecord = isTakipData.find(r => r['İLÇE'] == ilce && r['BİRİM'] == birim);
 
+            // GÜNCELLEME işi ise Detay ve Notlar tablosunu güncelle
             if (dataRecord && dataRecord['UYGULAMA'] === 'GÜNCELLEME') {
                 const detailRow = document.querySelector(`#guncellemeDetailTable tr[data-row-key="${rowKey}"]`);
                 if (detailRow) {
                     detailRow.classList.toggle('tamamlandi', target.checked);
                 }
-                 // Notlar tablosundaki satırı da güncelle
-                 const noteRow = document.querySelector(`#notlar-table tr[data-row-key="${rowKey}"]`);
-                 if(noteRow) {
-                     noteRow.classList.toggle('tamamlandi', target.checked);
-                 }
             }
+             // Her zaman Notlar tablosunu güncelle (varsa)
+             const noteRow = document.querySelector(`#notlar-table tr[data-row-key="${rowKey}"]`);
+             if(noteRow) {
+                 noteRow.classList.toggle('tamamlandi', target.checked);
+             }
         }
 
         markAsDirty();
@@ -1463,7 +1533,8 @@ async function saveToGitHub() {
     btn.disabled = true;
     btn.innerHTML = 'Kaydediliyor...';
     const alertsContainer = document.getElementById('alerts-container'); // alerts-container kullanıldı
-    alertsContainer.innerHTML = `<div class="alert-item"><strong>Durum:</strong> Değişiklikler gönderiliyor...</div>`;
+    alertsContainer.innerHTML = `<div class="alert-item info-alert"><strong>Durum:</strong> Değişiklikler gönderiliyor...</div>`;
+    alertsContainer.style.display = 'block';
 
 
     try {
@@ -1476,12 +1547,27 @@ async function saveToGitHub() {
         const mainSheetData = isTakipData.map(row => {
             const newRow = {...row};
             delete newRow.PERSONEL; // Personel butonu için geçici sütunu kaldır
+            // Tarihleri Excel'in anlayacağı formata dönüştür (isteğe bağlı, cellDates:true zaten yapıyor olabilir)
+            // if (newRow['İŞE BAŞLAMA/YER TESLİMİ']) newRow['İŞE BAŞLAMA/YER TESLİMİ'] = excelDateToJSDate(newRow['İŞE BAŞLAMA/YER TESLİMİ']);
+            // if (newRow['İHALE BİTİŞ TARİHİ']) newRow['İHALE BİTİŞ TARİHİ'] = excelDateToJSDate(newRow['İHALE BİTİŞ TARİHİ']);
             return newRow;
         });
+        
+         const detailSheetData = guncellemeData.map(row => {
+            const newRow = {...row};
+             // Tarihleri Excel'in anlayacağı formata dönüştür (isteğe bağlı)
+            // EXCEL_HEADERS_DETAIL.forEach(header => {
+            //     if (header.includes('TARİH') && newRow[header]) {
+            //         newRow[header] = excelDateToJSDate(newRow[header]);
+            //     }
+            // });
+            return newRow;
+         });
+
 
         XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(mainSheetData, {header: EXCEL_HEADERS_MAIN.filter(h => h !== 'PERSONEL'), cellDates:true}), 'İş Takip Listesi');
         // Güncellenmiş global guncellemeData'yı kullan
-        XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(guncellemeData, {header: EXCEL_HEADERS_DETAIL, cellDates:true}), 'Güncelleme');
+        XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(detailSheetData, {header: EXCEL_HEADERS_DETAIL, cellDates:true}), 'Güncelleme');
         
         const personelData = [['ad', 'unvan'], ...fullPersonelListesi.map(p => { 
             const m = p.match(/(.*) \((.*)\)/); 
@@ -2176,12 +2262,11 @@ function createNotesTable() {
         tr.dataset.rowKey = rowKey;
         tr.dataset.uygulama = row['UYGULAMA'];
 
-        // Tamamlandı durumunu kontrol et
+        // Ana işin tamamlanma durumunu kontrol et
         const mainDataRow = isTakipData.find(r => r['İLÇE'] === row['İLÇE'] && r['BİRİM'] === row['BİRİM']);
         if (mainDataRow && mainDataRow['Tamamlandı'] === 'EVET') {
             tr.classList.add('tamamlandi');
         }
-
 
         // Sadece Mühendisleri filtrele
         const engineers = (row['GÖREVLİ PERSONELLER'] || '')
@@ -2194,37 +2279,106 @@ function createNotesTable() {
              .map(name => name.replace(/ *\([^)]*\) */g, "").trim()) // Parantez içini temizle
              .join(', ');
 
+        // Notları satırlara böl ve checkbox ekle
+        let noteLinesHTML = '';
+        if (row['NOTLAR']) {
+            const lines = row['NOTLAR'].split('\n');
+            lines.forEach((line, index) => {
+                const trimmedLine = line.trim();
+                let isChecked = false;
+                let lineText = trimmedLine;
+
+                if (trimmedLine.startsWith('[x] ')) {
+                    isChecked = true;
+                    lineText = trimmedLine.substring(4);
+                } else if (trimmedLine.startsWith('[ ] ')) {
+                    isChecked = false;
+                    lineText = trimmedLine.substring(4);
+                }
+                
+                // Eğer satır [ ] veya [x] ile başlamıyorsa, yine de göster ama checkbox'sız
+                if (trimmedLine.startsWith('[ ] ') || trimmedLine.startsWith('[x] ')) {
+                     noteLinesHTML += `<div class="note-line ${isChecked ? 'completed' : ''}" data-line-index="${index}">
+                                        <input type="checkbox" ${isChecked ? 'checked' : ''}>
+                                        <span>${lineText}</span>
+                                      </div>`;
+                 } else if (trimmedLine) { // Boş satırları atla
+                      noteLinesHTML += `<div class="note-line no-checkbox" data-line-index="${index}">
+                                         <span>${lineText}</span>
+                                       </div>`;
+                 }
+            });
+        }
+
+
         tr.innerHTML = `
             <td>${row['UYGULAMA']}</td>
             <td>${row['İLÇE']}</td>
             <td>${row['BİRİM']}</td>
             <td>${engineers}</td>
-            <td class="note-cell">${row['NOTLAR']}</td>
+            <td class="note-cell">${noteLinesHTML || row['NOTLAR']}</td> <!-- Checkbox yoksa orijinal notu göster -->
         `;
         
-        tr.addEventListener('click', (e) => {
-                if (e.target.tagName === 'BUTTON' || e.target.tagName === 'TEXTAREA') return;
+        // Not düzenleme (orijinal metni düzenleme) hala hücreye tıklayınca çalışsın
+        const noteCell = tr.querySelector('.note-cell');
+        noteCell.addEventListener('click', (e) => {
+            // Checkbox'a tıklandıysa veya düzenleme modu aktifse işlemi durdur
+            if (e.target.type === 'checkbox' || noteCell.querySelector('.note-edit-container')) {
+                 e.stopPropagation(); // Checkbox tıklamasının satır tıklamasını tetiklemesini engelle
+                return;
+            }
 
-            const noteCell = tr.querySelector('.note-cell');
-            if (noteCell.querySelector('.note-edit-container')) return;
-            
+            const currentNoteHTML = noteCell.innerHTML; // Checkbox'lı HTML'i sakla
             const noteText = isTakipData.find(r => `${r['İLÇE']}|${r['BİRİM']}` === rowKey)['NOTLAR'];
 
             noteCell.innerHTML = `
                 <div class="note-edit-container">
                     <textarea rows="4">${noteText || ''}</textarea>
                     <div class="note-edit-buttons">
+                        <button class="note-cancel-inline danger">İptal</button> 
                         <button class="note-delete-inline danger">Sil</button>
                         <button class="note-save-inline success">Kaydet</button>
                     </div>
                 </div>
             `;
+            
+            noteCell.querySelector('.note-cancel-inline').addEventListener('click', () => {
+                 noteCell.innerHTML = currentNoteHTML; // Değişiklikleri geri al
+            });
 
             noteCell.querySelector('.note-save-inline').addEventListener('click', () => {
                 const newNote = noteCell.querySelector('textarea').value;
                 const dataRow = isTakipData.find(r => `${r['İLÇE']}|${r['BİRİM']}` === rowKey);
                 dataRow['NOTLAR'] = newNote;
-                noteCell.innerHTML = newNote;
+                
+                // Checkbox'lı yapıyı yeniden oluştur ve hücreye ekle
+                 let newNoteLinesHTML = '';
+                 const lines = newNote.split('\n');
+                 lines.forEach((line, index) => {
+                     const trimmedLine = line.trim();
+                     let isChecked = false;
+                     let lineText = trimmedLine;
+
+                     if (trimmedLine.startsWith('[x] ')) {
+                         isChecked = true;
+                         lineText = trimmedLine.substring(4);
+                     } else if (trimmedLine.startsWith('[ ] ')) {
+                         isChecked = false;
+                         lineText = trimmedLine.substring(4);
+                     }
+                      if (trimmedLine.startsWith('[ ] ') || trimmedLine.startsWith('[x] ')) {
+                           newNoteLinesHTML += `<div class="note-line ${isChecked ? 'completed' : ''}" data-line-index="${index}">
+                                                  <input type="checkbox" ${isChecked ? 'checked' : ''}>
+                                                  <span>${lineText}</span>
+                                                </div>`;
+                       } else if (trimmedLine) { 
+                            newNoteLinesHTML += `<div class="note-line no-checkbox" data-line-index="${index}">
+                                                   <span>${lineText}</span>
+                                                 </div>`;
+                       }
+                 });
+                 noteCell.innerHTML = newNoteLinesHTML || newNote; // Eğer checkbox yoksa düz metni göster
+
                 
                 document.querySelectorAll(`tr[data-row-key="${rowKey}"] .not-btn`).forEach(btn => {
                     btn.classList.toggle('has-note', newNote && newNote.trim() !== '');
@@ -2235,11 +2389,10 @@ function createNotesTable() {
                 }
                 markAsDirty();
                 showToast('Not güncellendi. Kaydetmeyi unutmayın.');
-                // Tabloyu yeniden oluştur ve sırala
+                 // Tabloyu yeniden sırala (isteğe bağlı, tarih değişmiş olabilir)
                 const notlarWrapper = document.getElementById('notlar-wrapper');
-                notlarWrapper.innerHTML = '';
-                notlarWrapper.appendChild(createNotesTable());
-
+                 // notlarWrapper.innerHTML = ''; 
+                 // notlarWrapper.appendChild(createNotesTable()); // Yeniden çizme performans sorunu yaratabilir
             });
 
             noteCell.querySelector('.note-delete-inline').addEventListener('click', () => {
@@ -2258,10 +2411,13 @@ function createNotesTable() {
         tbody.appendChild(tr);
     });
 
-    // Satır atlama işlevselliği
+    // Satır atlama işlevselliği (checkbox ve düzenleme alanı dışındaki tıklamalar için)
     tbody.addEventListener('click', (e) => {
+        if (e.target.type === 'checkbox' || e.target.closest('.note-edit-container')) {
+            return; // Checkbox veya düzenleme alanı tıklaması ise satır atlama yapma
+        }
         const row = e.target.closest('.note-row');
-        if (row && e.target.tagName !== 'TEXTAREA' && e.target.tagName !== 'BUTTON') {
+        if (row) {
             const rowKey = row.dataset.rowKey;
             const uygulama = row.dataset.uygulama;
 
