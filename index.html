@@ -974,7 +974,8 @@ function generateAlerts() {
     const warnings = {
         eksikIlanTarihi: [],
         komisyonGecikmesi: [],
-        bilgilendirmeIlani: [] // Yeni uyarı türü
+        bilgilendirmeIlani: [],
+        kesinAskiBekleyen: [] // Yeni uyarı türü
     };
 
     // 1. Eksik İlan Tarihi Kontrolü
@@ -989,11 +990,13 @@ function generateAlerts() {
         }
     });
 
-    // 2. Komisyon Gecikmesi Kontrolü (Sadece Detay Sayfasına Bakarak)
+    // 2. Komisyon Gecikmesi ve 4. Kesin Askı Bekleyen Kontrolü (Sadece Detay Sayfasına Bakarak)
     guncellemeData.forEach(detailRow => {
         const ilanTarihiStr = detailRow['BİLGİLENDİRME İLANI TARİHİ'];
         const komisyonDurum = detailRow['KOMİSYON DURUM'];
+        const kesinAskiTarihi = detailRow['KESİN ASKI TARİHİ'];
 
+        // Komisyon Gecikmesi
         if (ilanTarihiStr && !komisyonDurum) { 
             const ilanTarihi = excelDateToJSDate(ilanTarihiStr);
             if (ilanTarihi instanceof Date && !isNaN(ilanTarihi.getTime())) { 
@@ -1007,6 +1010,11 @@ function generateAlerts() {
             } else {
                  console.warn("Geçersiz ilan tarihi formatı (komisyon kontrolü):", ilanTarihiStr);
             }
+        }
+        
+        // Kesin Askı Bekleyen
+        if (komisyonDurum === 'Yapıldı' && !kesinAskiTarihi) {
+             warnings.kesinAskiBekleyen.push({ilce: detailRow['İLÇE'], birim: detailRow['BİRİM'], uygulama: 'GÜNCELLEME'});
         }
     });
 
@@ -1040,13 +1048,20 @@ function generateAlerts() {
     
     if (warnings.bilgilendirmeIlani.length > 0) { // Yeni uyarıyı ekle
         const alertDiv = document.createElement('div');
-        alertDiv.className = 'alert-item info-alert'; // Mavi uyarı class'ı
+        alertDiv.className = 'alert-item info-alert'; // Mavi uyarı class'ı (yanıp sönmeyen)
         alertDiv.innerHTML = `<strong>Bilgilendirme İlanında (${warnings.bilgilendirmeIlani.length}):</strong> <span>${warnings.bilgilendirmeIlani.map(createAlertLink).join(', ')}</span>`;
         alertsContainer.appendChild(alertDiv);
     }
     
+    if (warnings.kesinAskiBekleyen.length > 0) { // Yeni Kesin Askı Bekleyen uyarısı
+        const alertDiv = document.createElement('div');
+        alertDiv.className = 'alert-item info-alert'; // Mavi uyarı class'ı
+        alertDiv.innerHTML = `<strong>Kesin Askı Bekleyen (${warnings.kesinAskiBekleyen.length}):</strong> <span>${warnings.kesinAskiBekleyen.map(createAlertLink).join(', ')}</span>`;
+        alertsContainer.appendChild(alertDiv);
+    }
+    
     // Eğer hiç uyarı yoksa, uyarı container'ını gizle
-    if (warnings.eksikIlanTarihi.length === 0 && warnings.komisyonGecikmesi.length === 0 && warnings.bilgilendirmeIlani.length === 0) {
+    if (Object.values(warnings).every(arr => arr.length === 0)) {
        alertsContainer.style.display = 'none'; 
     } else {
         alertsContainer.style.display = 'block'; // Uyarı varsa göster
@@ -1804,7 +1819,8 @@ function checkRowMatch(row, aramaFilter, durumFilter) {
     } else { // Güncelleme Detay Tablosu
         const cells = row.getElementsByTagName("td");
         // Görünen hücre sayısı azaldı, ona göre kontrol et
-        const visibleHeaderCount = DISPLAY_HEADERS_DETAIL.filter(h => h !== 'İLÇE' && h !== 'İşe Başlama / Bitiş Tarihi').length;
+        const visibleHeaderCount = EXCEL_HEADERS_DETAIL.filter(h => h && h !== 'İLÇE' && h !== 'İŞE BAŞLAMA' && h !== 'BİTİŞ TARİHİ' && h !== 'LİDAR/YERSEL ÖLÇÜM TARİHİ(YAPILAN)' && h !== 'ORMAN ASKI TARİHİ').length;
+
         if (cells.length < visibleHeaderCount) return true;
 
         // İlçe ve Birim indexleri değişti, doğru indexleri kullan
