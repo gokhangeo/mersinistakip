@@ -14,13 +14,13 @@
     <!-- Three.js for animated background -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <style>
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-            color: #333;
-            margin: 0;
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; 
+            color: #333; 
+            margin: 0; 
             /* Arka plan rengi canvas tarafından sağlanacak */
         }
-
+        
         #dynamic-bg {
             position: fixed;
             top: 0;
@@ -56,12 +56,12 @@
             border: 1px solid rgba(255, 255, 255, 0.2);
             animation: fadeIn 0.7s ease-out forwards;
         }
-
+        
         @keyframes fadeIn {
             from { opacity: 0; transform: scale(0.9); }
             to { opacity: 1; transform: scale(1); }
         }
-
+        
         #login-box h2 {
             color: #0056b3;
             margin-bottom: 10px;
@@ -89,20 +89,20 @@
             background-color: #28a745;
             justify-content: center;
         }
-
+        
         #login-error {
             color: #dc3545;
             margin-bottom: 15px;
             height: 20px;
             font-weight: bold;
         }
-
+        
         .remember-me-container {
             display: flex;
             align-items: center;
             justify-content: flex-start; /* Sola hizala */
             margin-bottom: 20px;
-            margin-top: 5px;
+            margin-top: 5px; 
             font-size: 14px;
             color: #333;
         }
@@ -116,7 +116,7 @@
             font-size: 12px;
             color: #6c757d;
         }
-
+        
         .shake {
             animation: shake 0.5s;
         }
@@ -127,7 +127,7 @@
             20%, 40%, 60%, 80% { transform: translateX(10px); }
         }
 
-        #main-app-container { display: none; padding: 20px; background-color: #f4f7f6;}
+        #main-app-container { display: none; padding: 20px; background-color: #f4f7f6;} 
         .container { max-width: 1800px; margin: 0 auto; background-color: #ffffff; padding: 25px; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
         h1 { color: #0056b3; text-align: center; border-bottom: 2px solid #0056b3; padding-bottom: 10px; margin-bottom: 20px; }
         .copyright { text-align: center; margin-top: -15px; margin-bottom: 25px; font-size: 12px; color: #6c757d; }
@@ -483,10 +483,10 @@
              display: flex; /* İlçe-birim ve tarihi yan yana getir */
              justify-content: space-between; /* Aralarına boşluk koy */
          }
-         .status-item ul li .item-dates { /* Tarih aralığı stili */
-             margin-left: 5px; /* İş adı ile arasında boşluk */
-             white-space: nowrap; /* Tarihlerin alt satıra düşmesini engelle */
-         }
+         /* .status-item ul li .item-dates { /* Tarih aralığı stili - kaldırıldı */
+             /* margin-left: 5px; /* İş adı ile arasında boşluk */
+             /* white-space: nowrap; /* Tarihlerin alt satıra düşmesini engelle */
+         /* } */
         .status-item:last-child {
             border-bottom: none;
         }
@@ -1020,7 +1020,7 @@ function handleTableChange(event) {
 
             const dataRecord = isTakipData.find(r => r['İLÇE'] == ilce && r['BİRİM'] == birim);
 
-            // GÜNCELLEME işi ise Detay ve Notlar tablosunu güncelle
+            // GÜNCELLEME işi ise Detay tablosunu güncelle
             if (dataRecord && dataRecord['UYGULAMA'] === 'GÜNCELLEME') {
                 const detailRow = document.querySelector(`#guncellemeDetailTable tr[data-row-key="${rowKey}"]`);
                 if (detailRow) {
@@ -2493,32 +2493,46 @@ function createSummaryCards() {
              const count = items.length;
              breakdownHTML += `<div class="status-item" data-status="${status}"><span>${status}</span><strong>${count}</strong></div>`;
              
-             // GÜNCELLEME için alt liste (İLÇE - BİRİM ve Tarihler)
+             // GÜNCELLEME için alt liste (İLÇE - BİRİM) - Tarihler kaldırıldı
              if (group.isGuncelleme) {
                  breakdownHTML += `<ul>`;
                   items.forEach(item => { 
-                      const detailRow = guncellemeData.find(d => d['İLÇE'] === item['İLÇE'] && d['BİRİM'] === item['BİRİM']);
-                      const startDate = detailRow ? excelDateToJSDate(detailRow['İŞE BAŞLAMA']) : null;
-                      const endDate = detailRow ? excelDateToJSDate(detailRow['BİTİŞ TARİHİ']) : null;
-                      let dateInfo = '';
-                      if (startDate && endDate) {
-                          dateInfo = ` (${formatShortDate(startDate)} - ${formatShortDate(endDate)})`;
-                      } else if (startDate) {
-                          dateInfo = ` (${formatShortDate(startDate)} - ...)`;
-                      } else if (endDate) {
-                          dateInfo = ` (... - ${formatShortDate(endDate)})`;
-                      }
-                      breakdownHTML += `<li><span>${item['İLÇE']} - ${item['BİRİM']}</span><span class="item-dates">${dateInfo}</span></li>`;
+                      breakdownHTML += `<li><span>${item['İLÇE']} - ${item['BİRİM']}</span></li>`;
                   });
                   breakdownHTML += `</ul>`;
               }
         });
         breakdownHTML += '</div>';
+        
+        // GÜNCELLEME kartı için genel tarih aralığını hesapla
+        let projectDateRangeHTML = '';
+        if (group.isGuncelleme) {
+            let minStartDate = null;
+            let maxEndDate = null;
+            group.data.forEach(item => {
+                 const detailRow = guncellemeData.find(d => d['İLÇE'] === item['İLÇE'] && d['BİRİM'] === item['BİRİM']);
+                 if(detailRow) {
+                     const startDate = excelDateToJSDate(detailRow['İŞE BAŞLAMA']);
+                     const endDate = excelDateToJSDate(detailRow['BİTİŞ TARİHİ']);
+                     if (startDate instanceof Date && !isNaN(startDate.getTime())) {
+                          if (!minStartDate || startDate < minStartDate) minStartDate = startDate;
+                     }
+                      if (endDate instanceof Date && !isNaN(endDate.getTime())) {
+                           if (!maxEndDate || endDate > maxEndDate) maxEndDate = endDate;
+                      }
+                 }
+            });
+             if(minStartDate || maxEndDate) {
+                 projectDateRangeHTML = `<span class="project-date-range">(${formatShortDate(minStartDate) || '...'} - ${formatShortDate(maxEndDate) || '...'})</span>`;
+             }
+        }
+
 
         card.innerHTML = `
             <h3>${groupName} İşleri</h3>
             <div class="card-content">
                  <p class="total-count">${totalCount} İş</p> 
+                 ${projectDateRangeHTML} 
                 ${breakdownHTML}
             </div>
         `;
