@@ -172,7 +172,11 @@
             width: auto; /* Checkbox boyutunu ayarla */
             margin-right: 8px;
             cursor: pointer;
+            flex-shrink: 0; /* Küçülmesini engelle */
         }
+         .note-line span {
+             flex-grow: 1; /* Metin alanının genişlemesini sağla */
+         }
 
 
         .loader { border: 5px solid #f3f3f3; border-radius: 50%; border-top: 5px solid #3498db; width: 40px; height: 40px; animation: spin 2s linear infinite; margin: 20px auto; }
@@ -925,16 +929,16 @@ function handleTableChange(event) {
             let notes = dataRow['NOTLAR'].split('\n');
             if (notes[lineIndex]) {
                 if (target.checked) {
-                    if (notes[lineIndex].startsWith('[ ] ')) {
-                        notes[lineIndex] = '[x] ' + notes[lineIndex].substring(4);
-                    } else if (!notes[lineIndex].startsWith('[x] ')) {
-                         notes[lineIndex] = '[x] ' + notes[lineIndex]; // Eğer işaret yoksa ekle
+                    if (notes[lineIndex].trim().startsWith('[ ] ')) {
+                        notes[lineIndex] = '[x] ' + notes[lineIndex].trim().substring(4);
+                    } else if (!notes[lineIndex].trim().startsWith('[x] ')) {
+                         notes[lineIndex] = '[x] ' + notes[lineIndex].trim(); // Eğer işaret yoksa ekle
                     }
                 } else {
-                    if (notes[lineIndex].startsWith('[x] ')) {
-                        notes[lineIndex] = '[ ] ' + notes[lineIndex].substring(4);
-                    } else if (!notes[lineIndex].startsWith('[ ] ')) {
-                         notes[lineIndex] = '[ ] ' + notes[lineIndex]; // Eğer işaret yoksa ekle
+                    if (notes[lineIndex].trim().startsWith('[x] ')) {
+                        notes[lineIndex] = '[ ] ' + notes[lineIndex].trim().substring(4);
+                    } else if (!notes[lineIndex].trim().startsWith('[ ] ')) {
+                         notes[lineIndex] = '[ ] ' + notes[lineIndex].trim(); // Eğer işaret yoksa ekle
                     }
                 }
                 dataRow['NOTLAR'] = notes.join('\n');
@@ -1166,11 +1170,11 @@ function parseLists(workbook, sheetName) {
     const sheet = workbook.Sheets[sheetName];
     if (!sheet) return;
     const json = XLSX.utils.sheet_to_json(sheet);
-    ucusKiyDurumList = json.map(row => row['UÇUŞ KIYMETLENDİRME DURUM']).filter(Boolean);
-    komisyonDurumList = json.map(row => row['KOMİSYON DURUM']).filter(Boolean);
-    degerlendirmeDurumList = json.map(row => row['DEĞERLENDİRME DURUM']).filter(Boolean);
+    ucusKiyDurumList = [...new Set(json.map(row => row['UÇUŞ KIYMETLENDİRME DURUM']).filter(Boolean))]; // Benzersiz yap
+    komisyonDurumList = [...new Set(json.map(row => row['KOMİSYON DURUM']).filter(Boolean))]; // Benzersiz yap
+    degerlendirmeDurumList = [...new Set(json.map(row => row['DEĞERLENDİRME DURUM']).filter(Boolean))]; // Benzersiz yap
     
-    const durumListesiFromSheet = json.map(row => row['DURUMU']).filter(Boolean);
+    const durumListesiFromSheet = [...new Set(json.map(row => row['DURUMU']).filter(Boolean))]; // Benzersiz yap
     if (durumListesiFromSheet.length > 0) {
         durumlar = durumListesiFromSheet;
     } else {
@@ -1178,6 +1182,7 @@ function parseLists(workbook, sheetName) {
         durumlar = ['YER TESLİMİ YAPILDI', 'HERHANGİ BİRŞEY YAPILMADI', 'TAPU KAYIT KARŞILAŞTIRMA', 'BİLİRKİŞİ YEMİN/ADA-MEVKİ İLAN', 'ARAZİ DEVAM EDİYOR', 'DEĞERLENDİRMEDE', 'ASKI İLANINA HAZIRLANIYOR', 'BİLGİLENDİRME İLANINDA', 'KOMİSYON AŞAMASINDA', 'KESİN ASKIDA', 'DEVİR YAPILDI', 'TESCİL AŞAMASINDA', 'İHALEDEN/PROGRAMDAN ÇIKARILDI', 'KESİN ASKIDAN İNDİ. BEKLEMEDE', 'DEPREM NEDENİYLE ASKI YENİLENECEK', 'VERİLER ELEKTRONİK ORTAMDA HAZIR', 'ORMAN ASKISI', 'TESCİLİ BİTTİ'];
     }
 }
+
 
 async function fetchFromGitHub() {
     try {
@@ -1827,7 +1832,8 @@ function formatShortDate(date) {
     try {
         const day = String(date.getDate()).padStart(2, '0');
         const month = String(date.getMonth() + 1).padStart(2, '0');
-        const year = String(date.getFullYear()).slice(-2); // Son iki hane
+        // const year = String(date.getFullYear()).slice(-2); // Son iki hane
+        const year = String(date.getFullYear()); // Tam yıl
         return `${day}.${month}.${year}`;
     } catch (e) {
         return '';
@@ -1987,13 +1993,16 @@ function excelIndir() {
 
 
 function getColumnWidths(data, headers) {
-    const widths = headers.map(header => ({ wch: header.length })); 
+    const widths = headers.map(header => ({ wch: header ? header.length : 10 })); // header kontrolü eklendi
     data.forEach(row => {
         headers.forEach((header, i) => {
              // header undefined olabilir, kontrol ekle
              if (header && widths[i]) { 
                 const cellValue = row[header] ? String(row[header]) : '';
-                if (cellValue.length > widths[i].wch) {
+                // Tarih sütunları için özel genişlik ayarı
+                if (header.includes('TARİH') && cellValue) {
+                     widths[i].wch = Math.max(widths[i].wch, 12); // Tarihler için min 12 karakter
+                } else if (cellValue.length > widths[i].wch) {
                     widths[i].wch = cellValue.length;
                 }
              }
@@ -2019,8 +2028,11 @@ function showToast(message) {
 }
 
 function calculateColumnSum(data, columnName) {
+    // Sütun adı null veya undefined ise 0 döndür
+    if (!columnName) return 0; 
     return data.reduce((sum, row) => sum + (Number(row[columnName]) || 0), 0);
 }
+
 
 function applyDistrictBorders() {
     const activeTable = document.querySelector('.table-wrapper.active table');
@@ -2288,6 +2300,7 @@ function createNotesTable() {
                 let isChecked = false;
                 let lineText = trimmedLine;
 
+                // Checkbox işaretlerini kontrol et ve kaldır
                 if (trimmedLine.startsWith('[x] ')) {
                     isChecked = true;
                     lineText = trimmedLine.substring(4);
@@ -2296,16 +2309,12 @@ function createNotesTable() {
                     lineText = trimmedLine.substring(4);
                 }
                 
-                // Eğer satır [ ] veya [x] ile başlamıyorsa, yine de göster ama checkbox'sız
-                if (trimmedLine.startsWith('[ ] ') || trimmedLine.startsWith('[x] ')) {
+                // Sadece boş olmayan satırlar için checkbox ekle
+                if (trimmedLine) { 
                      noteLinesHTML += `<div class="note-line ${isChecked ? 'completed' : ''}" data-line-index="${index}">
                                         <input type="checkbox" ${isChecked ? 'checked' : ''}>
                                         <span>${lineText}</span>
                                       </div>`;
-                 } else if (trimmedLine) { // Boş satırları atla
-                      noteLinesHTML += `<div class="note-line no-checkbox" data-line-index="${index}">
-                                         <span>${lineText}</span>
-                                       </div>`;
                  }
             });
         }
@@ -2366,16 +2375,12 @@ function createNotesTable() {
                          isChecked = false;
                          lineText = trimmedLine.substring(4);
                      }
-                      if (trimmedLine.startsWith('[ ] ') || trimmedLine.startsWith('[x] ')) {
+                      if (trimmedLine) { // Boş satırları ekleme
                            newNoteLinesHTML += `<div class="note-line ${isChecked ? 'completed' : ''}" data-line-index="${index}">
                                                   <input type="checkbox" ${isChecked ? 'checked' : ''}>
                                                   <span>${lineText}</span>
                                                 </div>`;
-                       } else if (trimmedLine) { 
-                            newNoteLinesHTML += `<div class="note-line no-checkbox" data-line-index="${index}">
-                                                   <span>${lineText}</span>
-                                                 </div>`;
-                       }
+                       } 
                  });
                  noteCell.innerHTML = newNoteLinesHTML || newNote; // Eğer checkbox yoksa düz metni göster
 
@@ -2390,7 +2395,7 @@ function createNotesTable() {
                 markAsDirty();
                 showToast('Not güncellendi. Kaydetmeyi unutmayın.');
                  // Tabloyu yeniden sırala (isteğe bağlı, tarih değişmiş olabilir)
-                const notlarWrapper = document.getElementById('notlar-wrapper');
+                 const notlarWrapper = document.getElementById('notlar-wrapper');
                  // notlarWrapper.innerHTML = ''; 
                  // notlarWrapper.appendChild(createNotesTable()); // Yeniden çizme performans sorunu yaratabilir
             });
