@@ -148,7 +148,16 @@
         .action-cell { width: 80px; text-align: center; }
         .check-cell { width: 40px; text-align: center; }
         .tamamlandi { text-decoration: red line-through; text-decoration-thickness: 2px; opacity: 0.6; background-color: #f0f0f0 !important; }
-        .tamamlandi select, .tamamlandi input, .tamamlandi .select2-container { text-decoration: red line-through; text-decoration-thickness: 2px; }
+        .tamamlandi select, .tamamlandi input, .tamamlandi .select2-container,
+        #notlar-table tr.tamamlandi td { /* Notlar tablosundaki tamamlananları da çiz */
+            text-decoration: red line-through; 
+            text-decoration-thickness: 2px;
+            opacity: 0.6;
+        }
+         #notlar-table tr.tamamlandi {
+             background-color: #f0f0f0 !important; /* Arka planı da hafif gri yap */
+         }
+
         .loader { border: 5px solid #f3f3f3; border-radius: 50%; border-top: 5px solid #3498db; width: 40px; height: 40px; animation: spin 2s linear infinite; margin: 20px auto; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
         .select2-container--default .select2-selection--multiple { border: 1px solid #ccc; border-radius: 4px; padding: 2px; }
@@ -943,6 +952,11 @@ function handleTableChange(event) {
                 if (detailRow) {
                     detailRow.classList.toggle('tamamlandi', target.checked);
                 }
+                 // Notlar tablosundaki satırı da güncelle
+                 const noteRow = document.querySelector(`#notlar-table tr[data-row-key="${rowKey}"]`);
+                 if(noteRow) {
+                     noteRow.classList.toggle('tamamlandi', target.checked);
+                 }
             }
         }
 
@@ -985,7 +999,8 @@ function generateAlerts() {
     );
     ilanBekleyenlerEksikTarih.forEach(isRow => {
         const detailRow = guncellemeData.find(dRow => dRow['İLÇE'] === isRow['İLÇE'] && dRow['BİRİM'] === isRow['BİRİM']);
-        if (!detailRow || !detailRow['BİLGİLENDİRME İLANI TARİHİ']) {
+        // Detay satırı varsa VE ilan tarihi yoksa uyarı ver
+        if (detailRow && !detailRow['BİLGİLENDİRME İLANI TARİHİ']) { 
             warnings.eksikIlanTarihi.push({ilce: isRow['İLÇE'], birim: isRow['BİRİM'], uygulama: 'GÜNCELLEME'});
         }
     });
@@ -1889,17 +1904,24 @@ function getColumnWidths(data, headers) {
     const widths = headers.map(header => ({ wch: header.length })); 
     data.forEach(row => {
         headers.forEach((header, i) => {
-            const cellValue = row[header] ? String(row[header]) : '';
-            if (cellValue.length > widths[i].wch) {
-                widths[i].wch = cellValue.length;
-            }
+             // header undefined olabilir, kontrol ekle
+             if (header && widths[i]) { 
+                const cellValue = row[header] ? String(row[header]) : '';
+                if (cellValue.length > widths[i].wch) {
+                    widths[i].wch = cellValue.length;
+                }
+             }
         });
     });
+     // width undefined olabilir, kontrol ekle
     widths.forEach(width => {
-        width.wch = Math.min(Math.max(width.wch, 10), 40) + 2;
+         if (width) {
+            width.wch = Math.min(Math.max(width.wch, 10), 40) + 2;
+         }
     });
     return widths;
 }
+
 
 function showToast(message) {
     const toast = document.getElementById('toast');
@@ -2153,6 +2175,13 @@ function createNotesTable() {
         const rowKey = `${row['İLÇE']}|${row['BİRİM']}`;
         tr.dataset.rowKey = rowKey;
         tr.dataset.uygulama = row['UYGULAMA'];
+
+        // Tamamlandı durumunu kontrol et
+        const mainDataRow = isTakipData.find(r => r['İLÇE'] === row['İLÇE'] && r['BİRİM'] === row['BİRİM']);
+        if (mainDataRow && mainDataRow['Tamamlandı'] === 'EVET') {
+            tr.classList.add('tamamlandi');
+        }
+
 
         // Sadece Mühendisleri filtrele
         const engineers = (row['GÖREVLİ PERSONELLER'] || '')
