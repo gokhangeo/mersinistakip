@@ -223,10 +223,8 @@
         #guncellemeDetailTable .col-wide { min-width: 130px; white-space: nowrap; }
         #guncellemeDetailTable .col-narrow { white-space: normal; width: 100px; }
         /* Gizlenen sütunlar için stiller */
-        #guncellemeDetailTable th[data-header="İŞE BAŞLAMA"],
-        #guncellemeDetailTable td[data-header="İŞE BAŞLAMA"],
-        #guncellemeDetailTable th[data-header="BİTİŞ TARİHİ"],
-        #guncellemeDetailTable td[data-header="BİTİŞ TARİHİ"],
+        #guncellemeDetailTable th[data-header="İşe Başlama / Bitiş Tarihi"],
+        #guncellemeDetailTable td[data-header="İşe Başlama / Bitiş Tarihi"],
         #guncellemeDetailTable th[data-header="LİDAR/YERSEL ÖLÇÜM TARİHİ(YAPILAN)"],
         #guncellemeDetailTable td[data-header="LİDAR/YERSEL ÖLÇÜM TARİHİ(YAPILAN)"],
         #guncellemeDetailTable th[data-header="ORMAN ASKI TARİHİ"],
@@ -350,14 +348,14 @@
             padding: 5px 10px;
             font-size: 12px;
         }
-        .table-wrapper[data-group="Personel Raporu"] h2, .table-wrapper[data-group="İlçe Raporu"] h2 {
+        .table-wrapper[data-group="Personel Raporu"] h2 {
             color: #0056b3;
             border-bottom: 2px solid #0056b3;
             padding-bottom: 5px;
             margin-top: 20px;
             margin-bottom: 15px;
         }
-        .table-wrapper[data-group="Personel Raporu"] h2:first-of-type, .table-wrapper[data-group="İlçe Raporu"] h2:first-of-type {
+        .table-wrapper[data-group="Personel Raporu"] h2:first-of-type {
             margin-top: 0;
         }
         #guncellemeDetailTable th[data-header="İLÇE"],
@@ -526,16 +524,16 @@
              0%, 100% { background-color: #f8d7da; }
              50% { background-color: #f5c6cb; }
          }
-         /* Notlar Sayfası Filtreleri */
-        .notes-filter-container {
+         /* Notlar Sayfası Filtre Çubuğu */
+         #notlar-filter-bar {
             display: flex;
             gap: 15px;
-            margin-bottom: 10px;
+            margin-bottom: 15px;
             align-items: center;
-        }
-        .notes-filter-container select {
-            width: 300px;
-        }
+         }
+         #notlar-filter-bar select {
+             width: 300px;
+         }
     </style>
 </head>
 <body>
@@ -639,7 +637,7 @@ let ucusKiyDurumList = [], komisyonDurumList = [], degerlendirmeDurumList = [];
 let durumlar = [];
 const EXCEL_HEADERS_MAIN = ['Tamamlandı', 'İLÇE', 'BİRİM', 'UYGULAMA', 'PERSONEL', 'GÖREVLİ PERSONELLER', 'PARSEL SAYISI', 'BLOK SAYISI', 'ALAN(Ha)', 'İHALELİ/MÜDÜRLÜK', 'İŞE BAŞLAMA/YER TESLİMİ', 'İHALE BİTİŞ TARİHİ', 'DURUMU', 'NOTLAR'];
 const EXCEL_HEADERS_DETAIL = ['İLÇE', 'BİRİM', 'PARSEL SAYISI', 'İDÖ PARSEL SAYISI', 'TOPLAM PARSEL', 'İŞE BAŞLAMA', 'BİTİŞ TARİHİ', 'LİDAR/YERSEL ÖLÇÜM TARİHİ(YAPILAN)', 'ARAZİ YERSEL ÖLÇÜM TARİHİ(YAPILAN)', 'UÇUŞ TARİHİ(YAPILAN)', 'UÇUŞ KIYMETLENDİRME DURUM', 'DEĞERLENDİRME DURUM', 'ORMAN ASKI TARİHİ', 'BİLGİLENDİRME İLANI TARİHİ', 'KOMİSYON DURUM', 'KESİN ASKI TARİHİ'];
-// GİZLENEN SÜTUNLAR: ORMAN ASKI TARİHİ, LİDAR/YERSEL ÖLÇÜM TARİHİ(YAPILAN), İşe Başlama / Bitiş Tarihi
+// ORMAN ASKI TARİHİ ve LİDAR çıkarıldı, İşe Başlama gizlendi
 const DISPLAY_HEADERS_DETAIL = ['İLÇE', 'BİRİM', 'PARSEL SAYISI', 'İDÖ PARSEL SAYISI', 'TOPLAM PARSEL', 'İşe Başlama / Bitiş Tarihi', 'ARAZİ YERSEL ÖLÇÜM TARİHİ(YAPILAN)', 'UÇUŞ TARİHİ(YAPILAN)', 'UÇUŞ KIYMETLENDİRME DURUM', 'DEĞERLENDİRME DURUM', 'BİLGİLENDİRME İLANI TARİHİ', 'KOMİSYON DURUM', 'KESİN ASKI TARİHİ'];
 const GIZLI_DETAY_SUTUNLAR = ['ORMAN ASKI TARİHİ', 'LİDAR/YERSEL ÖLÇÜM TARİHİ(YAPILAN)', 'İşe Başlama / Bitiş Tarihi'];
 
@@ -809,12 +807,6 @@ function handleTableClick(event) {
                 document.getElementById('not-modal').style.display = 'flex';
             }
         }
-    } else if (target.tagName === 'TH' && target.dataset.header === 'İşe Başlama / Bitiş Tarihi') {
-         // Handle header click for toggling the date column in the detail table
-         const table = target.closest('table');
-         if (table && table.id === 'guncellemeDetailTable') {
-            table.classList.toggle('show-start-end-date');
-         }
     }
 }
 
@@ -874,25 +866,23 @@ function handleTableChange(event) {
         });
         
         if (target.type === 'checkbox' && header === 'Tamamlandı') {
-            const isChecked = target.checked;
              document.querySelectorAll(`tr[data-row-key="${rowKey}"]`).forEach(syncRow => {
-                syncRow.classList.toggle('tamamlandi', isChecked);
+                syncRow.classList.toggle('tamamlandi', target.checked);
              });
 
             const dataRecord = isTakipData.find(r => r['İLÇE'] == ilce && r['BİRİM'] == birim);
 
-            // GÜNCELLEME detay sayfasını senkronize et
+            // "Notlar" sayfasındaki satırı da senkronize et
+            const noteRow = document.querySelector(`#notlar-table tr[data-row-key="${rowKey}"]`);
+            if (noteRow) {
+                noteRow.classList.toggle('tamamlandi', target.checked);
+            }
+
             if (dataRecord && dataRecord['UYGULAMA'] === 'GÜNCELLEME') {
                 const detailRow = document.querySelector(`#guncellemeDetailTable tr[data-row-key="${rowKey}"]`);
                 if (detailRow) {
-                    detailRow.classList.toggle('tamamlandi', isChecked);
+                    detailRow.classList.toggle('tamamlandi', target.checked);
                 }
-            }
-            
-            // NOTLAR sayfasını senkronize et
-            const noteRow = document.querySelector(`#notlar-table tr[data-row-key="${rowKey}"]`);
-            if (noteRow) {
-                noteRow.classList.toggle('tamamlandi', isChecked);
             }
         }
 
@@ -946,16 +936,17 @@ function displayWarnings() {
 
         if (ilanTarihiStr && !komisyonDurum) { // İlan tarihi var ve komisyon durumu boşsa
             try {
-                const ilanTarihi = excelDateToJSDate(ilanTarihiStr);
-                if (ilanTarihi && ilanTarihi.getTime) { // Geçerli bir tarih nesnesi mi kontrol et
-                    ilanTarihi.setHours(0,0,0,0);
+                let ilanTarihi = excelDateToJSDate(ilanTarihiStr);
+                if (typeof ilanTarihi === 'string') {
+                    ilanTarihi = new Date(ilanTarihi); // String ise Date objesine çevir
+                }
+                ilanTarihi.setHours(0,0,0,0);
 
-                    const timeDiff = today.getTime() - ilanTarihi.getTime();
-                    const dayDiff = Math.ceil(timeDiff / (1000 * 3600 * 24));
+                const timeDiff = today.getTime() - ilanTarihi.getTime();
+                const dayDiff = Math.ceil(timeDiff / (1000 * 3600 * 24));
 
-                    if (dayDiff > 15) {
-                        warnings.komisyonGecikmesi.push({ilce: detailRow['İLÇE'], birim: detailRow['BİRİM']});
-                    }
+                if (dayDiff > 15) {
+                    warnings.komisyonGecikmesi.push({ilce: detailRow['İLÇE'], birim: detailRow['BİRİM']});
                 }
             } catch (e) {
                 console.error("Tarih ayrıştırma hatası:", ilanTarihiStr, e);
@@ -967,26 +958,25 @@ function displayWarnings() {
     if (warnings.eksikIlanTarihi.length > 0) {
         uyariContainer.style.display = 'block';
         const div = document.createElement('div');
-        div.className = 'alert-item missing-date-alert';
-        let links = warnings.eksikIlanTarihi.map(item => `<span class="alert-job-link" data-ilce="${item.ilce}" data-birim="${item.birim}">${item.ilce}-${item.birim}</span>`).join(', ');
-        div.innerHTML = `<strong>Eksik İlan Tarihi:</strong> <span>${links}</span>`;
+        div.className = 'alert-item missing-date-alert'; // Kırmızı
+        div.innerHTML = `<strong>Eksik İlan Tarihi (${warnings.eksikIlanTarihi.length} iş):</strong> <span>${warnings.eksikIlanTarihi.map(item => `<a class="alert-job-link" data-ilce="${item.ilce}" data-birim="${item.birim}">${item.ilce}-${item.birim}</a>`).join(', ')}</span>`;
         uyariContainer.appendChild(div);
     }
 
     if (warnings.komisyonGecikmesi.length > 0) {
         uyariContainer.style.display = 'block';
         const div = document.createElement('div');
-        div.className = 'alert-item commission-alert';
-        let links = warnings.komisyonGecikmesi.map(item => `<span class="alert-job-link" data-ilce="${item.ilce}" data-birim="${item.birim}">${item.ilce}-${item.birim}</span>`).join(', ');
-        div.innerHTML = `<strong>Komisyon Gecikmesi:</strong> <span>${links}</span>`;
+        div.className = 'alert-item commission-alert'; // Sarı
+        div.innerHTML = `<strong>Komisyon Gecikmesi (${warnings.komisyonGecikmesi.length} iş):</strong> <span>${warnings.komisyonGecikmesi.map(item => `<a class="alert-job-link" data-ilce="${item.ilce}" data-birim="${item.birim}">${item.ilce}-${item.birim}</a>`).join(', ')}</span>`;
         uyariContainer.appendChild(div);
     }
-    
-    // Uyarı linklerine tıklama olayı ekle
+
+    // Uyarılardaki linklere tıklama olayı
     uyariContainer.querySelectorAll('.alert-job-link').forEach(link => {
-        link.addEventListener('click', () => {
-            const ilce = link.dataset.ilce;
-            const birim = link.dataset.birim;
+        link.addEventListener('click', (e) => {
+            e.preventDefault();
+            const ilce = e.target.dataset.ilce;
+            const birim = e.target.dataset.birim;
             const rowKey = `${ilce}|${birim}`;
             
             showTab('Güncelleme Detay'); // Her zaman detay sayfasına git
@@ -1426,8 +1416,10 @@ async function saveToGitHub() {
         
         const responseData = await putResponse.json();
         currentFileSHA = responseData.content.sha;
-        
-        uyariContainer.innerHTML = `<div class="alert-item info-alert"><strong>Başarılı:</strong> Değişiklikler kaydedildi! Veriler yenileniyor...</div>`;
+        // setUyari('Değişiklikler başarıyla kaydedildi! Veriler yenileniyor...', 'basari');
+        document.getElementById('uyari').style.display = 'block'; // Yeşil başarı mesajını göster
+        document.getElementById('alerts-container').innerHTML = ''; // Diğer uyarıları temizle
+        document.getElementById('alerts-container').style.display = 'none';
         markAsClean();
         
         const activeTab = document.querySelector('.tab-btn.active').dataset.uygulama || 'Tümü';
@@ -1436,6 +1428,7 @@ async function saveToGitHub() {
 
     } catch (error) {
         console.error('GitHub\'a kaydetme hatası:', error);
+        // setUyari(`Kaydetme başarısız! Hata: ${error.message}`, 'hata');
         uyariContainer.innerHTML = `<div class="alert-item missing-date-alert"><strong>Hata:</strong> Kaydetme başarısız! ${error.message}</div>`;
         uyariContainer.style.display = 'block';
 
@@ -1484,23 +1477,29 @@ function getGuncellemeDetailDataFromUI() {
     document.querySelectorAll('#guncellemeDetailTable tbody tr').forEach(row => {
         const newRow = {};
         const key = row.dataset.rowKey;
+        if (!key) return;
+        
         const originalDetailRow = guncellemeData.find(r => `${r['İLÇE']}|${r['BİRİM']}` === key) || {};
         let cellIndex = 0;
 
+        // Tüm EXCEL başlıklarını dolaş
         EXCEL_HEADERS_DETAIL.forEach(header => {
-            if (GIZLI_DETAY_SUTUNLAR.includes(header)) {
-                // Gizli sütunların değerini orijinal veriden koru
-                newRow[header] = originalDetailRow[header];
+            // Eğer sütun gizliyse, orijinal veriyi koru
+            if (GIZLI_DETAY_SUTUNLAR.includes(header) || (header === 'İŞE BAŞLAMA' || header === 'BİTİŞ TARİHİ')) {
+                 newRow[header] = originalDetailRow[header] !== undefined ? originalDetailRow[header] : '';
             } else {
-                // Görünen sütunların değerini tablodan al
+                // Değilse, tablodaki hücreden veriyi al
                 const cell = row.cells[cellIndex];
                 if (cell) {
-                    if (header.includes('DURUM')) {
-                        newRow[header] = cell.querySelector('select').value;
+                    const input = cell.querySelector('input, select');
+                    if (input) {
+                        newRow[header] = input.value;
                     } else {
-                        newRow[header] = cell.querySelector('input').value;
+                         newRow[header] = cell.textContent; // Fallback
                     }
                     cellIndex++;
+                } else {
+                     newRow[header] = ''; // Hücre yoksa (hata durumu)
                 }
             }
         });
@@ -1704,24 +1703,8 @@ function filtrele() {
     
     const activeWrapper = document.querySelector('.table-wrapper.active');
     if (!activeWrapper) return;
-    
-    const activeGroup = activeWrapper.dataset.group;
 
-    if (activeGroup === 'Notlar') {
-        const muhendisFiltreSelect = document.getElementById('notes-engineer-filter');
-        const muhendisFilter = muhendisFiltreSelect.value.toLocaleUpperCase('tr-TR');
-        const dataRows = activeWrapper.querySelectorAll("tbody tr");
-        dataRows.forEach(row => {
-            const muhendisCell = row.cells[3]; // Görevli Mühendis sütunu
-            const muhendisText = muhendisCell ? muhendisCell.textContent.toLocaleUpperCase('tr-TR') : "";
-            
-            const muhendisMatch = muhendisFilter === '' || muhendisText.includes(muhendisFilter);
-            
-            row.style.display = muhendisMatch ? "" : "none";
-            if (muhendisMatch) toplamGorunenSatir++;
-        });
-
-    } else if (activeGroup === 'Tümü') {
+    if (activeWrapper.dataset.group === 'Tümü') {
         const tbodies = activeWrapper.querySelectorAll("tbody");
         tbodies.forEach(tbody => {
             const dataRows = tbody.querySelectorAll("tr:not(.group-header-row)");
@@ -1748,9 +1731,16 @@ function filtrele() {
         });
     }
 
-    if (activeGroup !== 'Notlar' && activeGroup !== 'Personel Raporu' && activeGroup !== 'İlçe Raporu') {
-        document.getElementById('kayitSayaci').textContent = `Toplam ${toplamGorunenSatir} kayıt gösteriliyor.`;
+    document.getElementById('kayitSayaci').textContent = `Toplam ${toplamGorunenSatir} kayıt gösteriliyor.`;
+    
+    // Notlar sayfası filtresini uygula
+    if (activeWrapper.dataset.group === 'Notlar') {
+        const muhendisFiltresi = document.getElementById('notlar-muhendis-filtresi');
+        if (muhendisFiltresi) {
+            muhendisFiltresi.dispatchEvent(new Event('change'));
+        }
     }
+    
     applyDistrictBorders();
 }
 
@@ -1806,11 +1796,6 @@ function checkRowMatch(row, aramaFilter, durumFilter) {
 function aramaTemizle() {
     document.getElementById('aramaKutusu').value = '';
     document.getElementById('durumFiltresi').value = '';
-    // Notlar sayfasındaki filtreyi de temizle
-    const notFiltresi = document.getElementById('notes-engineer-filter');
-    if (notFiltresi) {
-        notFiltresi.value = '';
-    }
     filtrele();
 }
 
@@ -2049,26 +2034,26 @@ function extractDateFromNote(note) {
 function createNotesTable() {
     const container = document.createElement('div');
     
-    // Filtreleme kontrollerini oluştur
+    // Filtre çubuğunu ekle
     const filterContainer = document.createElement('div');
-    filterContainer.className = 'notes-filter-container';
+    filterContainer.id = 'notlar-filter-bar';
+    filterContainer.style.marginBottom = '15px';
     
     const excelButton = document.createElement('button');
-    excelButton.id = 'notExcelIndirBtn';
+    excelButton.id = 'notlarExcelIndirBtn';
     excelButton.className = 'info';
     excelButton.innerHTML = '&#x1F4BE; Not Raporunu Excel\'e Aktar';
-    excelButton.onclick = excelIndirNotlar;
-    
-    const muhendisFiltre = document.createElement('select');
-    muhendisFiltre.id = 'notes-engineer-filter';
-    muhendisFiltre.innerHTML = '<option value="">Tüm Mühendisler</option>';
-    muhendisListesi.forEach(muhendis => {
-        muhendisFiltre.innerHTML += `<option value="${muhendis.replace(/ \(.+\)$/, '').trim()}">${muhendis}</option>`;
-    });
-    muhendisFiltre.onchange = filtrele;
-
+    excelButton.addEventListener('click', downloadNotesExcel);
     filterContainer.appendChild(excelButton);
-    filterContainer.appendChild(muhendisFiltre);
+
+    const muhendisFiltresi = document.createElement('select');
+    muhendisFiltresi.id = 'notlar-muhendis-filtresi';
+    muhendisFiltresi.innerHTML = '<option value="">Tüm Mühendisler</option>';
+    muhendisListesi.forEach(m => {
+        muhendisFiltresi.innerHTML += `<option value="${m.replace(/ \(.+\)$/, '').trim()}">${m}</option>`;
+    });
+    filterContainer.appendChild(muhendisFiltresi);
+
     container.appendChild(filterContainer);
 
     const table = document.createElement('table');
@@ -2095,7 +2080,7 @@ function createNotesTable() {
         const rowKey = `${row['İLÇE']}|${row['BİRİM']}`;
         tr.dataset.rowKey = rowKey;
         tr.dataset.uygulama = row['UYGULAMA'];
-        
+
         if (row['Tamamlandı'] === 'EVET') {
             tr.classList.add('tamamlandi');
         }
@@ -2108,6 +2093,8 @@ function createNotesTable() {
                 return fullName && muhendisListesi.includes(fullName);
             })
             .join(', ');
+        
+        tr.dataset.muhendisler = engineers; // Filtreleme için mühendis adlarını satıra ekle
 
         tr.innerHTML = `
             <td>${row['UYGULAMA']}</td>
@@ -2150,13 +2137,13 @@ function createNotesTable() {
                 }
                 markAsDirty();
                 showToast('Not güncellendi. Kaydetmeyi unutmayın.');
-                // Notlar tablosunu yeniden sırala ve çiz
+                // Notlar tablosunu yeniden sırala ve çiz (filtreyi koruyarak)
+                const currentFilter = muhendisFiltresi.value;
                 const notlarWrapper = document.getElementById('notlar-wrapper');
-                const currentFilter = document.getElementById('notes-engineer-filter').value;
                 notlarWrapper.innerHTML = '';
                 notlarWrapper.appendChild(createNotesTable());
-                document.getElementById('notes-engineer-filter').value = currentFilter; // Filtreyi koru
-                filtrele(); // Filtreyi tekrar uygula
+                document.getElementById('notlar-muhendis-filtresi').value = currentFilter;
+                document.getElementById('notlar-muhendis-filtresi').dispatchEvent(new Event('change'));
             });
 
             noteCell.querySelector('.note-delete-inline').addEventListener('click', () => {
@@ -2212,16 +2199,30 @@ function createNotesTable() {
 
     table.appendChild(tbody);
     container.appendChild(table);
+
+    // Filtreleme fonksiyonu
+    const filterNotes = () => {
+        const selectedMuhendis = muhendisFiltresi.value;
+        const aramaFilter = document.getElementById('aramaKutusu').value.toLocaleUpperCase('tr-TR');
+        
+        tbody.querySelectorAll('.note-row').forEach(row => {
+            const muhendisler = row.dataset.muhendisler || '';
+            const ilce = row.cells[1].textContent.toLocaleUpperCase('tr-TR');
+            const birim = row.cells[2].textContent.toLocaleUpperCase('tr-TR');
+
+            const muhendisMatch = selectedMuhendis === '' || muhendisler.toLocaleUpperCase('tr-TR').includes(selectedMuhendis.toLocaleUpperCase('tr-TR'));
+            const aramaMatch = aramaFilter === '' || `${ilce} ${birim} ${muhendisler.toLocaleUpperCase('tr-TR')}`.includes(aramaFilter);
+
+            row.style.display = (muhendisMatch && aramaMatch) ? '' : 'none';
+        });
+    };
+
+    muhendisFiltresi.addEventListener('change', filterNotes);
+    
     return container;
 }
 
-function excelIndirNotlar() {
-    const wb = XLSX.utils.book_new();
-    const headers = ['İLÇE', 'UYGULAMA', 'BİRİM', 'GÖREVLİ MÜHENDİS', 'NOT'];
-    
-    // Filtrelenmiş ve sıralanmış veriyi al
-    const muhendisFiltre = document.getElementById('notes-engineer-filter').value.toLocaleUpperCase('tr-TR');
-    
+function downloadNotesExcel() {
     const notesWithData = isTakipData
         .filter(row => row['NOTLAR'] && row['NOTLAR'].trim() !== '')
         .map(row => ({
@@ -2235,62 +2236,46 @@ function excelIndirNotlar() {
                     return fullName && muhendisListesi.includes(fullName);
                 })
                 .join(', ')
-        }))
-        .filter(row => muhendisFiltre === '' || row.engineers.toLocaleUpperCase('tr-TR').includes(muhendisFiltre))
-        .sort((a, b) => {
-            const dateA = a.extractedDate;
-            const dateB = b.extractedDate;
-            if (dateA && dateB) return dateA - dateB;
-            if (dateA) return -1;
-            if (dateB) return 1;
-            return a['İLÇE'].localeCompare(b['İLÇE']); // Tarih yoksa ilçeye göre sırala
-        });
+        }));
 
-    // Veriyi ilçeye göre grupla
-    const groupedByIlce = notesWithData.reduce((acc, row) => {
-        const ilce = row['İLÇE'];
-        if (!acc[ilce]) {
-            acc[ilce] = [];
+    notesWithData.sort((a, b) => {
+        if (a['İLÇE'] !== b['İLÇE']) {
+            return a['İLÇE'].localeCompare(b['İLÇE'], 'tr-TR');
         }
-        acc[ilce].push(row);
-        return acc;
-    }, {});
-
-    const wsData = [];
-    wsData.push(headers); // Ana başlık
-
-    const sortedIlceler = Object.keys(groupedByIlce).sort((a,b) => a.localeCompare(b, 'tr-TR'));
-
-    sortedIlceler.forEach(ilce => {
-        // İlçe başlık satırı
-        wsData.push([ilce]); 
-        // Stil için birleştirme bilgisi ekle (daha sonra)
-        
-        // O ilçenin notları
-        groupedByIlce[ilce].forEach(row => {
-            wsData.push([
-                '', // İlçe sütununu boş bırak
-                row['UYGULAMA'],
-                row['BİRİM'],
-                row.engineers,
-                row['NOTLAR']
-            ]);
-        });
+        const dateA = a.extractedDate;
+        const dateB = b.extractedDate;
+        if (dateA && dateB) return dateA - dateB;
+        if (dateA) return -1;
+        if (dateB) return 1;
+        return 0;
     });
 
-    const ws = XLSX.utils.aoa_to_sheet(wsData);
+    const excelData = [];
+    excelData.push(['UYGULAMA', 'İLÇE', 'BİRİM', 'GÖREVLİ MÜHENDİS', 'NOT']); // Başlıklar
 
-    // Hücre birleştirme işlemleri
-    const merges = [];
-    let rowIndex = 1; // 0-indeksli, 0 başlık satırı
-    sortedIlceler.forEach(ilce => {
-        merges.push({ s: { r: rowIndex, c: 0 }, e: { r: rowIndex, c: headers.length - 1 } });
-        rowIndex += groupedByIlce[ilce].length + 1;
+    let currentIlce = '';
+    notesWithData.forEach(row => {
+        if (row['İLÇE'] !== currentIlce) {
+            currentIlce = row['İLÇE'];
+            excelData.push([currentIlce]); // İlçe başlığı satırı
+        }
+        excelData.push([
+            row['UYGULAMA'],
+            row['İLÇE'],
+            row['BİRİM'],
+            row.engineers,
+            row['NOTLAR']
+        ]);
     });
-    ws['!merges'] = merges;
+
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.aoa_to_sheet(excelData);
     
     // Sütun genişlikleri
-    ws['!cols'] = [{wch: 20}, {wch: 15}, {wch: 20}, {wch: 30}, {wch: 50}];
+    ws['!cols'] = [{ wch: 15 }, { wch: 15 }, { wch: 20 }, { wch: 30 }, { wch: 50 }];
+    
+    // Başlık ve ilçe satırlarını stilize et (Bu kısım XLSX stil kütüphanesi gerektirir, basit tutuyoruz)
+    // Şimdilik sadece veriyi aktarıyoruz.
 
     XLSX.utils.book_append_sheet(wb, ws, 'Not Raporu');
     XLSX.writeFile(wb, `Not_Raporu_${new Date().toISOString().slice(0,10)}.xlsx`);
@@ -2316,72 +2301,67 @@ function createSummaryCards() {
 
         const totalCount = group.data.length;
         
-        let projectStartDate = null;
-        let projectEndDate = null;
-        let statusBreakdownHTML = '<div class="status-breakdown">';
-
-        // GÜNCELLEME kartı için özel veri toplama
+        let cardDateRange = '';
+        // Sadece Güncelleme kartı için genel tarih aralığını bul
         if (groupName === 'GÜNCELLEME') {
-            const jobsWithDetails = group.data.map(job => {
-                const detail = guncellemeData.find(d => d['İLÇE'] === job['İLÇE'] && d['BİRİM'] === job['BİRİM']) || {};
-                const startDate = excelDateToJSDate(detail['İŞE BAŞLAMA']);
-                const endDate = excelDateToJSDate(detail['BİTİŞ TARİHİ']);
-                
-                if (startDate && startDate.getTime && (!projectStartDate || startDate < projectStartDate)) projectStartDate = startDate;
-                if (endDate && endDate.getTime && (!projectEndDate || endDate > projectEndDate)) projectEndDate = endDate;
-
-                return { ...job, startDate, endDate };
-            }).sort((a,b) => a['BİRİM'].localeCompare(b['BİRİM'], 'tr-TR')); // Birime göre sırala
-
-            const statusCounts = jobsWithDetails.reduce((acc, job) => {
-                const status = job['DURUMU'] || 'Belirsiz';
-                if (!acc[status]) acc[status] = [];
-                acc[status].push(job);
-                return acc;
-            }, {});
-
-            Object.entries(statusCounts).sort((a,b) => b[1].length - a[1].length).forEach(([status, jobs]) => {
-                statusBreakdownHTML += `<div class="status-item" data-status="${status}">
-                                            <span>${status}</span><strong>${jobs.length}</strong>
-                                            <ul>`;
-                jobs.forEach(job => {
-                    let dateInfo = '';
-                    const start = formatDate(job.startDate);
-                    const end = formatDate(job.endDate);
-                    if (start && end) dateInfo = `(${start} - ${end})`;
-                    else if (start) dateInfo = `(${start} - ...)`;
-                    else if (end) dateInfo = `(... - ${end})`;
-
-                    statusBreakdownHTML += `<li><span>${job['İLÇE']} - ${job['BİRİM']}</span> <span class="item-dates">${dateInfo}</span></li>`;
-                });
-                statusBreakdownHTML += `</ul></div>`;
+            let minDate = null, maxDate = null;
+            group.data.forEach(job => {
+                 const detailRow = guncellemeData.find(d => d['İLÇE'] === job['İLÇE'] && d['BİRİM'] === job['BİRİM']);
+                 if(detailRow) {
+                    const startDate = detailRow['İŞE BAŞLAMA'] ? excelDateToJSDate(detailRow['İŞE BAŞLAMA']) : null;
+                    const endDate = detailRow['BİTİŞ TARİHİ'] ? excelDateToJSDate(detailRow['BİTİŞ TARİHİ']) : null;
+                    if (startDate && (!minDate || startDate < minDate)) minDate = startDate;
+                    if (endDate && (!maxDate || endDate > maxDate)) maxDate = endDate;
+                 }
             });
-
-        } else { // 2/B ve Müdürlük kartları
-            const statusCounts = group.data.reduce((acc, row) => {
-                const status = row['DURUMU'] || 'Belirsiz';
-                acc[status] = (acc[status] || 0) + 1;
-                return acc;
-            }, {});
-
-            Object.entries(statusCounts).sort((a,b) => b[1] - a[1]).forEach(([status, count]) => {
-                statusBreakdownHTML += `<div class="status-item" data-status="${status}"><span>${status}</span><strong>${count}</strong></div>`;
-            });
+            if(minDate && maxDate) {
+                cardDateRange = `<span class="project-date-range">${formatDate(minDate)} - ${formatDate(maxDate)}</span>`;
+            }
         }
         
-        statusBreakdownHTML += '</div>';
+        const statusCounts = group.data.reduce((acc, row) => {
+            const status = row['DURUMU'] || 'Belirsiz';
+            acc[status] = (acc[status] || 0) + 1;
+            return acc;
+        }, {});
 
-        let dateRangeHTML = '';
-        if (groupName === 'GÜNCELLEME' && projectStartDate && projectEndDate) {
-            dateRangeHTML = `<span class="project-date-range">${formatDate(projectStartDate)} - ${formatDate(projectEndDate)}</span>`;
-        }
+        let breakdownHTML = '<div class="status-breakdown">';
+        Object.entries(statusCounts).sort((a,b) => b[1] - a[1]).forEach(([status, count]) => {
+            let detailHTML = '';
+            // GÜNCELLEME kartına özel tarih bilgisi ekle
+            if (groupName === 'GÜNCELLEME') {
+                const jobsInStatus = group.data.filter(job => (job['DURUMU'] || 'Belirsiz') === status);
+                detailHTML += '<ul>';
+                jobsInStatus.forEach(job => {
+                    const detailRow = guncellemeData.find(d => d['İLÇE'] === job['İLÇE'] && d['BİRİM'] === job['BİRİM']);
+                    const startDate = detailRow ? formatDate(excelDateToJSDate(detailRow['İŞE BAŞLAMA'])) : '';
+                    const endDate = detailRow ? formatDate(excelDateToJSDate(detailRow['BİTİŞ TARİHİ'])) : '';
+                    let dateInfo = '';
+                    if (startDate && endDate) {
+                        dateInfo = ` (${startDate.slice(5)} - ${endDate.slice(5)})`; // Sadece ay-gün
+                    } else if (startDate) {
+                        dateInfo = ` (${startDate.slice(5)} - ...)`;
+                    } else if (endDate) {
+                         dateInfo = ` (... - ${endDate.slice(5)})`;
+                    }
+                    detailHTML += `<li><span>${job['İLÇE']} - ${job['BİRİM']}</span> <span class="item-dates">${dateInfo}</span></li>`;
+                });
+                detailHTML += '</ul>';
+            }
+             breakdownHTML += `<div class="status-item" data-status="${status}">
+                                 <span>${status}</span>
+                                 <strong>${count}</strong>
+                                 ${detailHTML}
+                             </div>`;
+        });
+        breakdownHTML += '</div>';
 
         card.innerHTML = `
             <h3>${groupName} İşleri</h3>
             <div class="card-content">
                 <p class="total-count">${totalCount} İş</p>
-                ${dateRangeHTML}
-                ${statusBreakdownHTML}
+                ${cardDateRange}
+                ${breakdownHTML}
             </div>
         `;
         
@@ -2477,46 +2457,46 @@ function createIlceReport() {
     const reportContainer = document.createElement('div');
     reportContainer.className = 'ilce-rapor-container';
 
-    const ilceReportData = {};
+    const ilceData = {};
 
     isTakipData.forEach(is => {
-        const ilce = is['İLÇE'];
-        if (!ilce) return;
+        const ilce = is['İLÇE'] || 'Belirsiz';
+        if (!ilceData[ilce]) {
+            ilceData[ilce] = {};
+        }
 
-        if (!ilceReportData[ilce]) {
-            ilceReportData[ilce] = {};
-        }
-        
         const uygulama = is['UYGULAMA'] || 'Diğer';
-        if (!ilceReportData[ilce][uygulama]) {
-            ilceReportData[ilce][uygulama] = [];
+        if (!ilceData[ilce][uygulama]) {
+            ilceData[ilce][uygulama] = [];
         }
         
-        ilceReportData[ilce][uygulama].push({
+        ilceData[ilce][uygulama].push({
             birim: is['BİRİM'],
             durum: is['DURUMU'] || 'Belirtilmemiş'
         });
     });
 
-    const sortedIlceler = Object.keys(ilceReportData).sort((a, b) => a.localeCompare(b, 'tr-TR'));
+    const sortedIlceler = Object.keys(ilceData).sort((a, b) => a.localeCompare(b, 'tr-TR'));
 
     sortedIlceler.forEach(ilce => {
         const kart = document.createElement('div');
         kart.className = 'ilce-kart';
         
         let toplamIsSayisi = 0;
-        const uygulamaGruplari = Object.keys(ilceReportData[ilce]).sort();
-        uygulamaGruplari.forEach(uygulama => {
-            toplamIsSayisi += ilceReportData[ilce][uygulama].length;
+        Object.values(ilceData[ilce]).forEach(uygulamaListesi => {
+            toplamIsSayisi += uygulamaListesi.length;
         });
 
         let kartHTML = `<h4 onclick="togglePersonelDetay(this)">${ilce} (${toplamIsSayisi} iş)</h4>`;
         kartHTML += '<div class="ilce-kart-icerik">';
         
-        uygulamaGruplari.forEach(uygulama => {
-            kartHTML += `<div class="uygulama-grup"><strong>${uygulama} (${ilceReportData[ilce][uygulama].length} iş):</strong><ul>`;
-            ilceReportData[ilce][uygulama].sort((a,b) => a.birim.localeCompare(b.birim, 'tr-TR')).forEach(isDetay => {
-                kartHTML += `<li>${isDetay.birim} <span>(${isDetay.durum})</span></li>`;
+        const sortedUygulamalar = Object.keys(ilceData[ilce]).sort();
+        
+        sortedUygulamalar.forEach(uygulama => {
+            const isler = ilceData[ilce][uygulama];
+            kartHTML += `<div class="uygulama-grup"><strong>${uygulama} (${isler.length} iş):</strong><ul>`;
+            isler.sort((a,b) => a.birim.localeCompare(b.birim, 'tr-TR')).forEach(is => {
+                kartHTML += `<li>${is.birim} <span>(${is.durum})</span></li>`;
             });
             kartHTML += `</ul></div>`;
         });
