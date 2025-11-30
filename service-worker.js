@@ -1,6 +1,5 @@
 // service-worker.js
-const CACHE_NAME = 'i̇hale-v1';
-// GitHub Pages için önemli: ./ diyerek o anki klasörü önbelleğe alıyoruz
+const CACHE_NAME = 'i̇ştakip-v1';
 const urlsToCache = ['./', './index.html'];
 
 self.addEventListener('install', event => {
