@@ -1,33 +1,37 @@
 <!DOCTYPE html>
 <html lang="tr">
-<link rel="manifest" href="./manifest.json">
-<meta name="theme-color" content="#4f46e5">
-<link rel="apple-touch-icon" href="./icon-192.png">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-
-<script>
-  if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => {
-      // DİKKAT: Baştaki / kaldırıldı, ./ eklendi.
-      navigator.serviceWorker.register('./service-worker.js')
-        .then(reg => console.log('SW Başarılı:', reg.scope))
-        .catch(err => console.log('SW Hatası:', err));
-    });
-  }
-</script>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<head> <!-- BU ETİKET EKSİKTİ, EKLEDİM -->
+    <meta charset="UTF-8"> <!-- BU EN BAŞTA OLMALI -->
     <title>İHALE TAKİP</title>
+    
+    <!-- PWA Kodları Başlangıcı -->
+    <link rel="manifest" href="./manifest.json">
+    <meta name="theme-color" content="#4f46e5">
+    <link rel="apple-touch-icon" href="./icon-192.png">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('./service-worker.js')
+            .then(reg => console.log('SW Başarılı:', reg.scope))
+            .catch(err => console.log('SW Hatası:', err));
+        });
+      }
+    </script>
+    <!-- PWA Kodları Bitişi -->
+
     <link rel="icon" href='data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y=".9em" font-size="90">📋</text></svg>'>
-    <!-- SheetJS (xlsx) kütüphanesi -->
+    
+    <!-- Diğer kütüphaneler -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-    <!-- Select2 kütüphanesi (gelişmiş çoklu seçim için) -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/js/select2.min.js"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/css/select2.min.css" rel="stylesheet" />
-    <!-- Three.js for animated background -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+
     <style>
+        /* CSS kodların aynen burada kalacak... */
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
             color: #333;
@@ -2639,5 +2643,6 @@ window.addEventListener('resize', () => {
 
 </body>
 </html>
+
 
 
