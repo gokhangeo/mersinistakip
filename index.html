@@ -404,6 +404,7 @@
             text-align: center;
             height: 40px; /* Başlangıç yüksekliği */
             overflow: hidden;
+            position: relative; /* Buton konumlandırma için */
         }
         .summary-card.expanded {
             height: auto;
@@ -494,6 +495,7 @@
         .card-guncelleme.expanded { background-color: #d4edda; border-left: 5px solid #28a745; }
         .card-mudurluk.expanded { background-color: #ffe8d6; border-left: 5px solid #fd7e14; }
         .card-2b.expanded h3, .card-guncelleme.expanded h3, .card-mudurluk.expanded h3 { color: #343a40; }
+        
 
         /* Uyarı Stilleri */
          #alerts-container {
@@ -560,29 +562,32 @@
          .notes-filter-container select {
              width: 300px;
          }
+         
+         /* Genel Rapor Sekmesi Stilleri */
+         .general-report-controls {
+             display: flex;
+             gap: 10px;
+             margin-bottom: 15px;
+             flex-wrap: wrap;
+         }
+         #general-report-output {
+             width: 100%;
+             height: 500px;
+             padding: 15px;
+             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+             font-size: 14px;
+             border: 1px solid #ccc;
+             border-radius: 5px;
+             resize: vertical;
+             line-height: 1.6;
+             box-sizing: border-box;
+             background-color: #fcfcfc;
+         }
     </style>
 </head>
 <body>
 
 <canvas id="dynamic-bg"></canvas>
-
-<!-- 
-<div id="login-overlay">
-    <div id="login-box">
-        <h2>İHALE TAKİP</h2>
-        <p>Devam etmek için lütfen giriş yapın.</p>
-        <div id="login-error"></div>
-        <input type="text" id="username" placeholder="Kullanıcı Adı" required>
-        <input type="password" id="password" placeholder="Şifre" required>
-        <div class="remember-me-container">
-            <input type="checkbox" id="remember-me">
-            <label for="remember-me">Beni Hatırla</label>
-        </div>
-        <button id="login-button">Giriş Yap</button>
-        <p class="login-copyright">© Gökhan ELGÜL tarafından tasarlanmıştır.</p>
-    </div>
-</div>
--->
 
 <div id="main-app-container">
     <div class="container">
@@ -801,7 +806,6 @@ function handleSummaryCardClick(event) {
     }
 }
 
-
 function handleTableClick(event) {
     const target = event.target;
     const button = target.closest('button');
@@ -890,7 +894,7 @@ function handleTableChange(event) {
                         syncTarget.checked = (value === 'EVET');
                     } else if ($(syncTarget).hasClass('personel-select')) {
                          $(syncTarget).val(value).trigger('change.select2');
-                    }
+                     }
                     else {
                         syncTarget.value = value;
                     }
@@ -1159,6 +1163,8 @@ function renderAllTables(mainData, detailData) {
     const totalParsel = calculateColumnSum(ihaleIsleri, 'PARSEL SAYISI');
     const totalBlok = calculateColumnSum(ihaleIsleri, 'BLOK SAYISI');
     const totalAlan = calculateColumnSum(ihaleIsleri, 'ALAN(Ha)').toFixed(2);
+    
+    // Robot butonu sütunu kaldırıldı
     allTable.innerHTML = `<thead><tr><th class="check-cell">&#10004;</th><th class="col-ilce">İLÇE</th><th>BİRİM</th><th class="col-uygulama">UYGULAMA</th><th>NOT</th><th>PERSONEL</th><th style="display:none;">GÖREVLİ PERSONELLER</th><th class="col-parsel">PARSEL (${totalParsel})</th><th>BLOK (${totalBlok})</th><th class="col-alan">ALAN(Ha) (${totalAlan})</th><th class="col-tarih">İŞE BAŞLAMA/YER TESLİMİ</th><th class="col-tarih">İHALE BİTİŞ TARİHİ</th><th>DURUMU</th></tr></thead>`;
     allWrapper.appendChild(allTable);
     tableContainer.appendChild(allWrapper);
@@ -1169,7 +1175,7 @@ function renderAllTables(mainData, detailData) {
         headerRow.className = 'group-header-row';
         headerRow.onclick = (e) => { if (e.target.tagName !== 'BUTTON') toggleGroup(tbody); };
         headerRow.insertCell().innerHTML = `<h3><span>${uygulama} (<span class="group-count">${groupedData[uygulama].length}</span> iş)</span><button class="group-toggle-btn" onclick="event.stopPropagation(); toggleGroup(this.closest('tbody'))">Kapat</button></h3>`;
-        headerRow.cells[0].colSpan = 12;
+        headerRow.cells[0].colSpan = 12; // Colspan 12'ye düşürüldü (robot sütunu gittiği için)
         groupedData[uygulama].forEach(rowData => tbody.appendChild(createRowElement(rowData, 'Tümü')));
         allTable.appendChild(tbody);
     }
@@ -1193,6 +1199,7 @@ function renderAllTables(mainData, detailData) {
         const grupBlok = calculateColumnSum(groupedData[uygulama], 'BLOK SAYISI');
         const grupAlan = calculateColumnSum(groupedData[uygulama], 'ALAN(Ha)').toFixed(2);
 
+        // Robot butonu sütunu kaldırıldı
         table.innerHTML = `<thead><tr>
             <th class="check-cell">&#10004;</th>
             <th class="col-ilce">İLÇE</th>
@@ -1233,6 +1240,7 @@ function renderAllTables(mainData, detailData) {
         const grupBlok = calculateColumnSum(mudurlukIsleri, 'BLOK SAYISI');
         const grupAlan = calculateColumnSum(mudurlukIsleri, 'ALAN(Ha)').toFixed(2);
 
+        // Robot butonu sütunu kaldırıldı
         mudurlukTable.innerHTML = `<thead><tr>
             <th class="check-cell">&#10004;</th>
             <th class="col-ilce">İLÇE</th>
@@ -1349,6 +1357,135 @@ function renderAllTables(mainData, detailData) {
     ilceReportWrapper.dataset.group = 'İlçe Raporu';
     ilceReportWrapper.appendChild(createIlceReport());
     tableContainer.appendChild(ilceReportWrapper);
+    
+    // YENİ: GENEL RAPORLAR Sekmesi
+    const generalReportTabBtn = document.createElement('button');
+    generalReportTabBtn.className = 'tab-btn';
+    generalReportTabBtn.textContent = 'GENEL RAPORLAR';
+    generalReportTabBtn.dataset.uygulama = 'Genel Raporlar';
+    generalReportTabBtn.onclick = () => showTab('Genel Raporlar');
+    tabsContainer.appendChild(generalReportTabBtn);
+
+    const generalReportWrapper = document.createElement('div');
+    generalReportWrapper.className = 'table-wrapper';
+    generalReportWrapper.dataset.group = 'Genel Raporlar';
+    generalReportWrapper.appendChild(createGeneralReportsUI());
+    tableContainer.appendChild(generalReportWrapper);
+}
+
+// Yeni: Genel Raporlar UI Oluşturma Fonksiyonu
+function createGeneralReportsUI() {
+    const container = document.createElement('div');
+    
+    const controls = document.createElement('div');
+    controls.className = 'general-report-controls';
+    
+    const btnGuncelleme = document.createElement('button');
+    btnGuncelleme.className = 'success';
+    btnGuncelleme.innerHTML = '📄 Güncelleme Raporu Oluştur';
+    btnGuncelleme.onclick = () => generateBulkReport('GÜNCELLEME');
+    
+    const btn2B = document.createElement('button');
+    btn2B.className = 'info';
+    btn2B.innerHTML = '📄 2/B Raporu Oluştur';
+    btn2B.onclick = () => generateBulkReport('2/B');
+    
+    const btnMudurluk = document.createElement('button');
+    btnMudurluk.className = 'warning';
+    btnMudurluk.innerHTML = '📄 Müdürlük Raporu Oluştur';
+    btnMudurluk.onclick = () => generateBulkReport('Müdürlük');
+    
+    const btnKopyala = document.createElement('button');
+    btnKopyala.innerHTML = '📋 Raporu Kopyala';
+    btnKopyala.onclick = () => {
+        const txt = document.getElementById('general-report-output');
+        txt.select();
+        document.execCommand('copy');
+        showToast('Rapor kopyalandı.');
+    };
+
+    controls.appendChild(btnGuncelleme);
+    controls.appendChild(btn2B);
+    controls.appendChild(btnMudurluk);
+    controls.appendChild(btnKopyala);
+    
+    const textArea = document.createElement('textarea');
+    textArea.id = 'general-report-output';
+    textArea.placeholder = 'Rapor oluşturmak için yukarıdaki butonlardan birine tıklayın...';
+    
+    container.appendChild(controls);
+    container.appendChild(textArea);
+    
+    return container;
+}
+
+function generateBulkReport(category) {
+    let reportData = [];
+    
+    // Veriyi filtrele
+    if (category === 'Müdürlük') {
+        reportData = isTakipData.filter(r => r['İHALELİ/MÜDÜRLÜK'] === 'Müdürlük');
+    } else {
+        reportData = isTakipData.filter(r => r['UYGULAMA'] === category && r['İHALELİ/MÜDÜRLÜK'] !== 'Müdürlük');
+    }
+
+    if (reportData.length === 0) {
+        showToast('Bu kategoride raporlanacak iş bulunamadı.');
+        return;
+    }
+
+    const today = new Date();
+    today.setHours(0,0,0,0);
+
+    // Başlık
+    let reportText = `**YÖNETİCİ ÖZETİ: ${category.toUpperCase()} İŞLERİ DETAY RAPORU**
+Tarih: ${today.toLocaleDateString('tr-TR')}
+
+**GENEL GÖRÜNÜM**
+${category} kapsamında toplam **${reportData.length}** adet iş listelenmiştir.
+
+----------------------------------------------------------------------------------
+`;
+
+    // Her bir iş için detaylı döküm
+    reportData.forEach((job, index) => {
+        const ilce = job['İLÇE'] || '-';
+        const birim = job['BİRİM'] || '-';
+        const durum = job['DURUMU'] || 'Belirtilmemiş';
+        const parsel = job['PARSEL SAYISI'] || '0';
+        const alan = job['ALAN(Ha)'] || '0';
+        
+        // Detay satırını bul (Güncelleme sayfası verileri)
+        const detailRow = guncellemeData.find(d => d['İLÇE'] === job['İLÇE'] && d['BİRİM'] === job['BİRİM']) || {};
+        
+        // Tarih formatlayıcı
+        const fd = (val) => val ? formatDate(excelDateToJSDate(val)) : '-';
+
+        reportText += `\n**${index + 1}. ${ilce} - ${birim}**
+   - Durum: ${durum}
+   - Parsel: ${parsel}, Alan: ${alan} Ha
+   - İşe Başlama: ${fd(job['İŞE BAŞLAMA/YER TESLİMİ'])} | Bitiş: ${fd(job['İHALE BİTİŞ TARİHİ'])}
+`;
+
+        if (category === 'GÜNCELLEME') {
+            reportText += `   - Lidar/Yersel Ölçüm: ${fd(detailRow['LİDAR/YERSEL ÖLÇÜM TARİHİ(YAPILAN)'])}
+   - Arazi Yersel Ölçüm: ${fd(detailRow['ARAZİ YERSEL ÖLÇÜM TARİHİ(YAPILAN)'])}
+   - Uçuş Tarihi: ${fd(detailRow['UÇUŞ TARİHİ(YAPILAN)'])}
+   - Uçuş Kıymetlendirme: ${detailRow['UÇUŞ KIYMETLENDİRME DURUM'] || '-'}
+   - Değerlendirme: ${detailRow['DEĞERLENDİRME DURUM'] || '-'}
+   - Orman Askı Tarihi: ${fd(detailRow['ORMAN ASKI TARİHİ'])}
+   - Bilgilendirme İlanı: ${fd(detailRow['BİLGİLENDİRME İLANI TARİHİ'])}
+   - Komisyon Durumu: ${detailRow['KOMİSYON DURUM'] || '-'}
+   - Kesin Askı Tarihi: ${fd(detailRow['KESİN ASKI TARİHİ'])}
+`;
+        }
+        
+        reportText += `----------------------------------------------------------------------------------`;
+    });
+
+    reportText += `\n\nBilgilerinize arz ederim.`;
+
+    document.getElementById('general-report-output').value = reportText;
 }
 
 
@@ -1376,7 +1513,7 @@ function showTab(uygulamaAdi) {
     } 
 
     const kayitSayaci = document.getElementById('kayitSayaci');
-    if (uygulamaAdi === 'Personel Raporu' || uygulamaAdi === 'Notlar' || uygulamaAdi === 'İlçe Raporu') {
+    if (uygulamaAdi === 'Personel Raporu' || uygulamaAdi === 'Notlar' || uygulamaAdi === 'İlçe Raporu' || uygulamaAdi === 'Genel Raporlar') {
         kayitSayaci.style.display = 'none';
     } else {
         kayitSayaci.style.display = 'block';
@@ -1387,7 +1524,7 @@ function showTab(uygulamaAdi) {
     setTimeout(applyStickyColumns, 50);
 }
 
-async function saveToGitHub() {
+function saveToGitHub() {
     const btn = document.getElementById('githubKaydetBtn');
     btn.disabled = true;
     btn.innerHTML = 'Kaydediliyor...';
@@ -1396,86 +1533,89 @@ async function saveToGitHub() {
     uyariContainer.innerHTML = `<div class="alert-item info-alert"><strong>Durum:</strong> Değişiklikler gönderiliyor...</div>`;
     uyariContainer.style.display = 'block';
 
+    (async function() {
+        try {
+            const mainData = getTableDataFromUI();
+            const detailData = getGuncellemeDetailDataFromUI();
 
-    try {
-        const mainData = getTableDataFromUI();
-        const detailData = getGuncellemeDetailDataFromUI();
+            const wb = XLSX.utils.book_new();
+            
+            const mainSheetData = mainData.map(row => {
+                const newRow = {...row};
+                delete newRow.PERSONEL; // Personel butonu için geçici sütunu kaldır
+                return newRow;
+            });
 
-        const wb = XLSX.utils.book_new();
-        
-        const mainSheetData = mainData.map(row => {
-            const newRow = {...row};
-            delete newRow.PERSONEL; // Personel butonu için geçici sütunu kaldır
-            return newRow;
-        });
+            XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(mainSheetData, {header: EXCEL_HEADERS_MAIN.filter(h => h !== 'PERSONEL'), cellDates:true}), 'İş Takip Listesi');
+            XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(detailData, {header: EXCEL_HEADERS_DETAIL, cellDates:true}), 'Güncelleme');
+            
+            const personelData = [['ad', 'unvan'], ...fullPersonelListesi.map(p => { 
+                const m = p.match(/(.*) \((.*)\)/); 
+                return m ? [m[1].trim(), m[2].trim()] : [p, '']; 
+            })];
+            
+            XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(personelData), 'Personel');
+            XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([['İlçe'], ...ilceListesi.map(i => [i])]), 'İlçe');
+            XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([['Uygulama'], ...uygulamaListesi.map(u => [u])]), 'Uygulama');
+            
+            const listHeaders = ['UÇUŞ KIYMETLENDİRME DURUM', 'KOMİSYON DURUM', 'DEĞERLENDİRME DURUM', 'DURUMU'];
+            const listSheetData = [listHeaders];
+            const maxRows = Math.max(ucusKiyDurumList.length, komisyonDurumList.length, degerlendirmeDurumList.length, durumlar.length);
+            for(let i = 0; i < maxRows; i++) {
+                listSheetData.push([
+                    ucusKiyDurumList[i] || '', 
+                    komisyonDurumList[i] || '', 
+                    degerlendirmeDurumList[i] || '',
+                    durumlar[i] || ''
+                ]);
+            }
+            XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(listSheetData), 'Liste');
 
-        XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(mainSheetData, {header: EXCEL_HEADERS_MAIN.filter(h => h !== 'PERSONEL'), cellDates:true}), 'İş Takip Listesi');
-        XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(detailData, {header: EXCEL_HEADERS_DETAIL, cellDates:true}), 'Güncelleme');
-        
-        const personelData = [['ad', 'unvan'], ...fullPersonelListesi.map(p => { 
-            const m = p.match(/(.*) \((.*)\)/); 
-            return m ? [m[1].trim(), m[2].trim()] : [p, '']; 
-        })];
-        
-        XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(personelData), 'Personel');
-        XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([['İlçe'], ...ilceListesi.map(i => [i])]), 'İlçe');
-        XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([['Uygulama'], ...uygulamaListesi.map(u => [u])]), 'Uygulama');
-        
-        const listHeaders = ['UÇUŞ KIYMETLENDİRME DURUM', 'KOMİSYON DURUM', 'DEĞERLENDİRME DURUM', 'DURUMU'];
-        const listSheetData = [listHeaders];
-        const maxRows = Math.max(ucusKiyDurumList.length, komisyonDurumList.length, degerlendirmeDurumList.length, durumlar.length);
-        for(let i = 0; i < maxRows; i++) {
-            listSheetData.push([
-                ucusKiyDurumList[i] || '', 
-                komisyonDurumList[i] || '', 
-                degerlendirmeDurumList[i] || '',
-                durumlar[i] || ''
-            ]);
+            const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'binary' });
+            const base64Content = btoa(wbout);
+
+            const putResponse = await fetch(API_URL, {
+                method: 'PUT',
+                headers: { 'Authorization': `token ${GITHUB_TOKEN}`, 'Content-Type': 'application/json' },
+                body: JSON.stringify({ message: `İş Takip Güncellemesi - ${new Date().toLocaleString()}`, content: base64Content, sha: currentFileSHA })
+            });
+
+            if (!putResponse.ok) throw new Error(`GitHub API Hatası: ${putResponse.status} - ${putResponse.statusText}`);
+            
+            const responseData = await putResponse.json();
+            currentFileSHA = responseData.content.sha;
+            // setUyari('Değişiklikler başarıyla kaydedildi! Veriler yenileniyor...', 'basari');
+            document.getElementById('uyari').style.display = 'block'; // Başarı mesajını göster
+            markAsClean();
+            
+            const activeTab = document.querySelector('.tab-btn.active').dataset.uygulama || 'Tümü';
+            await fetchFromGitHub();
+            showTab(activeTab);
+
+        } catch (error) {
+            console.error('GitHub\'a kaydetme hatası:', error);
+            // setUyari(`Kaydetme başarısız! Hata: ${error.message}`, 'hata');
+            uyariContainer.innerHTML = `<div class="alert-item missing-date-alert"><strong>Hata:</strong> Kaydetme başarısız! ${error.message}</div>`;
+            uyariContainer.style.display = 'block';
+
+            markAsDirty();
+        } finally {
+            btn.disabled = false;
         }
-        XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(listSheetData), 'Liste');
-
-        const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'binary' });
-        const base64Content = btoa(wbout);
-
-        const putResponse = await fetch(API_URL, {
-            method: 'PUT',
-            headers: { 'Authorization': `token ${GITHUB_TOKEN}`, 'Content-Type': 'application/json' },
-            body: JSON.stringify({ message: `İş Takip Güncellemesi - ${new Date().toLocaleString()}`, content: base64Content, sha: currentFileSHA })
-        });
-
-        if (!putResponse.ok) throw new Error(`GitHub API Hatası: ${putResponse.status} - ${putResponse.statusText}`);
-        
-        const responseData = await putResponse.json();
-        currentFileSHA = responseData.content.sha;
-        // setUyari('Değişiklikler başarıyla kaydedildi! Veriler yenileniyor...', 'basari');
-        document.getElementById('uyari').style.display = 'block'; // Başarı mesajını göster
-        markAsClean();
-        
-        const activeTab = document.querySelector('.tab-btn.active').dataset.uygulama || 'Tümü';
-        await fetchFromGitHub();
-        showTab(activeTab);
-
-    } catch (error) {
-        console.error('GitHub\'a kaydetme hatası:', error);
-        // setUyari(`Kaydetme başarısız! Hata: ${error.message}`, 'hata');
-        uyariContainer.innerHTML = `<div class="alert-item missing-date-alert"><strong>Hata:</strong> Kaydetme başarısız! ${error.message}</div>`;
-        uyariContainer.style.display = 'block';
-
-        markAsDirty();
-    } finally {
-        btn.disabled = false;
-    }
+    })();
 }
 
 function getTableDataFromUI() {
     const data = [];
     const uniqueKeys = new Set();
     
-    document.querySelectorAll('.table-wrapper:not([data-group="Güncelleme Detay"]):not([data-group="Personel Raporu"]):not([data-group="Notlar"]):not([data-group="İlçe Raporu"]) tbody tr:not(.group-header-row)').forEach(row => {
+    document.querySelectorAll('.table-wrapper:not([data-group="Güncelleme Detay"]):not([data-group="Personel Raporu"]):not([data-group="Notlar"]):not([data-group="İlçe Raporu"]):not([data-group="Genel Raporlar"]) tbody tr:not(.group-header-row)').forEach(row => {
         const key = row.dataset.rowKey;
         if (key && !uniqueKeys.has(key)) {
             const cells = row.querySelectorAll('td');
             const originalDataRow = isTakipData.find(r => `${r['İLÇE']}|${r['BİRİM']}` === key);
+            // Indexler robot butonu kalktığı için 1 azaldı.
+            // 0: Check, 1: İlçe, 2: Birim, 3: Uygulama, 4: Not Btn, 5: Personel Btn, 6: Hidden Personel Select
             const personnelWithTitles = $(cells[6]).find('.personel-select').val() || [];
             const personnelWithoutTitles = personnelWithTitles.map(p => p.replace(/ \(.+\)$/, '').trim());
 
@@ -1563,6 +1703,7 @@ function createRowElement(data = {}, tabName) {
 
     const hasNote = data['NOTLAR'] && data['NOTLAR'].trim() !== '';
 
+    // Robot butonu kaldırıldı, hücre sayısı azaldı
     newRow.innerHTML = `
         <td class="check-cell"><input type="checkbox" data-header="Tamamlandı" ${isChecked ? 'checked' : ''}></td>
         <td class="col-ilce">
@@ -2643,6 +2784,3 @@ window.addEventListener('resize', () => {
 
 </body>
 </html>
-
-
-
