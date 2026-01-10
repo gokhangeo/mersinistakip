@@ -1,2786 +1,549 @@
 <!DOCTYPE html>
 <html lang="tr">
-<head> <!-- BU ETİKET EKSİKTİ, EKLEDİM -->
-    <meta charset="UTF-8"> <!-- BU EN BAŞTA OLMALI -->
-    <title>İHALE TAKİP</title>
-    
-    <!-- PWA Kodları Başlangıcı -->
-    <link rel="manifest" href="./manifest.json">
-    <meta name="theme-color" content="#4f46e5">
-    <link rel="apple-touch-icon" href="./icon-192.png">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    
-    <script>
-      if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => {
-          navigator.serviceWorker.register('./service-worker.js')
-            .then(reg => console.log('SW Başarılı:', reg.scope))
-            .catch(err => console.log('SW Hatası:', err));
-        });
-      }
-    </script>
-    <!-- PWA Kodları Bitişi -->
-
-    <link rel="icon" href='data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y=".9em" font-size="90">📋</text></svg>'>
-    
-    <!-- Diğer kütüphaneler -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/js/select2.min.js"></script>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/css/select2.min.css" rel="stylesheet" />
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Yönetici Portalı</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        /* CSS kodların aynen burada kalacak... */
         body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-            color: #333;
-            margin: 0;
-            /* Arka plan rengi canvas tarafından sağlanacak */
+            font-family: 'Inter', sans-serif;
+            transition: background-color 0.3s, color 0.3s;
         }
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #1f2937; }
+        ::-webkit-scrollbar-thumb { background: #4b5563; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: #6b7280; }
 
-        #dynamic-bg {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            z-index: -1;
-        }
-
-        #login-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            z-index: 1000;
-            transition: opacity 0.5s ease-in-out;
-            background-color: rgba(255, 255, 255, 0.1); /* Hafif bir beyazlık */
-        }
-
-        #login-box {
-            background: rgba(255, 255, 255, 0.85);
-            padding: 40px;
-            border-radius: 15px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
-            width: 90%;
-            max-width: 400px;
-            text-align: center;
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            animation: fadeIn 0.7s ease-out forwards;
-        }
-
-        @keyframes fadeIn {
-            from { opacity: 0; transform: scale(0.9); }
-            to { opacity: 1; transform: scale(1); }
-        }
-
-        #login-box h2 {
-            color: #0056b3;
-            margin-bottom: 10px;
-        }
-
-        #login-box p {
-            color: #6c757d;
-            margin-bottom: 25px;
-        }
-
-        #login-box input[type="text"], #login-box input[type="password"] {
-            width: 100%;
-            padding: 12px;
-            margin-bottom: 10px;
-            border: 1px solid #ccc;
-            border-radius: 8px;
-            box-sizing: border-box;
-            font-size: 16px;
-        }
-
-        #login-button {
-            width: 100%;
-            padding: 12px;
-            font-size: 18px;
-            background-color: #28a745;
-            justify-content: center;
-        }
-
-        #login-error {
-            color: #dc3545;
-            margin-bottom: 15px;
-            height: 20px;
-            font-weight: bold;
-        }
-
-        .remember-me-container {
-            display: flex;
-            align-items: center;
-            justify-content: flex-start; /* Sola hizala */
-            margin-bottom: 20px;
-            margin-top: 5px;
-            font-size: 14px;
-            color: #333;
-        }
-        .remember-me-container input {
-            width: auto;
-            margin: 0 8px 0 0;
-        }
-
-        .login-copyright {
-            margin-top: 20px;
-            font-size: 12px;
-            color: #6c757d;
-        }
-
-        .shake {
-            animation: shake 0.5s;
-        }
-
-        @keyframes shake {
-            0%, 100% { transform: translateX(0); }
-            10%, 30%, 50%, 70%, 90% { transform: translateX(-10px); }
-            20%, 40%, 60%, 80% { transform: translateX(10px); }
-        }
-
-        #main-app-container { display: none; padding: 20px; background-color: #f4f7f6;}
-        .container { max-width: 1800px; margin: 0 auto; background-color: #ffffff; padding: 25px; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
-        h1 { color: #0056b3; text-align: center; border-bottom: 2px solid #0056b3; padding-bottom: 10px; margin-bottom: 20px; }
-        .copyright { text-align: center; margin-top: -15px; margin-bottom: 25px; font-size: 12px; color: #6c757d; }
-        .controls { display: flex; gap: 15px; margin-bottom: 20px; align-items: center; flex-wrap: wrap; }
-        button { background-color: #007bff; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; font-size: 16px; transition: background-color 0.3s ease, color 0.3s ease; display: flex; align-items: center; gap: 8px; }
-        button:hover { opacity: 0.9; }
-        button.danger { background-color: #dc3545; }
-        button.success { background-color: #28a745; }
-        button.info { background-color: #17a2b8; }
-        button.warning { background-color: #ffc107; color: #212529; }
-        button:disabled { background-color: #cccccc; cursor: not-allowed; opacity: 0.7; }
-        table { width: 100%; border-collapse: collapse; margin-top: 10px; table-layout: auto; }
-        th, td { border: 1px solid #ddd; padding: 10px; text-align: left; vertical-align: middle; }
-        th { background-color: #007bff; color: white; font-size: 14px; position: sticky; top: 0; z-index: 2;}
-        tr:nth-child(even) { background-color: #f2f2f2; }
-        select, input { width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
-        input[readonly], select[disabled] { background-color: #e9ecef; cursor: not-allowed; }
-        .action-cell { width: 80px; text-align: center; }
-        .check-cell { width: 40px; text-align: center; }
-        .tamamlandi { text-decoration: red line-through; text-decoration-thickness: 2px; opacity: 0.6; background-color: #f0f0f0 !important; }
-        .tamamlandi select, .tamamlandi input, .tamamlandi .select2-container,
-        #notlar-table tr.tamamlandi td { /* Notlar tablosundaki tamamlananları da çiz */
-            text-decoration: red line-through;
-            text-decoration-thickness: 2px;
-            opacity: 0.6;
-        }
-         #notlar-table tr.tamamlandi {
-             background-color: #f0f0f0 !important; /* Arka planı da hafif gri yap */
-         }
-
-        .loader { border: 5px solid #f3f3f3; border-radius: 50%; border-top: 5px solid #3498db; width: 40px; height: 40px; animation: spin 2s linear infinite; margin: 20px auto; }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        .select2-container--default .select2-selection--multiple { border: 1px solid #ccc; border-radius: 4px; padding: 2px; }
-        .select2-container { width: 100% !important; }
-        .search-container { position: relative; width: 250px; }
-        #aramaKutusu, #durumFiltresi { padding: 10px; border-radius: 5px; border: 1px solid #ccc; font-size: 14px; }
-        #aramaKutusu { padding-right: 30px; }
-        #aramaTemizleBtn { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); cursor: pointer; color: #888; display: none; }
-        #kayitSayaci { margin-top: 10px; font-weight: bold; color: #0056b3; }
-
-        /* Sekme Stilleri */
-        .tabs-container { border-bottom: 2px solid #dee2e6; margin-bottom: 20px; display: flex; flex-wrap: wrap; gap: 5px; }
-        .tab-btn { background-color: #f8f9fa; color: #007bff; border: 1px solid #dee2e6; border-bottom: none; padding: 10px 15px; cursor: pointer; border-radius: 5px 5px 0 0; font-size: 16px; margin-bottom: -2px; }
-        .tab-btn:hover { background-color: #e9ecef; }
-        .tab-btn.active { background-color: #007bff; color: white; border-color: #007bff; }
-        .table-wrapper { display: none; }
-        .table-wrapper.active { display: block; }
-        .table-wrapper[data-group="Tümü"] .group-header-row { background-color: #e9ecef; font-weight: bold; cursor: pointer; }
-        .table-wrapper[data-group="Tümü"] .group-header-row:hover { background-color: #dde2e6; }
-        .table-wrapper[data-group="Tümü"] .group-header-row td { padding: 12px; }
-        .table-wrapper[data-group="Tümü"] .group-header-row h3 { margin: 0; font-size: 16px; color: #0056b3; display: flex; justify-content: space-between; align-items: center; }
-        .table-wrapper[data-group="Tümü"] .group-toggle-btn { font-size: 12px; padding: 4px 8px; background-color: #6c757d; color:white; border:none; border-radius: 3px; }
-
-        /* Sekmelere Özel Sütun Gizleme */
-        .table-wrapper[data-group="GÜNCELLEME"] .col-alan,
-        .table-wrapper[data-group="2/B"] .col-uygulama,
-        .table-wrapper[data-group="GÜNCELLEME"] .col-uygulama,
-        .table-wrapper[data-group="2/B"] .col-tarih,
-        .table-wrapper[data-group="GÜNCELLEME"] .col-tarih,
-        .table-wrapper[data-group="2/B"] .col-parsel,
-        .table-wrapper[data-group="Müdürlük"] .col-tarih {
-            display: none;
-        }
-
-        #toast {
-            position: fixed;
-            bottom: -100px;
-            left: 50%;
-            transform: translateX(-50%);
-            background-color: #dc3545;
-            color: white;
-            padding: 1rem 2rem;
-            border-radius: 0.5rem;
-            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-            transition: bottom 0.5s ease-in-out;
-            z-index: 9999;
-        }
-        #toast.show {
-            bottom: 30px;
-        }
-
-        /* Üst Kaydırma Çubuğu */
-        #top-scrollbar-wrapper {
-            overflow-x: auto;
-            overflow-y: hidden;
-            height: 20px; /* Sadece kaydırma çubuğu yüksekliği */
-            display: none; /* Başlangıçta gizli */
-        }
-        #top-scrollbar-content {
-            height: 1px; /* İçerik yüksekliği önemli değil */
-        }
-
-        #guncellemeDetailTable .col-wide { min-width: 130px; white-space: nowrap; }
-        #guncellemeDetailTable .col-narrow { white-space: normal; width: 100px; }
-        /* Gizlenen sütunlar için stiller */
-        #guncellemeDetailTable th[data-header="İŞE BAŞLAMA"],
-        #guncellemeDetailTable td[data-header="İŞE BAŞLAMA"],
-        #guncellemeDetailTable th[data-header="BİTİŞ TARİHİ"],
-        #guncellemeDetailTable td[data-header="BİTİŞ TARİHİ"],
-        #guncellemeDetailTable th[data-header="LİDAR/YERSEL ÖLÇÜM TARİHİ(YAPILAN)"],
-        #guncellemeDetailTable td[data-header="LİDAR/YERSEL ÖLÇÜM TARİHİ(YAPILAN)"],
-        #guncellemeDetailTable th[data-header="ORMAN ASKI TARİHİ"],
-        #guncellemeDetailTable td[data-header="ORMAN ASKI TARİHİ"] {
-            display: none;
-        }
-
-
-        /* Sütun Sabitleme Stilleri */
-        .sticky-col { position: -webkit-sticky; position: sticky; background-color: white; z-index: 1; }
-        tr:nth-child(even) .sticky-col { background-color: #f2f2f2; }
-
-        /* Modal Stilleri */
-        .modal {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background-color: rgba(0,0,0,0.5); z-index: 2000;
-            display: none; justify-content: center; align-items: center;
-        }
-        .modal-content {
-            background: white; padding: 25px; border-radius: 10px;
-            width: 90%; max-width: 600px; /* Genişletildi */
-            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
-        }
-        .modal-content h3 {
-            margin-top: 0; color: #0056b3;
-            border-bottom: 1px solid #ccc; padding-bottom: 10px;
-        }
-        .modal-footer {
-            display: flex;
-            justify-content: flex-end;
-            gap: 10px;
-            margin-top: 20px;
-        }
-        .modal-close-btn { display: block; margin-left: auto; }
-
-        #personel-info-list { list-style-type: none; padding: 0; }
-        #personel-info-list li { padding: 8px; border-bottom: 1px solid #eee; }
-        #personel-info-list li:last-child { border-bottom: none; }
-        .action-btn-cell { text-align: center; }
-
-        /* Personel & İlçe Rapor Stilleri */
-        .personel-rapor-container, .ilce-rapor-container {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-            gap: 20px;
-        }
-        .personel-kart, .ilce-kart {
-            border: 1px solid #ddd;
-            border-radius: 8px;
-            padding: 15px;
-            background-color: #f9f9f9;
-        }
-        .personel-kart h4, .ilce-kart h4 {
-            margin-top: 0;
-            color: #0056b3;
-            border-bottom: 1px solid #ccc;
-            padding-bottom: 8px;
-            cursor: pointer;
-            user-select: none;
-        }
-        .personel-kart-icerik, .ilce-kart-icerik {
-            display: none;
-            padding-top: 10px;
-        }
-        .durum-grup, .uygulama-grup { /* İlçe raporu için */
-            margin-bottom: 10px;
-        }
-        .durum-grup strong, .uygulama-grup strong {
-            font-size: 14px;
-        }
-        .durum-grup ul, .uygulama-grup ul {
-            list-style-type: none;
-            padding-left: 15px;
-            margin: 5px 0 0;
-        }
-        .durum-grup li, .uygulama-grup li {
-            font-size: 12px;
-            padding: 2px 0;
-        }
-        .uygulama-grup ul li span { /* Durumu italik yap */
-             font-style: italic;
-             color: #6c757d;
-             margin-left: 5px;
-        }
-        .col-ilce {
-            display: none;
-        }
-        .district-label {
-            /* Konumlandırma artık JavaScript ile yapılıyor */
-            font-size: 11px;
-            font-weight: bold;
-            color: white;
-            padding: 1px 5px;
-            border-radius: 4px;
-            z-index: 3;
-            pointer-events: none; /* Tıklamayı engellememesi için */
-            white-space: nowrap;
-        }
-        .not-btn.has-note {
-            background-color: #ffc107; /* Warning color */
-            color: #212529;
-        }
-        #notlar-table td {
-            white-space: pre-wrap; /* Notların düzgün görünmesi için */
-            word-break: break-word;
-        }
-        .note-row:hover {
-            background-color: #e9ecef;
-            cursor: pointer;
-        }
-        .note-edit-container {
-            display: flex;
-            flex-direction: column;
-            gap: 5px;
-        }
-        .note-edit-container textarea {
-            width: 100%;
-            box-sizing: border-box;
-        }
-        .note-edit-buttons {
-            display: flex;
-            justify-content: flex-end;
-            gap: 5px;
-        }
-        .note-edit-buttons button {
-            padding: 5px 10px;
-            font-size: 12px;
-        }
-        .table-wrapper[data-group="Personel Raporu"] h2, .table-wrapper[data-group="İlçe Raporu"] h2 {
-            color: #0056b3;
-            border-bottom: 2px solid #0056b3;
-            padding-bottom: 5px;
-            margin-top: 20px;
-            margin-bottom: 15px;
-        }
-        .table-wrapper[data-group="Personel Raporu"] h2:first-of-type, .table-wrapper[data-group="İlçe Raporu"] h2:first-of-type {
-            margin-top: 0;
-        }
-        #guncellemeDetailTable th[data-header="İLÇE"],
-        #guncellemeDetailTable td.col-ilce-detail {
-            display: none;
-        }
-        /* Özet Kart Stilleri */
-        #summary-cards-container {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-            gap: 15px;
-            margin-bottom: 25px;
-        }
-        .summary-card {
-            background-color: #f8f9fa;
-            border: 1px solid #dee2e6;
-            border-radius: 8px;
-            padding: 15px;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            text-align: center;
-            height: 40px; /* Başlangıç yüksekliği */
-            overflow: hidden;
-            position: relative; /* Buton konumlandırma için */
-        }
-        .summary-card.expanded {
-            height: auto;
-            min-height: 150px; /* İçeriğin sığması için minimum yükseklik */
-        }
-        .summary-card h3 {
-            margin: 0;
-            color: white;
-            font-size: 18px;
-        }
-        .summary-card .card-content {
-             display: none; /* Başlangıçta gizli */
-        }
-        .summary-card.expanded .card-content {
-             display: block; /* Genişletilince görünür */
-             margin-top: 10px;
-             text-align: left; /* İçeriği sola hizala */
-        }
-        .summary-card .total-count {
-            font-size: 24px;
-            font-weight: bold;
-            color: #343a40;
-            margin-bottom: 5px; /* Boşluğu azalt */
-        }
-         .summary-card .project-date-range { /* Genel tarih aralığı */
-            font-size: 11px;
-            color: #6c757d;
-            margin-bottom: 10px;
-            font-weight: bold;
-            display: block; /* Yeni satıra geçmesi için */
-        }
-        .summary-card .status-breakdown {
-            font-size: 12px;
-            color: #495057;
-            text-align: left;
-            max-height: 150px; /* Yüksekliği biraz artır */
-            overflow-y: auto;
-            padding-right: 10px; /* for scrollbar */
-        }
-        .summary-card .status-item {
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-start; /* Üstten hizala */
-            padding: 3px 0; /* Dikey boşluk */
-            border-bottom: 1px dashed #eee; /* Ayırıcı çizgi */
-            flex-wrap: wrap; /* Küçük ekranlar için */
-        }
-         .status-item span {
-            flex-grow: 1; /* Durum adının alanı kaplamasını sağla */
-            margin-right: 5px; /* Sayı ile arasında boşluk */
-            font-weight: bold; /* Durum adı kalın */
-        }
-         .status-item strong {
-            flex-shrink: 0; /* Sayının küçülmesini engelle */
-            background-color: rgba(0,0,0,0.05);
-            padding: 1px 4px;
-            border-radius: 3px;
-            margin-left: auto; /* Sayıyı sağa yasla */
-        }
-         .status-item ul { /* İç içe liste için stil */
-             list-style-type: none;
-             padding-left: 0; /* Girintiyi kaldır */
-             margin: 2px 0 0 0;
-             font-size: 10px;
-             color: #6c757d;
-             width: 100%; /* Tam genişlik kapla */
-         }
-         .status-item ul li {
-             padding: 1px 0;
-             display: flex; /* İlçe-birim ve tarihi yan yana getir */
-             justify-content: space-between; /* Aralarına boşluk koy */
-         }
-         .status-item ul li .item-dates { /* Tarih aralığı stili */
-             margin-left: 5px; /* İş adı ile arasında boşluk */
-             white-space: nowrap; /* Tarihlerin alt satıra düşmesini engelle */
-         }
-        .status-item:last-child {
-            border-bottom: none;
-        }
-        .status-item:hover {
-            background-color: rgba(0,0,0,0.05);
-            border-radius: 3px;
-        }
-        .card-2b { background-color: #007bff; }
-        .card-guncelleme { background-color: #28a745; }
-        .card-mudurluk { background-color: #fd7e14; }
-        .card-2b.expanded { background-color: #e7f1ff; border-left: 5px solid #007bff; }
-        .card-guncelleme.expanded { background-color: #d4edda; border-left: 5px solid #28a745; }
-        .card-mudurluk.expanded { background-color: #ffe8d6; border-left: 5px solid #fd7e14; }
-        .card-2b.expanded h3, .card-guncelleme.expanded h3, .card-mudurluk.expanded h3 { color: #343a40; }
+        html.light body { background-color: #f3f4f6; color: #111827; }
+        html.light ::-webkit-scrollbar-track { background: #e5e7eb; }
+        html.light ::-webkit-scrollbar-thumb { background: #9ca3af; }
+        html.light .card, html.light .category-card, html.light .modal-content, html.light #login-overlay > div, html.light .dashboard-note-bg, html.light #reminder-modal > div { background-color: #ffffff; border-color: #e5e7eb; }
+        html.light .text-header { color: #1f2937; }
+        html.light .text-subheader { color: #4b5563; }
+        html.light .card:hover, html.light .category-card:hover { box-shadow: 0 4px_6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06); }
+        html.light .footer-text { color: #6b7280; }
+        html.light .modal-bg, html.light #login-overlay, html.light #reminder-modal { background-color: rgba(0, 0, 0, 0.5); }
         
+        .note-item { display: flex; align-items: center; justify-content: space-between; padding: 1rem; border-radius: 0.75rem; background-color: #374151; margin-bottom: 0.75rem; transition: background-color 0.2s; }
+        .note-item:hover { background-color: #4b5563; }
+        html.light .note-item { background-color: #f3f4f6; }
+        html.light .note-item:hover { background-color: #e5e7eb; }
 
-        /* Uyarı Stilleri */
-         #alerts-container {
-             margin-top: -15px; /* Kartların altına daha yakın */
-             margin-bottom: 20px;
-             padding: 10px;
-             border-radius: 5px;
-             /* Başlangıçta gizli, uyarı varsa JS ile gösterilecek */
-             display: none; 
-         }
-         .alert-item {
-             padding: 8px 12px;
-             border-radius: 4px;
-             margin-bottom: 5px;
-             font-size: 13px;
-             font-weight: bold;
-         }
-         .alert-item.commission-alert { /* Sarı */
-             background-color: #fff3cd; 
-             color: #856404;
-             border: 1px solid #ffeeba;
-             animation: blinkWarning 1.5s infinite;
-         }
-         .alert-item.missing-date-alert { /* Kırmızı */
-             background-color: #f8d7da;
-             color: #721c24;
-             border: 1px solid #f5c6cb;
-             animation: blinkDanger 1.5s infinite;
-         }
-         .alert-item.info-alert { /* Mavi */
-            background-color: #d1ecf1; 
-            color: #0c5460; 
-            border: 1px solid #bee5eb;
-         }
-         .alert-item strong {
-             margin-right: 5px;
-         }
-          .alert-item span a, .alert-item span .alert-job-link { /* Tıklanabilir link stili */
-             color: inherit !important; /* Rengi koru */
-             text-decoration: underline;
-             cursor: pointer;
-             margin-right: 5px; /* Linkler arasına boşluk */
-         }
-          .alert-item span a:hover, .alert-item span .alert-job-link:hover {
-             font-weight: bold;
-         }
+        #login-overlay { transition: opacity 0.5s ease-in-out; }
 
-         @keyframes blinkWarning {
-             0%, 100% { background-color: #fff3cd; }
-             50% { background-color: #ffeeba; }
-         }
-          @keyframes blinkDanger { /* Kırmızı yanıp sönme */
-             0%, 100% { background-color: #f8d7da; }
-             50% { background-color: #f5c6cb; }
-         }
+        .weather-card { display: flex; align-items: center; background: rgba(255, 255, 255, 0.1); backdrop-filter: blur(10px); padding: 0.5rem 1rem; border-radius: 1rem; margin-right: 1rem; }
+        html.light .weather-card { background: rgba(0, 0, 0, 0.05); }
 
-         /* Notlar Sayfası Filtre */
-         .notes-filter-container {
-            display: flex;
-            gap: 15px;
-            margin-bottom: 10px;
-            align-items: center;
-         }
-         .notes-filter-container select {
-             width: 300px;
-         }
-         
-         /* Genel Rapor Sekmesi Stilleri */
-         .general-report-controls {
-             display: flex;
-             gap: 10px;
-             margin-bottom: 15px;
-             flex-wrap: wrap;
-         }
-         #general-report-output {
-             width: 100%;
-             height: 500px;
-             padding: 15px;
-             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-             font-size: 14px;
-             border: 1px solid #ccc;
-             border-radius: 5px;
-             resize: vertical;
-             line-height: 1.6;
-             box-sizing: border-box;
-             background-color: #fcfcfc;
-         }
+        @keyframes marquee { 0% { transform: translateX(0); } 100% { transform: translateX(-100%); } }
+        .animate-marquee { display: flex; white-space: nowrap; animation: marquee 90s linear infinite; }
+        .news-ticker-container:hover .animate-marquee { animation-play-state: paused; }
+
+        .dashboard-note-item { transition: all 0.3s ease; }
+        .dashboard-note-item:hover { transform: translateX(4px); }
+        
+        input[type="datetime-local"]::-webkit-calendar-picker-indicator { filter: invert(1); cursor: pointer; }
+        html.light input[type="datetime-local"]::-webkit-calendar-picker-indicator { filter: invert(0); }
+
+        @media (max-width: 768px) {
+            .card-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+            .modal-content { padding: 1.5rem; }
+            .modal-bg { align-items: flex-start; padding-top: 2rem; }
+            .top-info-bar { flex-direction: column; gap: 1rem; }
+            #main-content { padding-bottom: 4rem; }
+        }
     </style>
 </head>
-<body>
+<body class="bg-gray-900 text-white antialiased flex flex-col h-screen overflow-hidden">
 
-<canvas id="dynamic-bg"></canvas>
+    <div class="tradingview-widget-container w-full z-40 flex-shrink-0 bg-gray-900" style="height: 46px; overflow: hidden;">
+        <div class="tradingview-widget-container__widget"></div>
+        <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-ticker-tape.js" async>
+        {
+        "symbols": [ { "proName": "FX_IDC:USDTRY", "title": "Dolar/TL" }, { "proName": "FX_IDC:EURTRY", "title": "Euro/TL" }, { "description": "Gram Altın", "proName": "FX_IDC:XAUTRYG" }, { "proName": "BINANCE:BTCUSDT", "title": "Bitcoin" } ],
+        "showSymbolLogo": true, "colorTheme": "dark", "isTransparent": true, "displayMode": "regular", "locale": "tr"
+        }
+        </script>
+    </div>
 
-<div id="main-app-container">
-    <div class="container">
-        <h1>İHALE TAKİP</h1>
-        <p class="copyright">© Gökhan ELGÜL tarafından tasarlanmıştır.</p>
-        <div id="summary-cards-container"></div>
-        <div id="alerts-container"></div> <!-- Uyarılar için yeni div -->
-        <div id="uyari" style="padding: 15px; background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb; border-radius: 5px; margin-bottom: 20px; display: none;"> 
-             <!-- Başlangıçta gizli, fetchFromGitHub içinde gösterilecek -->
-             <strong>Durum:</strong> Veriler başarıyla çekildi.
+    <div id="login-overlay" class="fixed inset-0 bg-gray-900 flex items-center justify-center z-[100]">
+        <div class="bg-gray-800 p-8 rounded-2xl shadow-2xl w-full max-w-sm text-center">
+            <h2 id="login-header" class="text-2xl font-bold mb-6 text-header cursor-pointer select-none" title="Gizli Giriş: 3 Kez Tıkla">Giriş Yap</h2>
+            <input type="password" id="password-input" class="w-full p-3 rounded-lg bg-gray-700 border border-gray-600 text-white text-center focus:outline-none focus:ring-2 focus:ring-indigo-500" placeholder="Şifrenizi Girin">
+            <button id="login-button" class="mt-6 w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 rounded-lg transition-colors">Giriş</button>
+            <p id="login-error" class="mt-4 text-red-500 h-5"></p>
         </div>
-        <div class="controls">
-            <div class="search-container">
-                <input type="text" id="aramaKutusu" placeholder="İlçe, Birim, Personel Ara...">
-                <span id="aramaTemizleBtn">&#10006;</span>
+    </div>
+
+    <div id="reminder-modal" class="fixed inset-0 bg-black/80 flex items-center justify-center z-[110] hidden opacity-0 transition-opacity duration-300">
+        <div class="bg-gray-800 p-6 rounded-2xl shadow-2xl max-w-md w-full border border-red-500/50 transform scale-95 transition-transform duration-300">
+            <div class="flex justify-between items-center mb-4 border-b border-gray-700 pb-2">
+                <h3 class="text-xl font-bold text-header flex items-center"><span class="text-2xl mr-2">🔔</span> Hatırlatmalar</h3>
+                <button id="close-reminder" class="text-gray-400 hover:text-white text-2xl leading-none">&times;</button>
             </div>
-            <select id="durumFiltresi"></select>
-            <button id="githubKaydetBtn" class="success" disabled>
-                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8"/></svg>
-                Kaydet
-            </button>
-            <button id="excelIndirBtn" class="info">&#x1F4BE; Excel Olarak İndir</button>
-        </div>
-
-        <div id="tabs" class="tabs-container"></div>
-        <div id="kayitSayaci">Toplam 0 kayıt gösteriliyor.</div>
-        <div id="loader" class="loader"></div>
-        <div id="top-scrollbar-wrapper"><div id="top-scrollbar-content"></div></div>
-        <div id="tableContainer" style="overflow-x:auto;"></div>
-    </div>
-</div>
-<div id="toast"></div>
-
-<!-- Personel Yönetim Modalı -->
-<div id="personel-modal" class="modal">
-    <div class="modal-content">
-        <h3 id="personel-modal-header">Personel Yönetimi</h3>
-        <p>Bu iş için görevli personelleri seçin.</p>
-        <select id="personel-modal-select" multiple="multiple" style="width: 100%;"></select>
-        <div class="modal-footer">
-            <button id="personel-modal-cancel" class="danger modal-close-btn">İptal</button>
-            <button id="personel-modal-save" class="success">Personeli Güncelle</button>
+            <div id="reminder-list" class="space-y-3 max-h-60 overflow-y-auto"></div>
+            <button id="close-reminder-btn" class="mt-6 w-full bg-gray-700 hover:bg-gray-600 text-white font-medium py-2 rounded-lg transition-colors">Tamam</button>
         </div>
     </div>
-</div>
 
-<!-- Not Yönetim Modalı -->
-<div id="not-modal" class="modal">
-    <div class="modal-content">
-        <h3 id="not-modal-header">İş Notları</h3>
-        <p>Bu iş için notlarınızı girin.</p>
-        <textarea id="not-modal-textarea" rows="10" style="width: 100%; font-family: inherit; font-size: 14px; padding: 8px; border-radius: 4px; border: 1px solid #ccc;"></textarea>
-        <div class="modal-footer">
-            <button id="not-modal-cancel" class="danger modal-close-btn">İptal</button>
-            <button id="not-modal-save" class="success">Notu Kaydet</button>
-        </div>
-    </div>
-</div>
-
-
-<script>
-// !!! KULLANICI BİLGİLERİ !!!
-const GITHUB_KULLANICI_ADI = "gokhangeo";
-const GITHUB_REPO_ADI = "mersinistakip";
-const DOSYA_YOLU = "istakip.xlsx";
-const token_part1 = 'ghp_d6Qq8rEMXLB5CL9t';
-const token_part2 = 'cVK1vZJIQwGGi33v1IGd';
-const GITHUB_TOKEN = token_part1 + token_part2;
-// ----------------------------------------------------
-
-// Global Değişkenler
-const API_URL = `https://api.github.com/repos/${GITHUB_KULLANICI_ADI}/${GITHUB_REPO_ADI}/contents/${DOSYA_YOLU}`;
-let currentFileSHA = '';
-let personelListesi = [], fullPersonelListesi = [], muhendisListesi = [], teknikerListesi = [], ilceListesi = [], uygulamaListesi = [];
-let guncellemeData = [], isTakipData = [];
-let ucusKiyDurumList = [], komisyonDurumList = [], degerlendirmeDurumList = [];
-
-let durumlar = [];
-const EXCEL_HEADERS_MAIN = ['Tamamlandı', 'İLÇE', 'BİRİM', 'UYGULAMA', 'PERSONEL', 'GÖREVLİ PERSONELLER', 'PARSEL SAYISI', 'BLOK SAYISI', 'ALAN(Ha)', 'İHALELİ/MÜDÜRLÜK', 'İŞE BAŞLAMA/YER TESLİMİ', 'İHALE BİTİŞ TARİHİ', 'DURUMU', 'NOTLAR'];
-const EXCEL_HEADERS_DETAIL = ['İLÇE', 'BİRİM', 'PARSEL SAYISI', 'İDÖ PARSEL SAYISI', 'TOPLAM PARSEL', 'İŞE BAŞLAMA', 'BİTİŞ TARİHİ', 'LİDAR/YERSEL ÖLÇÜM TARİHİ(YAPILAN)', 'ARAZİ YERSEL ÖLÇÜM TARİHİ(YAPILAN)', 'UÇUŞ TARİHİ(YAPILAN)', 'UÇUŞ KIYMETLENDİRME DURUM', 'DEĞERLENDİRME DURUM', 'ORMAN ASKI TARİHİ', 'BİLGİLENDİRME İLANI TARİHİ', 'KOMİSYON DURUM', 'KESİN ASKI TARİHİ'];
-// Gizlenecek sütunlar
-const GIZLI_DETAY_SUTUNLAR = ['ORMAN ASKI TARİHİ', 'LİDAR/YERSEL ÖLÇÜM TARİHİ(YAPILAN)', 'İŞE BAŞLAMA', 'BİTİŞ TARİHİ'];
-// Görüntülenecek başlıklar (Excel'den farklı)
-const DISPLAY_HEADERS_DETAIL = ['İLÇE', 'BİRİM', 'PARSEL SAYISI', 'İDÖ PARSEL SAYISI', 'TOPLAM PARSEL', 'ARAZİ YERSEL ÖLÇÜM TARİHİ(YAPILAN)', 'UÇUŞ TARİHİ(YAPILAN)', 'UÇUŞ KIYMETLENDİRME DURUM', 'DEĞERLENDİRME DURUM', 'BİLGİLENDİRME İLANI TARİHİ', 'KOMİSYON DURUM', 'KESİN ASKI TARİHİ'];
-
-const STICKY_COLS_COUNT = 3; // Onay Kutusu, İlçe, Birim
-let currentEditingRowKey = null;
-
-
-document.addEventListener('DOMContentLoaded', function() {
-    initAnimatedBackground();
-    checkLoginStatus();
-    
-    // Event Listeners
-    document.getElementById('aramaKutusu').addEventListener('keyup', filtrele);
-    document.getElementById('durumFiltresi').addEventListener('change', filtrele);
-    document.getElementById('aramaTemizleBtn').addEventListener('click', aramaTemizle);
-    document.getElementById('githubKaydetBtn').addEventListener('click', saveToGitHub);
-    document.getElementById('excelIndirBtn').addEventListener('click', excelIndir);
-    document.getElementById('tableContainer').addEventListener('change', handleTableChange);
-    document.getElementById('tableContainer').addEventListener('click', handleTableClick);
-    document.getElementById('summary-cards-container').addEventListener('click', handleSummaryCardClick);
-
-
-    // Modal Listeners
-    document.querySelectorAll('.modal-close-btn').forEach(btn => {
-        btn.addEventListener('click', () => {
-            btn.closest('.modal').style.display = 'none';
-        });
-    });
-    document.getElementById('personel-modal-save').addEventListener('click', savePersonelChanges);
-    document.getElementById('not-modal-save').addEventListener('click', saveNoteChanges);
-});
-
-function checkLoginStatus() {
-    // Şifre girişi kaldırıldı, uygulama doğrudan başlatılıyor.
-    document.getElementById('main-app-container').style.display = 'block';
-    fetchFromGitHub();
-}
-
-
-function initAnimatedBackground() {
-    const bgCanvas = document.getElementById('dynamic-bg');
-    const scene = new THREE.Scene();
-    const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-    const renderer = new THREE.WebGLRenderer({ canvas: bgCanvas, alpha: true });
-    renderer.setSize(window.innerWidth, window.innerHeight);
-    
-    const gradientTexture = new THREE.CanvasTexture(generateGradient());
-    scene.background = gradientTexture;
-
-    const particlesGeometry = new THREE.BufferGeometry();
-    const particlesCnt = 3000;
-    const posArray = new Float32Array(particlesCnt * 3);
-    for(let i = 0; i < particlesCnt * 3; i++) { 
-        posArray[i] = (Math.random() - 0.5) * 15; 
-    }
-    particlesGeometry.setAttribute('position', new THREE.BufferAttribute(posArray, 3));
-    
-    const particlesMaterial = new THREE.PointsMaterial({ size: 0.015, color: 0xffffff });
-    const particlesMesh = new THREE.Points(particlesGeometry, particlesMaterial);
-    scene.add(particlesMesh);
-    
-    camera.position.z = 5;
-    
-    let mouseX = 0, mouseY = 0;
-    document.addEventListener('mousemove', (event) => { 
-        mouseX = event.clientX; 
-        mouseY = event.clientY; 
-    });
-    
-    const clock = new THREE.Clock();
-    
-    const animate = () => {
-        const elapsedTime = clock.getElapsedTime();
-        particlesMesh.rotation.y = -0.05 * elapsedTime;
-        if(mouseX > 0) {
-            particlesMesh.rotation.x = -mouseY * (elapsedTime * 0.00003);
-            particlesMesh.rotation.y += -mouseX * (elapsedTime * 0.00003);
-        }
-        renderer.render(scene, camera);
-        window.requestAnimationFrame(animate);
-    };
-    animate();
-
-    window.addEventListener('resize', () => {
-        renderer.setSize(window.innerWidth, window.innerHeight);
-        camera.aspect = window.innerWidth / window.innerHeight;
-        camera.updateProjectionMatrix();
-    });
-
-    function generateGradient() {
-        const canvas = document.createElement('canvas');
-        canvas.width = 1;
-        canvas.height = 512;
-        const context = canvas.getContext('2d');
-        const gradient = context.createLinearGradient(0, 0, 0, 512);
-        gradient.addColorStop(0, '#87CEEB'); // Sky Blue
-        gradient.addColorStop(1, '#B0E0E6'); // Powder Blue
-        context.fillStyle = gradient;
-        context.fillRect(0, 0, 1, 512);
-        return canvas;
-    }
-}
-
-
-function handleSummaryCardClick(event) {
-    const card = event.target.closest('.summary-card');
-    if (!card) return;
-
-    const statusItem = event.target.closest('.status-item');
-    const groupName = card.dataset.uygulama;
-
-    // Eğer bir durum satırına tıklandıysa
-    if (statusItem) {
-        event.stopPropagation(); // Kartın ana tıklama olayını engelle
-        const status = statusItem.dataset.status;
-        showTab(groupName);
-        setTimeout(() => {
-            document.getElementById('durumFiltresi').value = status;
-            filtrele();
-        }, 50);
-    } 
-    // Eğer kartın kendisine tıklandıysa
-    else {
-        if (card.classList.contains('expanded')) {
-            // Eğer kart zaten açıksa, kapat ve filtreyi sıfırla.
-            card.classList.remove('expanded');
-            document.getElementById('durumFiltresi').value = '';
-            filtrele();
-        } else {
-            // Değilse, diğer tüm kartları kapat ve bunu aç.
-            document.querySelectorAll('.summary-card').forEach(c => c.classList.remove('expanded'));
-            card.classList.add('expanded');
-        }
-    }
-}
-
-function handleTableClick(event) {
-    const target = event.target;
-    const button = target.closest('button');
-    if (button) { // Handle button clicks first
-        if (button.classList.contains('personel-info-btn')) {
-            currentEditingRowKey = button.closest('tr').dataset.rowKey;
-            const [ilce, birim] = currentEditingRowKey.split('|');
-            const dataRow = isTakipData.find(r => r['İLÇE'] == ilce && r['BİRİM'] == birim);
-
-            if (dataRow) {
-                document.getElementById('personel-modal-header').textContent = `${ilce} - ${birim} Personel Yönetimi`;
-                const personelModalSelect = $('#personel-modal-select');
-                personelModalSelect.html('');
-                fullPersonelListesi.forEach(person => {
-                    personelModalSelect.append(new Option(person, person, false, false));
-                });
-                const selectedPersonel = dataRow['GÖREVLİ PERSONELLER'] ? String(dataRow['GÖREVLİ PERSONELLER']).split(', ').map(name => {
-                    return fullPersonelListesi.find(p => p.toUpperCase().startsWith(name.trim().toUpperCase())) || name.trim();
-                }) : [];
-                personelModalSelect.val(selectedPersonel).trigger('change');
-                document.getElementById('personel-modal').style.display = 'flex';
-            }
-        } else if (button.classList.contains('not-btn')) {
-            currentEditingRowKey = button.closest('tr').dataset.rowKey;
-            const [ilce, birim] = currentEditingRowKey.split('|');
-            const dataRow = isTakipData.find(r => r['İLÇE'] == ilce && r['BİRİM'] == birim);
-            if (dataRow) {
-                document.getElementById('not-modal-header').textContent = `${ilce} - ${birim} Notları`;
-                document.getElementById('not-modal-textarea').value = dataRow['NOTLAR'] || '';
-                document.getElementById('not-modal').style.display = 'flex';
-            }
-        }
-    } else if (target.tagName === 'TH' && target.dataset.header === 'İşe Başlama / Bitiş Tarihi') {
-         // Handle header click for toggling the date column in the detail table
-         const table = target.closest('table');
-         if (table && table.id === 'guncellemeDetailTable') {
-            table.classList.toggle('show-start-end-date');
-         }
-    }
-}
-
-
-function handleTableChange(event) {
-    const target = event.target;
-    if (target.tagName === 'INPUT' || target.tagName === 'SELECT') {
-        const row = target.closest('tr');
-        if (!row || !row.dataset.rowKey) return;
-
-        const rowKey = row.dataset.rowKey;
-        const header = target.dataset.header;
+    <div id="main-content" class="container mx-auto px-4 py-8 flex-grow overflow-y-auto hidden pb-16">
         
-        let value;
-        if (target.type === 'checkbox') {
-            value = target.checked ? 'EVET' : 'HAYIR';
-        } else if ($(target).hasClass('personel-select')) {
-            value = $(target).val() || []; // Get array from select2
-        } else {
-            value = target.value;
-        }
-
-        const [ilce, birim] = rowKey.split('|');
-        const table = row.closest('table');
-
-        if (table.id === 'guncellemeDetailTable') {
-            const dataRow = guncellemeData.find(r => r['İLÇE'] == ilce && r['BİRİM'] == birim);
-            if (dataRow) dataRow[header] = value;
-        } else {
-            const dataRow = isTakipData.find(r => r['İLÇE'] == ilce && r['BİRİM'] == birim);
-            if (dataRow) {
-                if (header === 'GÖREVLİ PERSONELLER') {
-                    const personnelWithTitles = value;
-                    const personnelWithoutTitles = personnelWithTitles.map(p => p.replace(/ \(.+\)$/, '').trim());
-                    dataRow[header] = personnelWithoutTitles.join(', ');
-                } else {
-                    dataRow[header] = value;
-                }
-            }
-        }
-
-        // Sync UI
-        document.querySelectorAll(`tr[data-row-key="${rowKey}"]`).forEach(syncRow => {
-            if (syncRow !== row) {
-                const syncTarget = syncRow.querySelector(`[data-header="${header}"]`);
-                if (syncTarget) {
-                    if (syncTarget.type === 'checkbox') {
-                        syncTarget.checked = (value === 'EVET');
-                    } else if ($(syncTarget).hasClass('personel-select')) {
-                         $(syncTarget).val(value).trigger('change.select2');
-                     }
-                    else {
-                        syncTarget.value = value;
-                    }
-                }
-            }
-        });
-        
-        if (target.type === 'checkbox' && header === 'Tamamlandı') {
-             document.querySelectorAll(`tr[data-row-key="${rowKey}"]`).forEach(syncRow => {
-                syncRow.classList.toggle('tamamlandi', target.checked);
-             });
-
-            // "Notlar" ve "Güncelleme Detay" sekmelerindeki satırları da senkronize et
-            const notRow = document.querySelector(`#notlar-table tr[data-row-key="${rowKey}"]`);
-            if (notRow) {
-                notRow.classList.toggle('tamamlandi', target.checked);
-            }
-
-            const dataRecord = isTakipData.find(r => r['İLÇE'] == ilce && r['BİRİM'] == birim);
-            if (dataRecord && dataRecord['UYGULAMA'] === 'GÜNCELLEME') {
-                const detailRow = document.querySelector(`#guncellemeDetailTable tr[data-row-key="${rowKey}"]`);
-                if (detailRow) {
-                    detailRow.classList.toggle('tamamlandi', target.checked);
-                }
-            }
-        }
-
-        markAsDirty();
-    }
-}
-
-
-function markAsDirty() {
-    const btn = document.getElementById('githubKaydetBtn');
-    btn.classList.remove('success');
-    btn.classList.add('warning');
-    btn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-exclamation-triangle-fill" viewBox="0 0 16 16"><path d="M8.982 1.566a1.13 1.13 0 0 0-1.96 0L.165 13.233c-.457.778.091 1.767.98 1.767h13.713c.889 0 1.438-.99.98-1.767L8.982 1.566zM8 5c.535 0 .954.462.9.995l-.35 3.507a.552.552 0 0 1-1.1 0L7.1 5.995A.905.905 0 0 1 8 5zm.002 6a1 1 0 1 1 0 2 1 1 0 0 1 0-2z"/></svg> Değişiklikleri Kaydet`;
-}
-
-function markAsClean() {
-    const btn = document.getElementById('githubKaydetBtn');
-    btn.classList.remove('warning');
-    btn.classList.add('success');
-    btn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8"/></svg> Kaydet`;
-}
-
-function displayWarnings() {
-    const uyariContainer = document.getElementById('alerts-container'); // ID 'alerts-container' olarak değiştirildi
-    uyariContainer.innerHTML = ''; // Önceki uyarıları temizle
-    uyariContainer.style.display = 'none'; // Başlangıçta gizle
-    const today = new Date();
-    today.setHours(0, 0, 0, 0); // Sadece tarih karşılaştırması için saati sıfırla
-
-    const warnings = {
-        // eksikIlanTarihi: [], // Kullanıcının isteği üzerine kaldırıldı
-        komisyonGecikmesi: []
-    };
-
-    // 1. Eksik İlan Tarihi Kontrolü - KALDIRILDI
-    
-    // 2. Komisyon Gecikmesi Kontrolü (Sadece Detay Sayfasına Bakarak)
-    guncellemeData.forEach(detailRow => {
-        const ilanTarihiStr = detailRow['BİLGİLENDİRME İLANI TARİHİ'];
-        const komisyonDurum = detailRow['KOMİSYON DURUM'];
-
-        // User's logic: "BİLGİLENDİRME İLANI TARİHİ" girilmiş, ... 15 günden fazla süre geçmiş VE "KOMİSYON DURUM" sütunu boş
-        if (ilanTarihiStr && (!komisyonDurum || komisyonDurum.trim() === '')) { // Check if date exists AND commission status is empty
-            try {
-                const ilanTarihi = excelDateToJSDate(ilanTarihiStr);
-                
-                // Hata ayıklama: ilanTarihi'nin bir Date nesnesi olduğundan emin ol
-                if (ilanTarihi instanceof Date && !isNaN(ilanTarihi)) {
-                    ilanTarihi.setHours(0,0,0,0);
-
-                    const timeDiff = today.getTime() - ilanTarihi.getTime();
-                    const dayDiff = Math.ceil(timeDiff / (1000 * 3600 * 24));
-
-                    if (dayDiff > 15) {
-                        warnings.komisyonGecikmesi.push({ilce: detailRow['İLÇE'], birim: detailRow['BİRİM']});
-                    }
-                } else {
-                     console.warn("Geçersiz tarih formatı algılandı (Komisyon Kontrolü):", ilanTarihiStr);
-                }
-            } catch (e) {
-                console.error("Tarih ayrıştırma hatası (Komisyon Kontrolü):", ilanTarihiStr, e);
-            }
-        }
-    });
-
-    // Tıklanabilir link oluşturma helper'ı
-    const createJobLink = (job) => {
-        const link = document.createElement('a');
-        link.className = 'alert-job-link';
-        link.textContent = `${job.ilce} - ${job.birim}`;
-        link.onclick = () => {
-             // İlgili işi bul ve detay sekmesine atla
-             const detailRow = document.querySelector(`#guncellemeDetailTable tr[data-row-key="${job.ilce}|${job.birim}"]`);
-             if (detailRow) {
-                 showTab('Güncelleme Detay');
-                 setTimeout(() => {
-                    detailRow.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                    detailRow.style.transition = 'background-color 0.5s';
-                    detailRow.style.backgroundColor = '#fff3cd'; // Vurgu rengi
-                    setTimeout(() => {
-                        detailRow.style.backgroundColor = '';
-                    }, 2000);
-                 }, 100);
-             }
-        };
-        return link;
-    };
-
-
-    // Uyarıları Göster
-    // Kırmızı uyarı (eksikIlanTarihi) kaldırıldı.
-
-    if (warnings.komisyonGecikmesi.length > 0) {
-        uyariContainer.style.display = 'block';
-        const div = document.createElement('div');
-        div.className = 'alert-item commission-alert'; // Sarı uyarı
-        const span = document.createElement('span');
-        span.innerHTML = `<strong>Komisyon Gecikmesi (${warnings.komisyonGecikmesi.length} iş):</strong> `;
-        warnings.komisyonGecikmesi.forEach((job, index) => {
-            span.appendChild(createJobLink(job));
-            if (index < warnings.komisyonGecikmesi.length - 1) span.append(' , ');
-        });
-        div.appendChild(span);
-        uyariContainer.appendChild(div);
-    }
-}
-
-
-function readSheetAsList(workbook, sheetName, header=true) {
-    const sheet = workbook.Sheets[sheetName];
-    if (!sheet) return [];
-    const json = XLSX.utils.sheet_to_json(sheet, { header: 1 });
-    const data = header ? json.slice(1) : json;
-    return data.map(row => row[0]).filter(Boolean);
-}
-
-function parseLists(workbook, sheetName) {
-    const sheet = workbook.Sheets[sheetName];
-    if (!sheet) return;
-    const json = XLSX.utils.sheet_to_json(sheet);
-    ucusKiyDurumList = json.map(row => row['UÇUŞ KIYMETLENDİRME DURUM']).filter(Boolean);
-    komisyonDurumList = json.map(row => row['KOMİSYON DURUM']).filter(Boolean);
-    degerlendirmeDurumList = json.map(row => row['DEĞERLENDİRME DURUM']).filter(Boolean);
-    
-    const durumListesiFromSheet = json.map(row => row['DURUMU']).filter(Boolean);
-    if (durumListesiFromSheet.length > 0) {
-        durumlar = durumListesiFromSheet;
-    } else {
-        console.warn('Excel "Liste" sayfasında "DURUMU" sütunu bulunamadı veya boş. Varsayılan durum listesi kullanılıyor.');
-        durumlar = ['YER TESLİMİ YAPILDI', 'HERHANGİ BİRŞEY YAPILMADI', 'TAPU KAYIT KARŞILAŞTIRMA', 'BİLİRKİŞİ YEMİN/ADA-MEVKİ İLAN', 'ARAZİ DEVAM EDİYOR', 'DEĞERLENDİRMEDE', 'ASKI İLANINA HAZIRLANIYOR', 'BİLGİLENDİRME İLANINDA', 'KOMİSYON AŞAMASINDA', 'KESİN ASKIDA', 'DEVİR YAPILDI', 'TESCİL AŞAMASINDA', 'İHALEDEN/PROGRAMDAN ÇIKARILDI', 'KESİN ASKIDAN İNDİ. BEKLEMEDE', 'DEPREM NEDENİYLE ASKI YENİLENECEK', 'VERİLER ELEKTRONİK ORTAMDA HAZIR', 'ORMAN ASKISI', 'TESCİLİ BİTTİ'];
-    }
-}
-
-async function fetchFromGitHub() {
-    document.getElementById('loader').style.display = 'block';
-    document.getElementById('alerts-container').style.display = 'none'; // Uyarıları gizle
-    document.getElementById('uyari').style.display = 'none'; // Durum mesajını gizle
-
-    try {
-        const response = await fetch(API_URL, { 
-            headers: { 'Authorization': `token ${GITHUB_TOKEN}` },
-            cache: 'no-cache' 
-        });
-        if (!response.ok) throw new Error(`GitHub API Hatası: ${response.status} ${response.statusText}`);
-        
-        const data = await response.json();
-        currentFileSHA = data.sha;
-        
-        const binary_string = window.atob(data.content);
-        const bytes = new Uint8Array(binary_string.length);
-        for (let i = 0; i < binary_string.length; i++) { bytes[i] = binary_string.charCodeAt(i); }
-        const workbook = XLSX.read(bytes, { type: 'array' });
-
-        const personelSheet = workbook.Sheets['Personel'];
-        if (personelSheet) {
-            const personel_json = XLSX.utils.sheet_to_json(personelSheet, { header: 1 });
-            fullPersonelListesi = personel_json.slice(1)
-                .filter(row => row && row[0] && row[1])
-                .map(row => `${row[0]} (${row[1]})`);
-
-            const unvanFiltrele = (unvanListesi) => {
-                return fullPersonelListesi.filter(personelString => {
-                    const match = personelString.match(/\(([^)]+)\)$/);
-                    if (!match || !match[1]) return false;
-                    const unvan = match[1].toLocaleUpperCase('tr-TR');
-                    return unvanListesi.some(u => unvan.includes(u));
-                });
-            };
-
-            personelListesi = unvanFiltrele(['MÜHENDİS', 'TEKNİKER', 'TEKNİSYEN']);
-            muhendisListesi = unvanFiltrele(['MÜHENDİS']);
-            teknikerListesi = unvanFiltrele(['TEKNİKER', 'TEKNİSYEN']);
-
-        } else {
-            personelListesi = [];
-            fullPersonelListesi = [];
-            muhendisListesi = [];
-            teknikerListesi = [];
-        }
-
-
-        ilceListesi = readSheetAsList(workbook, 'İlçe');
-        uygulamaListesi = readSheetAsList(workbook, 'Uygulama');
-        parseLists(workbook, 'Liste');
-
-        isTakipData = XLSX.utils.sheet_to_json(workbook.Sheets['İş Takip Listesi'] || {});
-        guncellemeData = XLSX.utils.sheet_to_json(workbook.Sheets['Güncelleme'] || {});
-        
-        $('#personel-modal-select').select2({
-            placeholder: "Personel Seçin",
-            dropdownParent: $('#personel-modal')
-        });
-        
-        createSummaryCards();
-        renderAllTables(isTakipData, guncellemeData);
-        displayWarnings(); // Uyarıları göster
-        document.getElementById('uyari').style.display = 'block'; // Başarı mesajını göster
-
-        document.getElementById('loader').style.display = 'none';
-        document.getElementById('githubKaydetBtn').disabled = false;
-        // setUyari("Veriler başarıyla çekildi.", 'basari'); // Artık uyari div'i kullanılıyor
-        markAsClean();
-        durumFiltresiDoldur();
-        showTab('Tümü');
-
-    } catch (error) {
-        console.error("GitHub'dan veri çekme hatası:", error);
-        document.getElementById('loader').style.display = 'none';
-        const uyariContainer = document.getElementById('alerts-container');
-        uyariContainer.innerHTML = `<div class="alert-item missing-date-alert"><strong>Hata:</strong> Veriler çekilemedi! ${error.message}</div>`;
-        uyariContainer.style.display = 'block';
-    }
-}
-
-function renderAllTables(mainData, detailData) {
-    const tableContainer = document.getElementById('tableContainer');
-    const tabsContainer = document.getElementById('tabs');
-    tableContainer.innerHTML = '';
-    tabsContainer.innerHTML = '';
-
-    const mudurlukIsleri = mainData.filter(row => row['İHALELİ/MÜDÜRLÜK'] === 'Müdürlük');
-    const ihaleIsleri = mainData.filter(row => row['İHALELİ/MÜDÜRLÜK'] !== 'Müdürlük');
-
-    const groupedData = ihaleIsleri.reduce((acc, row) => {
-        const groupName = row['UYGULAMA'] || 'Diğer İşler';
-        if (!acc[groupName]) acc[groupName] = [];
-        acc[groupName].push(row);
-        return acc;
-    }, {});
-
-    // "Tümü" Sekmesi
-    const allTabBtn = document.createElement('button');
-    allTabBtn.className = 'tab-btn active';
-    allTabBtn.textContent = 'Tümü';
-    allTabBtn.onclick = () => showTab('Tümü');
-    tabsContainer.appendChild(allTabBtn);
-
-    const allWrapper = document.createElement('div');
-    allWrapper.className = 'table-wrapper active';
-    allWrapper.dataset.group = 'Tümü';
-    const allTable = document.createElement('table');
-    const totalParsel = calculateColumnSum(ihaleIsleri, 'PARSEL SAYISI');
-    const totalBlok = calculateColumnSum(ihaleIsleri, 'BLOK SAYISI');
-    const totalAlan = calculateColumnSum(ihaleIsleri, 'ALAN(Ha)').toFixed(2);
-    
-    // Robot butonu sütunu kaldırıldı
-    allTable.innerHTML = `<thead><tr><th class="check-cell">&#10004;</th><th class="col-ilce">İLÇE</th><th>BİRİM</th><th class="col-uygulama">UYGULAMA</th><th>NOT</th><th>PERSONEL</th><th style="display:none;">GÖREVLİ PERSONELLER</th><th class="col-parsel">PARSEL (${totalParsel})</th><th>BLOK (${totalBlok})</th><th class="col-alan">ALAN(Ha) (${totalAlan})</th><th class="col-tarih">İŞE BAŞLAMA/YER TESLİMİ</th><th class="col-tarih">İHALE BİTİŞ TARİHİ</th><th>DURUMU</th></tr></thead>`;
-    allWrapper.appendChild(allTable);
-    tableContainer.appendChild(allWrapper);
-
-    for (const uygulama in groupedData) {
-        const tbody = document.createElement('tbody');
-        const headerRow = tbody.insertRow();
-        headerRow.className = 'group-header-row';
-        headerRow.onclick = (e) => { if (e.target.tagName !== 'BUTTON') toggleGroup(tbody); };
-        headerRow.insertCell().innerHTML = `<h3><span>${uygulama} (<span class="group-count">${groupedData[uygulama].length}</span> iş)</span><button class="group-toggle-btn" onclick="event.stopPropagation(); toggleGroup(this.closest('tbody'))">Kapat</button></h3>`;
-        headerRow.cells[0].colSpan = 12; // Colspan 12'ye düşürüldü (robot sütunu gittiği için)
-        groupedData[uygulama].forEach(rowData => tbody.appendChild(createRowElement(rowData, 'Tümü')));
-        allTable.appendChild(tbody);
-    }
-    
-    // Diğer Ana Sekmeler
-    for (const uygulama in groupedData) {
-        const tab = document.createElement('button');
-        tab.className = 'tab-btn';
-        tab.textContent = `${uygulama} (${groupedData[uygulama].length})`;
-        tab.dataset.uygulama = uygulama;
-        tab.onclick = () => showTab(uygulama);
-        tabsContainer.appendChild(tab);
-
-        const tableWrapper = document.createElement('div');
-        tableWrapper.className = 'table-wrapper';
-        tableWrapper.dataset.group = uygulama;
-        const table = document.createElement('table');
-        const blokSayisiHeader = uygulama === 'GÜNCELLEME' ? 'İDÖ' : 'BLOK';
-        
-        const grupParsel = calculateColumnSum(groupedData[uygulama], 'PARSEL SAYISI');
-        const grupBlok = calculateColumnSum(groupedData[uygulama], 'BLOK SAYISI');
-        const grupAlan = calculateColumnSum(groupedData[uygulama], 'ALAN(Ha)').toFixed(2);
-
-        // Robot butonu sütunu kaldırıldı
-        table.innerHTML = `<thead><tr>
-            <th class="check-cell">&#10004;</th>
-            <th class="col-ilce">İLÇE</th>
-            <th>BİRİM</th>
-            <th class="col-uygulama">UYGULAMA</th>
-            <th>NOT</th>
-            <th>PERSONEL</th>
-            <th style="display:none;">GÖREVLİ PERSONELLER</th>
-            <th class="col-parsel">PARSEL (${grupParsel})</th>
-            <th>${blokSayisiHeader} (${grupBlok})</th>
-            <th class="col-alan">ALAN(Ha) (${grupAlan})</th>
-            <th class="col-tarih">İŞE BAŞLAMA/YER TESLİMİ</th>
-            <th class="col-tarih">İHALE BİTİŞ TARİHİ</th>
-            <th>DURUMU</th>
-        </tr></thead>`;
-        const singleTbody = document.createElement('tbody');
-        groupedData[uygulama].forEach(rowData => singleTbody.appendChild(createRowElement(rowData, uygulama)));
-        table.appendChild(singleTbody);
-        tableWrapper.appendChild(table);
-        tableContainer.appendChild(tableWrapper);
-    }
-
-    // Müdürlük Sekmesi
-    if (mudurlukIsleri.length > 0) {
-        const mudurlukTabBtn = document.createElement('button');
-        mudurlukTabBtn.className = 'tab-btn';
-        mudurlukTabBtn.textContent = `Müdürlük (${mudurlukIsleri.length})`;
-        mudurlukTabBtn.dataset.uygulama = 'Müdürlük';
-        mudurlukTabBtn.onclick = () => showTab('Müdürlük');
-        tabsContainer.appendChild(mudurlukTabBtn);
-
-        const mudurlukWrapper = document.createElement('div');
-        mudurlukWrapper.className = 'table-wrapper';
-        mudurlukWrapper.dataset.group = 'Müdürlük';
-        const mudurlukTable = document.createElement('table');
-        
-        const grupParsel = calculateColumnSum(mudurlukIsleri, 'PARSEL SAYISI');
-        const grupBlok = calculateColumnSum(mudurlukIsleri, 'BLOK SAYISI');
-        const grupAlan = calculateColumnSum(mudurlukIsleri, 'ALAN(Ha)').toFixed(2);
-
-        // Robot butonu sütunu kaldırıldı
-        mudurlukTable.innerHTML = `<thead><tr>
-            <th class="check-cell">&#10004;</th>
-            <th class="col-ilce">İLÇE</th>
-            <th>BİRİM</th>
-            <th class="col-uygulama">UYGULAMA</th>
-            <th>NOT</th>
-            <th>PERSONEL</th>
-            <th style="display:none;">GÖREVLİ PERSONELLER</th>
-            <th class="col-parsel">PARSEL (${grupParsel})</th>
-            <th>BLOK (${grupBlok})</th>
-            <th class="col-alan">ALAN(Ha) (${grupAlan})</th>
-            <th class="col-tarih">İŞE BAŞLAMA/YER TESLİMİ</th>
-            <th class="col-tarih">İHALE BİTİŞ TARİHİ</th>
-            <th>DURUMU</th>
-        </tr></thead>`;
-        const mudurlukTbody = document.createElement('tbody');
-        mudurlukIsleri.forEach(rowData => mudurlukTbody.appendChild(createRowElement(rowData, 'Müdürlük')));
-        mudurlukTable.appendChild(mudurlukTbody);
-        mudurlukWrapper.appendChild(mudurlukTable);
-        tableContainer.appendChild(mudurlukWrapper);
-    }
-
-
-    // "Güncelleme Detay" Sekmesi
-    const detailTabBtn = document.createElement('button');
-    detailTabBtn.className = 'tab-btn';
-    detailTabBtn.textContent = 'Güncelleme Detay';
-    detailTabBtn.dataset.uygulama = 'Güncelleme Detay';
-    detailTabBtn.onclick = () => showTab('Güncelleme Detay');
-    tabsContainer.appendChild(detailTabBtn);
-
-    const detailWrapper = document.createElement('div');
-    detailWrapper.className = 'table-wrapper';
-    detailWrapper.dataset.group = 'Güncelleme Detay';
-    const detailTable = document.createElement('table');
-    detailTable.id = 'guncellemeDetailTable';
-    
-    const ucusYapildiCount = detailData.filter(row => row['UÇUŞ KIYMETLENDİRME DURUM'] === 'Yapıldı').length;
-    const degerlendirmeYapildiCount = detailData.filter(row => row['DEĞERLENDİRME DURUM'] === 'Yapıldı').length;
-    const komisyonYapildiCount = detailData.filter(row => row['KOMİSYON DURUM'] === 'Yapıldı').length;
-    const totalParselDetay = calculateColumnSum(detailData, 'PARSEL SAYISI');
-    const totalIdoParsel = calculateColumnSum(detailData, 'İDÖ PARSEL SAYISI');
-    const totalToplamParsel = calculateColumnSum(detailData, 'TOPLAM PARSEL');
-
-    let detailThead = `<thead><tr>`;
-    DISPLAY_HEADERS_DETAIL.forEach(h => {
-        let headerText = h;
-        if (h === 'UÇUŞ KIYMETLENDİRME DURUM') headerText += ` (${ucusYapildiCount})`;
-        else if (h === 'DEĞERLENDİRME DURUM') headerText += ` (${degerlendirmeYapildiCount})`;
-        else if (h === 'KOMİSYON DURUM') headerText += ` (${komisyonYapildiCount})`;
-        else if (h === 'PARSEL SAYISI') headerText = `PARSEL (${totalParselDetay})`;
-        else if (h === 'İDÖ PARSEL SAYISI') headerText = `İDÖ PARSEL (${totalIdoParsel})`;
-        else if (h === 'TOPLAM PARSEL') headerText += ` (${totalToplamParsel})`;
-        
-        let thClass = '';
-        if (h === 'İLÇE') {
-            thClass = 'class="col-wide col-ilce-detail"';
-        } else if (h === 'BİRİM') {
-            thClass = 'class="col-wide"';
-        } else if (h.includes('SAYISI')) {
-            thClass = 'class="col-narrow"';
-        }
-        
-        detailThead += `<th ${thClass} data-header="${h}">${headerText}</th>`;
-    });
-    detailThead += `</tr></thead>`;
-    detailTable.innerHTML = detailThead;
-
-    const detailTbody = document.createElement('tbody');
-    detailData.forEach(rowData => detailTbody.appendChild(createGuncellemeDetailRowElement(rowData)));
-    detailTable.appendChild(detailTbody);
-    detailWrapper.appendChild(detailTable);
-    tableContainer.appendChild(detailWrapper);
-
-    // Notlar Sekmesi
-    const notlarTabBtn = document.createElement('button');
-    notlarTabBtn.className = 'tab-btn';
-    notlarTabBtn.textContent = 'Notlar';
-    notlarTabBtn.dataset.uygulama = 'Notlar';
-    notlarTabBtn.onclick = () => showTab('Notlar');
-    tabsContainer.appendChild(notlarTabBtn);
-
-    const notlarWrapper = document.createElement('div');
-    notlarWrapper.className = 'table-wrapper';
-    notlarWrapper.dataset.group = 'Notlar';
-    notlarWrapper.id = 'notlar-wrapper';
-    notlarWrapper.appendChild(createNotesTable());
-    tableContainer.appendChild(notlarWrapper);
-
-    // Personel Raporu Sekmesi
-    const reportTabBtn = document.createElement('button');
-    reportTabBtn.className = 'tab-btn';
-    reportTabBtn.textContent = 'Personel Durum Raporu';
-    reportTabBtn.dataset.uygulama = 'Personel Raporu';
-    reportTabBtn.onclick = () => showTab('Personel Raporu');
-    tabsContainer.appendChild(reportTabBtn);
-
-    const reportWrapper = document.createElement('div');
-    reportWrapper.className = 'table-wrapper';
-    reportWrapper.dataset.group = 'Personel Raporu';
-    reportWrapper.appendChild(createPersonelReport());
-    tableContainer.appendChild(reportWrapper);
-
-    // İlçe Raporu Sekmesi
-    const ilceReportTabBtn = document.createElement('button');
-    ilceReportTabBtn.className = 'tab-btn';
-    ilceReportTabBtn.textContent = 'İlçe Durum Raporu';
-    ilceReportTabBtn.dataset.uygulama = 'İlçe Raporu';
-    ilceReportTabBtn.onclick = () => showTab('İlçe Raporu');
-    tabsContainer.appendChild(ilceReportTabBtn);
-
-    const ilceReportWrapper = document.createElement('div');
-    ilceReportWrapper.className = 'table-wrapper';
-    ilceReportWrapper.dataset.group = 'İlçe Raporu';
-    ilceReportWrapper.appendChild(createIlceReport());
-    tableContainer.appendChild(ilceReportWrapper);
-    
-    // YENİ: GENEL RAPORLAR Sekmesi
-    const generalReportTabBtn = document.createElement('button');
-    generalReportTabBtn.className = 'tab-btn';
-    generalReportTabBtn.textContent = 'GENEL RAPORLAR';
-    generalReportTabBtn.dataset.uygulama = 'Genel Raporlar';
-    generalReportTabBtn.onclick = () => showTab('Genel Raporlar');
-    tabsContainer.appendChild(generalReportTabBtn);
-
-    const generalReportWrapper = document.createElement('div');
-    generalReportWrapper.className = 'table-wrapper';
-    generalReportWrapper.dataset.group = 'Genel Raporlar';
-    generalReportWrapper.appendChild(createGeneralReportsUI());
-    tableContainer.appendChild(generalReportWrapper);
-}
-
-// Yeni: Genel Raporlar UI Oluşturma Fonksiyonu
-function createGeneralReportsUI() {
-    const container = document.createElement('div');
-    
-    const controls = document.createElement('div');
-    controls.className = 'general-report-controls';
-    
-    const btnGuncelleme = document.createElement('button');
-    btnGuncelleme.className = 'success';
-    btnGuncelleme.innerHTML = '📄 Güncelleme Raporu Oluştur';
-    btnGuncelleme.onclick = () => generateBulkReport('GÜNCELLEME');
-    
-    const btn2B = document.createElement('button');
-    btn2B.className = 'info';
-    btn2B.innerHTML = '📄 2/B Raporu Oluştur';
-    btn2B.onclick = () => generateBulkReport('2/B');
-    
-    const btnMudurluk = document.createElement('button');
-    btnMudurluk.className = 'warning';
-    btnMudurluk.innerHTML = '📄 Müdürlük Raporu Oluştur';
-    btnMudurluk.onclick = () => generateBulkReport('Müdürlük');
-    
-    const btnKopyala = document.createElement('button');
-    btnKopyala.innerHTML = '📋 Raporu Kopyala';
-    btnKopyala.onclick = () => {
-        const txt = document.getElementById('general-report-output');
-        txt.select();
-        document.execCommand('copy');
-        showToast('Rapor kopyalandı.');
-    };
-
-    controls.appendChild(btnGuncelleme);
-    controls.appendChild(btn2B);
-    controls.appendChild(btnMudurluk);
-    controls.appendChild(btnKopyala);
-    
-    const textArea = document.createElement('textarea');
-    textArea.id = 'general-report-output';
-    textArea.placeholder = 'Rapor oluşturmak için yukarıdaki butonlardan birine tıklayın...';
-    
-    container.appendChild(controls);
-    container.appendChild(textArea);
-    
-    return container;
-}
-
-function generateBulkReport(category) {
-    let reportData = [];
-    
-    // Veriyi filtrele
-    if (category === 'Müdürlük') {
-        reportData = isTakipData.filter(r => r['İHALELİ/MÜDÜRLÜK'] === 'Müdürlük');
-    } else {
-        reportData = isTakipData.filter(r => r['UYGULAMA'] === category && r['İHALELİ/MÜDÜRLÜK'] !== 'Müdürlük');
-    }
-
-    if (reportData.length === 0) {
-        showToast('Bu kategoride raporlanacak iş bulunamadı.');
-        return;
-    }
-
-    const today = new Date();
-    today.setHours(0,0,0,0);
-
-    // Başlık
-    let reportText = `**YÖNETİCİ ÖZETİ: ${category.toUpperCase()} İŞLERİ DETAY RAPORU**
-Tarih: ${today.toLocaleDateString('tr-TR')}
-
-**GENEL GÖRÜNÜM**
-${category} kapsamında toplam **${reportData.length}** adet iş listelenmiştir.
-
-----------------------------------------------------------------------------------
-`;
-
-    // Her bir iş için detaylı döküm
-    reportData.forEach((job, index) => {
-        const ilce = job['İLÇE'] || '-';
-        const birim = job['BİRİM'] || '-';
-        const durum = job['DURUMU'] || 'Belirtilmemiş';
-        const parsel = job['PARSEL SAYISI'] || '0';
-        const alan = job['ALAN(Ha)'] || '0';
-        
-        // Detay satırını bul (Güncelleme sayfası verileri)
-        const detailRow = guncellemeData.find(d => d['İLÇE'] === job['İLÇE'] && d['BİRİM'] === job['BİRİM']) || {};
-        
-        // Tarih formatlayıcı
-        const fd = (val) => val ? formatDate(excelDateToJSDate(val)) : '-';
-
-        reportText += `\n**${index + 1}. ${ilce} - ${birim}**
-   - Durum: ${durum}
-   - Parsel: ${parsel}, Alan: ${alan} Ha
-   - İşe Başlama: ${fd(job['İŞE BAŞLAMA/YER TESLİMİ'])} | Bitiş: ${fd(job['İHALE BİTİŞ TARİHİ'])}
-`;
-
-        if (category === 'GÜNCELLEME') {
-            reportText += `   - Lidar/Yersel Ölçüm: ${fd(detailRow['LİDAR/YERSEL ÖLÇÜM TARİHİ(YAPILAN)'])}
-   - Arazi Yersel Ölçüm: ${fd(detailRow['ARAZİ YERSEL ÖLÇÜM TARİHİ(YAPILAN)'])}
-   - Uçuş Tarihi: ${fd(detailRow['UÇUŞ TARİHİ(YAPILAN)'])}
-   - Uçuş Kıymetlendirme: ${detailRow['UÇUŞ KIYMETLENDİRME DURUM'] || '-'}
-   - Değerlendirme: ${detailRow['DEĞERLENDİRME DURUM'] || '-'}
-   - Orman Askı Tarihi: ${fd(detailRow['ORMAN ASKI TARİHİ'])}
-   - Bilgilendirme İlanı: ${fd(detailRow['BİLGİLENDİRME İLANI TARİHİ'])}
-   - Komisyon Durumu: ${detailRow['KOMİSYON DURUM'] || '-'}
-   - Kesin Askı Tarihi: ${fd(detailRow['KESİN ASKI TARİHİ'])}
-`;
-        }
-        
-        reportText += `----------------------------------------------------------------------------------`;
-    });
-
-    reportText += `\n\nBilgilerinize arz ederim.`;
-
-    document.getElementById('general-report-output').value = reportText;
-}
-
-
-function showTab(uygulamaAdi) {
-    document.getElementById('durumFiltresi').value = ''; // Filtreyi sıfırla
-
-    document.querySelectorAll('.table-wrapper').forEach(w => w.classList.remove('active'));
-    document.querySelector(`.table-wrapper[data-group="${uygulamaAdi}"]`).classList.add('active');
-    
-    document.querySelectorAll('.tab-btn').forEach(btn => {
-        btn.classList.remove('active');
-        if (btn.dataset.uygulama === uygulamaAdi || (uygulamaAdi === 'Tümü' && btn.textContent === 'Tümü')) {
-            btn.classList.add('active');
-        }
-    });
-
-    document.querySelectorAll('.summary-card').forEach(card => {
-        if (card.dataset.uygulama !== uygulamaAdi) {
-            card.classList.remove('expanded');
-        }
-    });
-
-    if (uygulamaAdi === 'Tümü') {
-         document.querySelectorAll('.summary-card').forEach(c => c.classList.remove('expanded'));
-    } 
-
-    const kayitSayaci = document.getElementById('kayitSayaci');
-    if (uygulamaAdi === 'Personel Raporu' || uygulamaAdi === 'Notlar' || uygulamaAdi === 'İlçe Raporu' || uygulamaAdi === 'Genel Raporlar') {
-        kayitSayaci.style.display = 'none';
-    } else {
-        kayitSayaci.style.display = 'block';
-    }
-
-    filtrele(); // Filtreyi uygula (artık sıfırlanmış olmalı)
-    setTimeout(setupTopScrollbar, 50);
-    setTimeout(applyStickyColumns, 50);
-}
-
-function saveToGitHub() {
-    const btn = document.getElementById('githubKaydetBtn');
-    btn.disabled = true;
-    btn.innerHTML = 'Kaydediliyor...';
-    // setUyari("Değişiklikler gönderiliyor...", 'bilgi'); // Uyarı yerine container kullanılıyor
-    const uyariContainer = document.getElementById('alerts-container'); // 'alerts-container'ı kullan
-    uyariContainer.innerHTML = `<div class="alert-item info-alert"><strong>Durum:</strong> Değişiklikler gönderiliyor...</div>`;
-    uyariContainer.style.display = 'block';
-
-    (async function() {
-        try {
-            const mainData = getTableDataFromUI();
-            const detailData = getGuncellemeDetailDataFromUI();
-
-            const wb = XLSX.utils.book_new();
-            
-            const mainSheetData = mainData.map(row => {
-                const newRow = {...row};
-                delete newRow.PERSONEL; // Personel butonu için geçici sütunu kaldır
-                return newRow;
-            });
-
-            XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(mainSheetData, {header: EXCEL_HEADERS_MAIN.filter(h => h !== 'PERSONEL'), cellDates:true}), 'İş Takip Listesi');
-            XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(detailData, {header: EXCEL_HEADERS_DETAIL, cellDates:true}), 'Güncelleme');
-            
-            const personelData = [['ad', 'unvan'], ...fullPersonelListesi.map(p => { 
-                const m = p.match(/(.*) \((.*)\)/); 
-                return m ? [m[1].trim(), m[2].trim()] : [p, '']; 
-            })];
-            
-            XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(personelData), 'Personel');
-            XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([['İlçe'], ...ilceListesi.map(i => [i])]), 'İlçe');
-            XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([['Uygulama'], ...uygulamaListesi.map(u => [u])]), 'Uygulama');
-            
-            const listHeaders = ['UÇUŞ KIYMETLENDİRME DURUM', 'KOMİSYON DURUM', 'DEĞERLENDİRME DURUM', 'DURUMU'];
-            const listSheetData = [listHeaders];
-            const maxRows = Math.max(ucusKiyDurumList.length, komisyonDurumList.length, degerlendirmeDurumList.length, durumlar.length);
-            for(let i = 0; i < maxRows; i++) {
-                listSheetData.push([
-                    ucusKiyDurumList[i] || '', 
-                    komisyonDurumList[i] || '', 
-                    degerlendirmeDurumList[i] || '',
-                    durumlar[i] || ''
-                ]);
-            }
-            XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(listSheetData), 'Liste');
-
-            const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'binary' });
-            const base64Content = btoa(wbout);
-
-            const putResponse = await fetch(API_URL, {
-                method: 'PUT',
-                headers: { 'Authorization': `token ${GITHUB_TOKEN}`, 'Content-Type': 'application/json' },
-                body: JSON.stringify({ message: `İş Takip Güncellemesi - ${new Date().toLocaleString()}`, content: base64Content, sha: currentFileSHA })
-            });
-
-            if (!putResponse.ok) throw new Error(`GitHub API Hatası: ${putResponse.status} - ${putResponse.statusText}`);
-            
-            const responseData = await putResponse.json();
-            currentFileSHA = responseData.content.sha;
-            // setUyari('Değişiklikler başarıyla kaydedildi! Veriler yenileniyor...', 'basari');
-            document.getElementById('uyari').style.display = 'block'; // Başarı mesajını göster
-            markAsClean();
-            
-            const activeTab = document.querySelector('.tab-btn.active').dataset.uygulama || 'Tümü';
-            await fetchFromGitHub();
-            showTab(activeTab);
-
-        } catch (error) {
-            console.error('GitHub\'a kaydetme hatası:', error);
-            // setUyari(`Kaydetme başarısız! Hata: ${error.message}`, 'hata');
-            uyariContainer.innerHTML = `<div class="alert-item missing-date-alert"><strong>Hata:</strong> Kaydetme başarısız! ${error.message}</div>`;
-            uyariContainer.style.display = 'block';
-
-            markAsDirty();
-        } finally {
-            btn.disabled = false;
-        }
-    })();
-}
-
-function getTableDataFromUI() {
-    const data = [];
-    const uniqueKeys = new Set();
-    
-    document.querySelectorAll('.table-wrapper:not([data-group="Güncelleme Detay"]):not([data-group="Personel Raporu"]):not([data-group="Notlar"]):not([data-group="İlçe Raporu"]):not([data-group="Genel Raporlar"]) tbody tr:not(.group-header-row)').forEach(row => {
-        const key = row.dataset.rowKey;
-        if (key && !uniqueKeys.has(key)) {
-            const cells = row.querySelectorAll('td');
-            const originalDataRow = isTakipData.find(r => `${r['İLÇE']}|${r['BİRİM']}` === key);
-            // Indexler robot butonu kalktığı için 1 azaldı.
-            // 0: Check, 1: İlçe, 2: Birim, 3: Uygulama, 4: Not Btn, 5: Personel Btn, 6: Hidden Personel Select
-            const personnelWithTitles = $(cells[6]).find('.personel-select').val() || [];
-            const personnelWithoutTitles = personnelWithTitles.map(p => p.replace(/ \(.+\)$/, '').trim());
-
-            data.push({
-                'Tamamlandı': cells[0].querySelector('input[type="checkbox"]').checked ? 'EVET' : 'HAYIR',
-                'İLÇE': cells[1].querySelector('select').value,
-                'BİRİM': cells[2].querySelector('input').value,
-                'UYGULAMA': cells[3].querySelector('select').value,
-                'PERSONEL': '', // This is just a placeholder for the button column
-                'GÖREVLİ PERSONELLER': personnelWithoutTitles.join(', '),
-                'PARSEL SAYISI': cells[7].querySelector('input').value,
-                'BLOK SAYISI': cells[8].querySelector('input').value,
-                'ALAN(Ha)': cells[9].querySelector('input').value,
-                'İHALELİ/MÜDÜRLÜK': cells[1].querySelector('input[type="hidden"]').value,
-                'İŞE BAŞLAMA/YER TESLİMİ': cells[10].querySelector('input').value,
-                'İHALE BİTİŞ TARİHİ': cells[11].querySelector('input').value,
-                'DURUMU': cells[12].querySelector('select').value,
-                'NOTLAR': originalDataRow ? originalDataRow['NOTLAR'] : ''
-            });
-            uniqueKeys.add(key);
-        }
-    });
-    return data;
-}
-
-function getGuncellemeDetailDataFromUI() {
-    const data = [];
-    document.querySelectorAll('#guncellemeDetailTable tbody tr').forEach(row => {
-        const newRow = {};
-        const cells = row.querySelectorAll('td'); // Get all *visible* cells in the row
-        
-        // Get original data to include hidden columns
-        const key = row.dataset.rowKey;
-        const originalDetailRow = guncellemeData.find(r => `${r['İLÇE']}|${r['BİRİM']}` === key) || {};
-        
-        let cellIndex = 0; // Index for visible cells
-        EXCEL_HEADERS_DETAIL.forEach(header => {
-             if (GIZLI_DETAY_SUTUNLAR.includes(header)) {
-                 // Get value from original data for hidden columns
-                 newRow[header] = originalDetailRow[header] || '';
-             } else {
-                 // Get value from visible cells
-                 const cell = cells[cellIndex]; // Get the next visible cell
-                 if (cell) { // Check if cell exists
-                     const inputEl = cell.querySelector('input');
-                     const selectEl = cell.querySelector('select');
-                     
-                     if (selectEl) {
-                         newRow[header] = selectEl.value;
-                     } else if (inputEl) {
-                         newRow[header] = inputEl.value;
-                     } else {
-                         // Fallback if no input/select is found (e.g., plain text, though unlikely now)
-                         newRow[header] = cell.textContent; 
-                     }
-                 }
-                 cellIndex++; // Only increment index for visible cells
-             }
-        });
-        
-        data.push(newRow);
-    });
-    return data;
-}
-
-
-function createRowElement(data = {}, tabName) {
-    const newRow = document.createElement('tr');
-    const rowKey = `${data['İLÇE']}|${data['BİRİM']}`;
-    newRow.dataset.rowKey = rowKey;
-    const isChecked = data['Tamamlandı'] === 'EVET';
-    if(isChecked) newRow.classList.add('tamamlandi');
-
-    const createOptions = (list, selected) => {
-        const selectedUpper = selected ? String(selected).toUpperCase() : null;
-        return list.map(item => {
-            const isSelected = selectedUpper && String(item).toUpperCase() === selectedUpper;
-            return `<option value="${item}" ${isSelected ? 'selected' : ''}>${item}</option>`;
-        }).join('');
-    };
-    
-    const selectedPersonel = data['GÖREVLİ PERSONELLER'] ? String(data['GÖREVLİ PERSONELLER']).split(', ').map(name => {
-        return fullPersonelListesi.find(p => p.toUpperCase().startsWith(name.trim().toUpperCase())) || name.trim();
-    }) : [];
-
-    const hasNote = data['NOTLAR'] && data['NOTLAR'].trim() !== '';
-
-    // Robot butonu kaldırıldı, hücre sayısı azaldı
-    newRow.innerHTML = `
-        <td class="check-cell"><input type="checkbox" data-header="Tamamlandı" ${isChecked ? 'checked' : ''}></td>
-        <td class="col-ilce">
-            <select data-header="İLÇE" disabled title="${data['İLÇE'] || ''}">${createOptions(ilceListesi, data['İLÇE'])}</select>
-            <input type="hidden" data-header="İHALELİ/MÜDÜRLÜK" value="${data['İHALELİ/MÜDÜRLÜK'] || 'İhaleli'}">
-        </td>
-        <td><input type="text" data-header="BİRİM" value="${data['BİRİM'] || ''}" readonly title="${data['BİRİM'] || ''}"></td>
-        <td class="col-uygulama"><select data-header="UYGULAMA">${createOptions(uygulamaListesi, data['UYGULAMA'])}</select></td>
-        <td class="action-btn-cell">
-            <button class="not-btn ${hasNote ? 'has-note' : ''}" title="Not Ekle/Görüntüle">
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-journal-text" viewBox="0 0 16 16">
-                    <path d="M5 10.5a.5.5 0 0 1 .5-.5h2a.5.5 0 0 1 0 1h-2a.5.5 0 0 1-.5-.5zm0-2a.5.5 0 0 1 .5-.5h5a.5.5 0 0 1 0 1h-5a.5.5 0 0 1-.5-.5zm0-2a.5.5 0 0 1 .5-.5h5a.5.5 0 0 1 0 1h-5a.5.5 0 0 1-.5-.5zm0-2a.5.5 0 0 1 .5-.5h5a.5.5 0 0 1 0 1h-5a.5.5 0 0 1-.5-.5z"/>
-                    <path d="M3 0h10a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2v-1h1v1a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1H3a1 1 0 0 0-1 1v1H1V2a2 2 0 0 1 2-2z"/>
-                    <path d="M1 5v-.5a.5.5 0 0 1 1 0V5h.5a.5.5 0 0 1 0 1H2v1h-.5a.5.5 0 0 1 0-1H1zm0 3v-.5a.5.5 0 0 1 1 0V8h.5a.5.5 0 0 1 0 1H2v1h-.5a.5.5 0 0 1 0-1H1zm0 3v-.5a.5.5 0 0 1 1 0v.5h.5a.5.5 0 0 1 0 1H2v1h-.5a.5.5 0 0 1 0-1H1z"/>
-                </svg>
-            </button>
-        </td>
-        <td class="action-btn-cell">
-             <button class="personel-info-btn" title="Personelleri Yönet">
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-people-fill" viewBox="0 0 16 16"><path d="M7 14s-1 0-1-1 1-4 5-4 5 3 5 4-1 1-1 1H7zm4-6a3 3 0 1 0 0-6 3 3 0 0 0 0 6z"/><path fill-rule="evenodd" d="M5.216 14A2.238 2.238 0 0 1 5 13c0-1.355.68-2.75 1.936-3.72A6.325 6.325 0 0 0 5 9c-4 0-5 3-5 4s1 1 1 1h4.216zM4.5 8a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5z"/></svg>
-            </button>
-        </td>
-        <td style="display:none;">
-            <div class="personnel-wrapper">
-                <select class="personel-select" data-header="GÖREVLİ PERSONELLER" multiple="multiple">${createOptions(personelListesi, null)}</select>
+        <div class="top-info-bar flex justify-between items-center mb-8">
+            <div id="weather-widget" class="weather-card hidden sm:flex">
+                <div id="weather-icon" class="text-2xl mr-3">☀️</div>
+                <div>
+                    <div id="weather-temp" class="text-lg font-bold text-header">--°C</div>
+                    <div id="weather-desc" class="text-xs text-subheader">Mersin</div>
+                </div>
             </div>
-        </td>
-        <td class="col-parsel"><input type="number" data-header="PARSEL SAYISI" value="${data['PARSEL SAYISI'] || ''}" readonly title="${data['PARSEL SAYISI'] || ''}"></td>
-        <td><input type="number" data-header="BLOK SAYISI" value="${data['BLOK SAYISI'] || ''}" readonly title="${data['BLOK SAYISI'] || ''}"></td>
-        <td class="col-alan"><input type="number" data-header="ALAN(Ha)" value="${data['ALAN(Ha)'] || ''}" readonly title="${data['ALAN(Ha)'] || ''}"></td>
-        <td class="col-tarih"><input type="date" data-header="İŞE BAŞLAMA/YER TESLİMİ" value="${formatDate(excelDateToJSDate(data['İŞE BAŞLAMA/YER TESLİMİ']))}" readonly title="${formatDate(excelDateToJSDate(data['İŞE BAŞLAMA/YER TESLİMİ']))}"></td>
-        <td class="col-tarih"><input type="date" data-header="İHALE BİTİŞ TARİHİ" value="${formatDate(excelDateToJSDate(data['İHALE BİTİŞ TARİHİ']))}" readonly title="${formatDate(excelDateToJSDate(data['İHALE BİTİŞ TARİHİ']))}"></td>
-        <td><select data-header="DURUMU">${createOptions(durumlar, data['DURUMU'])}</select></td>
-    `;
-    
-    const personelSelect = $(newRow).find('.personel-select');
-    personelSelect.select2({ placeholder: "Personel Seçin" });
-    
-    selectedPersonel.forEach(person => {
-        if (!personelListesi.includes(person)) {
-            personelSelect.append(new Option(person, person, true, true));
-        }
-    });
-
-    personelSelect.val(selectedPersonel).trigger('change.select2');
-    return newRow;
-}
-
-function createGuncellemeDetailRowElement(data) {
-    const newRow = document.createElement('tr');
-    const rowKey = `${data['İLÇE']}|${data['BİRİM']}`;
-    newRow.dataset.rowKey = rowKey;
-
-    const mainDataRow = isTakipData.find(r => r['İLÇE'] === data['İLÇE'] && r['BİRİM'] === data['BİRİM'] && r['UYGULAMA'] === 'GÜNCELLEME');
-    if (mainDataRow && mainDataRow['Tamamlandı'] === 'EVET') {
-        newRow.classList.add('tamamlandi');
-    }
-
-    const createOptions = (list, selected) => `<option value=""></option>` + list.map(item => `<option value="${item}" ${item === selected ? 'selected' : ''}>${item}</option>`).join('');
-    
-    // Görüntülenecek başlıkları filtrele
-    DISPLAY_HEADERS_DETAIL.forEach(header => {
-        let cellHTML = '';
-        let tdClass = '';
-        const headerKey = header; // Direct mapping now
-
-        if (header === 'İLÇE') { // Bu gizlenecek ama veriyi tutmak için var
-            tdClass = 'class="col-wide col-ilce-detail"';
-            const value = data[header] || '';
-            cellHTML = `<input type="text" data-header="${header}" value="${value}" readonly title="${value}">`;
-        } else if (header === 'BİRİM') {
-            tdClass = 'class="col-wide"';
-            const value = data[header] || '';
-            cellHTML = `<input type="text" data-header="${header}" value="${value}" readonly title="${value}">`;
-        } else if (header.includes('SAYISI') || header.includes('TOPLAM PARSEL')) {
-            tdClass = 'class="col-narrow"';
-            const value = data[header] || '';
-            cellHTML = `<input type="number" data-header="${header}" value="${value}" readonly title="${value}">`;
-        } else if (header.includes('DURUM')) {
-             let optionsList = [];
-             const value = data[header] || '';
-             if (header.includes('UÇUŞ')) optionsList = ucusKiyDurumList;
-             else if (header.includes('KOMİSYON')) optionsList = komisyonDurumList;
-             else if (header.includes('DEĞERLENDİRME')) optionsList = degerlendirmeDurumList;
-             cellHTML = `<select data-header="${header}">${createOptions(optionsList, value)}</select>`;
-        } else { // Geri kalanlar tarih olmalı
-             const value = data[header] || '';
-             cellHTML = `<input type="date" data-header="${header}" value="${formatDate(excelDateToJSDate(value))}" title="${formatDate(excelDateToJSDate(value))}">`;
-        }
-        
-        const td = document.createElement('td');
-        td.dataset.header = headerKey;
-        if (tdClass) td.className = tdClass.replace('class="', '').replace('"', '');
-        td.innerHTML = cellHTML;
-        newRow.appendChild(td);
-    });
-
-    return newRow;
-}
-
-function excelDateToJSDate(serial) {
-    if (!serial) return serial;
-
-    // 1. Check if it's already a YYYY-MM-DD string
-    if (typeof serial === 'string' && serial.match(/^\d{4}-\d{2}-\d{2}$/)) {
-        const parts = serial.split('-');
-        const year = parseInt(parts[0], 10);
-        const month = parseInt(parts[1], 10) - 1; // JS month is 0-indexed
-        const day = parseInt(parts[2], 10);
-        if (!isNaN(year) && !isNaN(month) && !isNaN(day)) {
-            return new Date(year, month, day);
-        }
-    }
-
-    // 2. Check if it's a DD.MM.YYYY string
-    if (typeof serial === 'string') {
-        const parts = serial.match(/(\d{1,2})[./-](\d{1,2})[./-](\d{4})/);
-        if (parts) {
-            const day = parseInt(parts[1], 10);
-            const month = parseInt(parts[2], 10) - 1; // JS ayları 0'dan başlar
-            const year = parseInt(parts[3], 10);
-            if (!isNaN(day) && !isNaN(month) && !isNaN(year)) {
-                return new Date(year, month, day);
-            }
-        }
-    }
-
-    // 3. Check if it's an Excel serial number (numeric)
-    if (!isNaN(serial) && Number(serial) > 0 && typeof serial !== 'string') { // Added check for not string
-        const excelEpoch = new Date(1899, 11, 30, 12, 0, 0);
-        excelEpoch.setDate(excelEpoch.getDate() + Number(serial));
-        return excelEpoch;
-    }
-    
-    // 4. If it's some other string, try parsing directly (less reliable)
-    if (typeof serial === 'string') {
-        const d = new Date(serial);
-        if (!isNaN(d.getTime())) {
-            return d;
-        }
-    }
-
-    // If all else fails, return the original (likely invalid) value
-    return serial;
-}
-
-
-function formatDate(date) {
-    if (!date) return '';
-    try {
-        const d = new Date(date);
-        // Geçerli bir tarih mi kontrol et
-        if (isNaN(d.getTime())) {
-             // GG.AA.YYYY formatını dene
-             if (typeof date === 'string') {
-                const parts = date.match(/(\d{1,2})[./-](\d{1,2})[./-](\d{4})/);
-                if (parts) {
-                    const year = parts[3];
-                    const month = parts[2].padStart(2, '0');
-                    const day = parts[1].padStart(2, '0');
-                    return `${year}-${month}-${day}`;
-                }
-             }
-             return ''; // Eğer geçerli tarih değilse boş döndür
-        }
-        return d.toISOString().split('T')[0];
-    } catch (e) {
-        return '';
-    }
-}
-
-
-function durumFiltresiDoldur() {
-    const select = document.getElementById('durumFiltresi');
-    select.innerHTML = '<option value="">Tüm Durumlar</option>';
-    durumlar.forEach(durum => {
-        const option = document.createElement('option');
-        option.value = durum;
-        option.textContent = durum;
-        select.appendChild(option);
-    });
-}
-
-function filtrele() {
-    const aramaInput = document.getElementById('aramaKutusu');
-    const durumInput = document.getElementById('durumFiltresi');
-    const aramaFilter = aramaInput.value.toLocaleUpperCase('tr-TR');
-    const durumFilter = durumInput.value.toUpperCase();
-    const temizleBtn = document.getElementById('aramaTemizleBtn');
-    let toplamGorunenSatir = 0;
-
-    temizleBtn.style.display = aramaInput.value.length > 0 ? 'block' : 'none';
-    
-    const activeWrapper = document.querySelector('.table-wrapper.active');
-    if (!activeWrapper) return;
-
-    // Notlar sayfası için özel filtreleme
-    if (activeWrapper.dataset.group === 'Notlar') {
-        const muhendisFiltre = document.getElementById('notlarMuhendisFiltresi').value;
-        const dataRows = activeWrapper.querySelectorAll("tbody tr");
-        dataRows.forEach(row => {
-            const muhendisCell = row.cells[3]; // Görevli Mühendis sütunu
-            const rowDataText = row.textContent.toLocaleUpperCase('tr-TR');
-
-            const muhendisMatch = (muhendisFiltre === '') || (muhendisCell.textContent.includes(muhendisFiltre));
-            const aramaMatch = (aramaFilter === '') || rowDataText.includes(aramaFilter);
-
-            const isMatch = muhendisMatch && aramaMatch;
-            row.style.display = isMatch ? "" : "none";
-            if (isMatch) toplamGorunenSatir++;
-        });
-        // Notlar sayfasında kayıt sayacı gösterilmiyor
-        return;
-    }
-
-
-    if (activeWrapper.dataset.group === 'Tümü') {
-        const tbodies = activeWrapper.querySelectorAll("tbody");
-        tbodies.forEach(tbody => {
-            const dataRows = tbody.querySelectorAll("tr:not(.group-header-row)");
-            let groupVisibleRowCount = 0;
-            dataRows.forEach(row => {
-                const isMatch = checkRowMatch(row, aramaFilter, durumFilter);
-                row.style.display = isMatch ? "" : "none";
-                if (isMatch) groupVisibleRowCount++;
-            });
-
-            const headerRow = tbody.querySelector('.group-header-row');
-            if(headerRow) {
-                tbody.style.display = groupVisibleRowCount > 0 ? "" : "none";
-                headerRow.querySelector('.group-count').textContent = groupVisibleRowCount;
-            }
-            toplamGorunenSatir += groupVisibleRowCount;
-        });
-    } else { 
-        const dataRows = activeWrapper.querySelectorAll("tbody tr");
-        dataRows.forEach(row => {
-            const isMatch = checkRowMatch(row, aramaFilter, durumFilter);
-            row.style.display = isMatch ? "" : "none";
-            if (isMatch) toplamGorunenSatir++;
-        });
-    }
-
-    document.getElementById('kayitSayaci').textContent = `Toplam ${toplamGorunenSatir} kayıt gösteriliyor.`;
-    applyDistrictBorders();
-}
-
-function checkRowMatch(row, aramaFilter, durumFilter) {
-    const isMainTable = row.closest('table').id !== 'guncellemeDetailTable';
-    
-    if (isMainTable) {
-        const cells = row.getElementsByTagName("td");
-        if (cells.length < 13) return true; // Header row vs. için koruma
-
-        const ilceSelect = cells[1].querySelector('select');
-        const birimInput = cells[2].querySelector('input');
-        
-        // Arama için tüm personelleri içeren bir metin oluştur
-        const key = row.dataset.rowKey;
-        const dataRow = isTakipData.find(r => `${r['İLÇE']}|${r['BİRİM']}` === key);
-        const personelText = (dataRow && dataRow['GÖREVLİ PERSONELLER']) ? dataRow['GÖREVLİ PERSONELLER'].toLocaleUpperCase('tr-TR') : "";
-
-        const durumSelect = cells[cells.length - 1].querySelector('select');
-
-        if (!ilceSelect || !birimInput || !durumSelect) return true;
-        
-        const ilceText = ilceSelect.value.toLocaleUpperCase('tr-TR');
-        const birimText = birimInput.value.toLocaleUpperCase('tr-TR');
-        const durumText = durumSelect.value.toUpperCase();
-        
-        const combinedText = `${ilceText} ${birimText} ${personelText}`;
-        const textMatch = aramaFilter === '' || combinedText.includes(aramaFilter);
-        const durumMatch = durumFilter === '' || durumText === durumFilter;
-        return textMatch && durumMatch;
-    } else { // Güncelleme Detay Tablosu
-        const cells = row.getElementsByTagName("td");
-        // Görünen hücre sayısı artık daha az
-        if (cells.length < DISPLAY_HEADERS_DETAIL.length) return true; // Başlık sayısı ile karşılaştır
-
-        const ilceInput = cells[0].querySelector('input'); // Gerçekte gizli ama veriyi buradan alıyoruz
-        const birimInput = cells[1].querySelector('input');
-        if(!ilceInput || !birimInput) return true;
-        
-        const key = row.dataset.rowKey;
-        const dataRow = isTakipData.find(r => `${r['İLÇE']}|${r['BİRİM']}` === key);
-        const personelText = (dataRow && dataRow['GÖREVLİ PERSONELLER']) ? dataRow['GÖREVLİ PERSONELLER'].toLocaleUpperCase('tr-TR') : "";
-
-        const ilceText = ilceInput.value.toLocaleUpperCase('tr-TR');
-        const birimText = birimInput.value.toLocaleUpperCase('tr-TR');
-        const combinedText = `${ilceText} ${birimText} ${personelText}`;
-        
-        // Detay sayfasında durum filtresi uygulanmaz, sadece metin araması
-        return aramaFilter === '' || combinedText.includes(aramaFilter);
-    }
-}
-
-function aramaTemizle() {
-    document.getElementById('aramaKutusu').value = '';
-    document.getElementById('durumFiltresi').value = '';
-    // Notlar sayfasındaysak mühendis filtresini de temizle
-    const notFiltresi = document.getElementById('notlarMuhendisFiltresi');
-    if (notFiltresi) notFiltresi.value = '';
-    filtrele();
-}
-
-function toggleGroup(tbody) {
-    const dataRows = tbody.querySelectorAll('tr:not(.group-header-row)');
-    const button = tbody.querySelector('.group-toggle-btn');
-    const isHidden = dataRows.length > 0 && dataRows[0].style.display === 'none';
-
-    dataRows.forEach(row => {
-       if (isHidden) {
-         if(checkRowMatch(row, document.getElementById('aramaKutusu').value.toUpperCase(), document.getElementById('durumFiltresi').value.toUpperCase())) {
-            row.style.display = '';
-         }
-       } else {
-            row.style.display = 'none';
-       }
-    });
-    
-    button.textContent = isHidden ? 'Kapat' : 'Aç';
-}
-
-function excelIndir() {
-    const mainData = getTableDataFromUI();
-    const detailData = getGuncellemeDetailDataFromUI();
-    const wb = XLSX.utils.book_new();
-    const wsMain = XLSX.utils.json_to_sheet(mainData, {header: EXCEL_HEADERS_MAIN});
-    wsMain['!cols'] = getColumnWidths(mainData, EXCEL_HEADERS_MAIN);
-    XLSX.utils.book_append_sheet(wb, wsMain, 'İş Takip Listesi');
-    const wsDetail = XLSX.utils.json_to_sheet(detailData, {header: EXCEL_HEADERS_DETAIL});
-    wsDetail['!cols'] = getColumnWidths(detailData, EXCEL_HEADERS_DETAIL);
-    XLSX.utils.book_append_sheet(wb, wsDetail, 'Güncelleme Detay');
-    XLSX.writeFile(wb, `IhaleTakip_Indirilen_${new Date().toISOString().slice(0,10)}.xlsx`);
-}
-
-function getColumnWidths(data, headers) {
-    const widths = headers.map(header => ({ wch: header.length })); 
-    data.forEach(row => {
-        headers.forEach((header, i) => {
-            const cellValue = row[header] ? String(row[header]) : '';
-            if (cellValue.length > widths[i].wch) {
-                widths[i].wch = cellValue.length;
-            }
-        });
-    });
-    widths.forEach(width => {
-        width.wch = Math.min(Math.max(width.wch, 10), 40) + 2;
-    });
-    return widths;
-}
-
-function showToast(message) {
-    const toast = document.getElementById('toast');
-    toast.textContent = message;
-    toast.className = "show";
-    setTimeout(() => { 
-        toast.className = toast.className.replace("show", ""); 
-    }, 3000);
-}
-
-function calculateColumnSum(data, columnName) {
-    return data.reduce((sum, row) => sum + (Number(row[columnName]) || 0), 0);
-}
-
-function applyDistrictBorders() {
-    const activeTable = document.querySelector('.table-wrapper.active table');
-    if (!activeTable) return;
-    const tableWrapper = activeTable.closest('.table-wrapper');
-    if (!tableWrapper) return;
-
-    // Stil ve etiketleri temizle
-    tableWrapper.style.position = 'relative'; // Konumlandırma için
-    tableWrapper.querySelectorAll('.district-label').forEach(label => label.remove());
-    
-    const rows = activeTable.querySelectorAll('tbody tr:not(.group-header-row)');
-    rows.forEach(row => { row.style.borderTop = ''; });
-    
-    const colors = ['#ff6347', '#4682b4', '#32cd32', '#ff8c00', '#9370db', '#00ced1', '#f08080'];
-    let colorIndex = 0;
-    let lastIlce = null;
-    const isDetailTable = activeTable.id === 'guncellemeDetailTable';
-    const ilceColumnIndex = isDetailTable ? 0 : 1;
-    
-    const tableWrapperRect = tableWrapper.getBoundingClientRect();
-
-    rows.forEach(row => {
-        if (row.style.display === 'none') return; 
-
-        const ilceCell = row.cells[ilceColumnIndex];
-        if (!ilceCell) return;
-        
-        const currentIlceElement = ilceCell.querySelector('select, input');
-        if (!currentIlceElement) return;
-        
-        const currentIlce = currentIlceElement.value;
-
-        if (currentIlce !== lastIlce) {
-            const color = colors[colorIndex % colors.length];
-            row.style.borderTop = `3px solid ${color}`;
-
-            const label = document.createElement('div');
-            label.className = 'district-label';
-            label.textContent = currentIlce;
-            label.style.backgroundColor = color;
-            label.style.position = 'absolute';
-            label.style.top = (row.getBoundingClientRect().top - tableWrapperRect.top - 9) + 'px';
-
-            if (isDetailTable) {
-                 label.style.left = '5px';
-            } else {
-                const referenceCell = row.cells[ilceColumnIndex - 1]; // Checkbox cell
-                if(referenceCell) {
-                   label.style.left = (referenceCell.getBoundingClientRect().right - tableWrapperRect.left) + 'px';
-                }
-            }
-            
-            tableWrapper.appendChild(label);
-
-            colorIndex++;
-            lastIlce = currentIlce;
-        }
-    });
-}
-
-function setupTopScrollbar() {
-    const tableContainer = document.getElementById('tableContainer');
-    const topScrollbarWrapper = document.getElementById('top-scrollbar-wrapper');
-    const topScrollbarContent = document.getElementById('top-scrollbar-content');
-    const hasOverflow = tableContainer.scrollWidth > tableContainer.clientWidth;
-    topScrollbarWrapper.style.display = hasOverflow ? 'block' : 'none';
-
-    if (!hasOverflow) return;
-
-    topScrollbarContent.style.width = tableContainer.scrollWidth + 'px';
-    let isSyncing = false;
-    tableContainer.onscroll = function() {
-        if (isSyncing) return;
-        isSyncing = true;
-        topScrollbarWrapper.scrollLeft = tableContainer.scrollLeft;
-        isSyncing = false;
-    };
-    topScrollbarWrapper.onscroll = function() {
-        if (isSyncing) return;
-        isSyncing = true;
-        tableContainer.scrollLeft = topScrollbarWrapper.scrollLeft;
-        isSyncing = false;
-    };
-}
-
-function applyStickyColumns() {
-    const activeTable = document.querySelector('.table-wrapper.active table:not(#guncellemeDetailTable)');
-    if (!activeTable) return;
-
-    activeTable.querySelectorAll('thead th, tbody tr:not(.group-header-row) td').forEach(cell => {
-        cell.classList.remove('sticky-col');
-        cell.style.left = '';
-    });
-
-    const rows = activeTable.querySelectorAll('thead tr, tbody tr:not(.group-header-row)');
-    rows.forEach(row => {
-        let leftOffset = 0;
-        const cells = row.querySelectorAll('th, td');
-        for (let i = 0; i < STICKY_COLS_COUNT; i++) {
-            if (cells[i] && window.getComputedStyle(cells[i]).display !== 'none') {
-                cells[i].classList.add('sticky-col');
-                cells[i].style.left = leftOffset + 'px';
-                leftOffset += cells[i].getBoundingClientRect().width;
-            }
-        }
-    });
-}
-
-function savePersonelChanges() {
-    if (!currentEditingRowKey) return;
-    const [ilce, birim] = currentEditingRowKey.split('|');
-    const dataRow = isTakipData.find(r => r['İLÇE'] == ilce && r['BİRİM'] == birim);
-    
-    if(dataRow) {
-        const selectedPersonnel = $('#personel-modal-select').val() || [];
-        const personnelWithoutTitles = selectedPersonnel.map(p => p.replace(/ \(.+\)$/, '').trim());
-        dataRow['GÖREVLİ PERSONELLER'] = personnelWithoutTitles.join(', ');
-        
-        const rowInTable = document.querySelector(`tr[data-row-key="${currentEditingRowKey}"]`);
-        if (rowInTable) {
-            const hiddenSelect = $(rowInTable).find('.personel-select');
-            hiddenSelect.val(selectedPersonnel).trigger('change.select2');
-        }
-
-        markAsDirty();
-        document.getElementById('personel-modal').style.display = 'none';
-        showToast('Personel listesi güncellendi. Kaydetmeyi unutmayın.');
-    }
-}
-
-function saveNoteChanges() {
-    if (!currentEditingRowKey) return;
-    const [ilce, birim] = currentEditingRowKey.split('|');
-    const dataRow = isTakipData.find(r => r['İLÇE'] == ilce && r['BİRİM'] == birim);
-
-    if (dataRow) {
-        const newNote = document.getElementById('not-modal-textarea').value;
-        dataRow['NOTLAR'] = newNote;
-
-        document.querySelectorAll(`tr[data-row-key="${currentEditingRowKey}"] .not-btn`).forEach(btn => {
-            btn.classList.toggle('has-note', newNote && newNote.trim() !== '');
-        });
-
-        markAsDirty();
-        document.getElementById('not-modal').style.display = 'none';
-        showToast('Not güncellendi. Kaydetmeyi unutmayın.');
-        
-        const notlarWrapper = document.getElementById('notlar-wrapper');
-        notlarWrapper.innerHTML = '';
-        notlarWrapper.appendChild(createNotesTable());
-    }
-}
-
-function extractDateFromNote(note) {
-    if (!note) return null;
-    // GG.AA.YYYY veya GG/AA/YYYY veya GG-AA-YYYY formatlarını ara
-    const regex = /(\d{1,2})[./-](\d{1,2})[./-](\d{4})/; 
-    const match = note.match(regex);
-    if (match) {
-        let day = parseInt(match[1], 10);
-        let month = parseInt(match[2], 10) - 1; // JS months are 0-indexed
-        let year = parseInt(match[3], 10);
-
-        // Tarih geçerliliğini basitçe kontrol et
-        if (day > 0 && day <= 31 && month >= 0 && month <= 11 && year > 1900 && year < 2100) {
-            return new Date(year, month, day);
-        }
-    }
-    return null; // Eşleşme yoksa veya geçersiz tarih ise null döndür
-}
-
-
-function createNotesTable() {
-    const container = document.createElement('div');
-    
-    // Filtreleme kontrolleri için div
-    const filterContainer = document.createElement('div');
-    filterContainer.className = 'notes-filter-container';
-    
-    const excelButton = document.createElement('button');
-    excelButton.id = 'notExcelIndirBtn';
-    excelButton.className = 'info';
-    excelButton.innerHTML = `
-        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-file-earmark-excel" viewBox="0 0 16 16">
-            <path d="M5.884 6.68a.5.5 0 1 0-.768.64L7.302 9.28a.5.5 0 0 0 .768-.64L5.884 6.68z"/>
-            <path d="M.5 14a2 2 0 0 0 2 2h11a2 2 0 0 0 2-2V7.5L10.5 2H2.5a2 2 0 0 0-2 2v10zM2 2a1 1 0 0 1 1-1h5.5v2A1.5 1.5 0 0 0 10 4.5h2V14a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V2z"/>
-            <path d="M9.293 0H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V4.707A1 1 0 0 0 13.707 4L10 .293A1 1 0 0 0 9.293 0zM9.5 3.5v-2l3 3h-2a1 1 0 0 1-1-1zM6.637 11.886a.5.5 0 0 0 .736.03l2.445-2.444a.5.5 0 0 0-.707-.707L7 10.569 5.51 9.079a.5.5 0 0 0-.707.707l1.834 1.834z"/>
-        </svg>
-        Not Raporunu Excel'e Aktar
-    `;
-    excelButton.onclick = excelIndirNotlar;
-    
-    const muhendisSelect = document.createElement('select');
-    muhendisSelect.id = 'notlarMuhendisFiltresi';
-    muhendisSelect.onchange = filtrele;
-    muhendisSelect.innerHTML = '<option value="">Tüm Mühendisler</option>';
-    muhendisListesi.forEach(m => {
-        const muhendisAdi = m.replace(/ \(.+\)$/, '').trim(); // Unvansız adı al
-        muhendisSelect.options.add(new Option(m, muhendisAdi)); // Değer olarak unvansız adı kullan
-    });
-
-    filterContainer.appendChild(excelButton);
-    filterContainer.appendChild(muhendisSelect);
-    container.appendChild(filterContainer);
-
-    // Tablo
-    const table = document.createElement('table');
-    table.id = 'notlar-table';
-    table.innerHTML = `<thead><tr><th>UYGULAMA</th><th>İLÇE</th><th>BİRİM</th><th>GÖREVLİ MÜHENDİS</th><th>NOT</th></tr></thead>`;
-    const tbody = document.createElement('tbody');
-    
-    const notesWithData = isTakipData
-        .filter(row => row['NOTLAR'] && row['NOTLAR'].trim() !== '')
-        .map(row => ({ ...row, extractedDate: extractDateFromNote(row['NOTLAR']) }));
-
-    notesWithData.sort((a, b) => {
-        const dateA = a.extractedDate;
-        const dateB = b.extractedDate;
-        if (dateA && dateB) return dateA - dateB; // Önce tarihli olanlar, tarihe göre artan
-        if (dateA) return -1; // Tarihi olan, olmayandan önce
-        if (dateB) return 1;  // Tarihi olmayan, olandan sonra
-        return 0; // İkisinde de tarih yoksa sıralama değişmez
-    });
-
-    notesWithData.forEach(row => {
-        const tr = document.createElement('tr');
-        tr.className = 'note-row';
-        const rowKey = `${row['İLÇE']}|${row['BİRİM']}`;
-        tr.dataset.rowKey = rowKey;
-        tr.dataset.uygulama = row['UYGULAMA'];
-        
-        // Tamamlandı durumunu ekle
-        if(row['Tamamlandı'] === 'EVET') {
-            tr.classList.add('tamamlandi');
-        }
-
-        const engineers = (row['GÖREVLİ PERSONELLER'] || '')
-            .split(', ')
-            .map(name => name.trim())
-            .filter(name => {
-                const fullName = fullPersonelListesi.find(p => p.toLocaleUpperCase('tr-TR').startsWith(name.toLocaleUpperCase('tr-TR')));
-                return fullName && muhendisListesi.includes(fullName);
-            })
-            .join(', ');
-
-        tr.innerHTML = `
-            <td>${row['UYGULAMA']}</td>
-            <td>${row['İLÇE']}</td>
-            <td>${row['BİRİM']}</td>
-            <td class="muhendis-cell">${engineers}</td>
-            <td class="note-cell">${row['NOTLAR']}</td>
-        `;
-        
-        tr.addEventListener('click', (e) => {
-                if (e.target.tagName === 'BUTTON' || e.target.tagName === 'TEXTAREA') return;
-
-            const noteCell = tr.querySelector('.note-cell');
-            if (noteCell.querySelector('.note-edit-container')) return;
-            
-            const noteText = isTakipData.find(r => `${r['İLÇE']}|${r['BİRİM']}` === rowKey)['NOTLAR'];
-
-            noteCell.innerHTML = `
-                <div class="note-edit-container">
-                    <textarea rows="4">${noteText || ''}</textarea>
-                    <div class="note-edit-buttons">
-                        <button class="note-delete-inline danger">Sil</button>
-                        <button class="note-save-inline success">Kaydet</button>
+            <div class="flex items-center space-x-4">
+                <div id="live-info" class="text-lg font-medium text-subheader text-right">
+                    <span id="time" class="block sm:inline"></span>
+                    <span class="hidden sm:inline mx-2">|</span>
+                    <span id="date" class="block sm:inline text-sm sm:text-lg"></span>
+                </div>
+                <div class="h-6 w-px bg-gray-600 mx-2"></div>
+                <button id="theme-toggle" class="p-2 rounded-full bg-gray-700 hover:bg-gray-600 transition-colors flex-shrink-0" title="Temayı Değiştir"></button>
+                <button id="lock-toggle" class="p-2 rounded-full bg-red-600 hover:bg-red-700 text-white transition-colors flex-shrink-0" title="Kilitle">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
+                </button>
+            </div>
+        </div>
+
+        <header class="text-center mb-8">
+            <h1 class="text-4xl md:text-5xl font-bold mb-2 bg-gradient-to-r from-purple-400 to-indigo-500 text-transparent bg-clip-text">Uygulama Merkezi</h1>
+        </header>
+
+        <div class="max-w-4xl mx-auto mb-10 w-full">
+            <div class="bg-gray-800 dashboard-note-bg rounded-xl shadow-lg border border-gray-700 overflow-hidden transition-all duration-300">
+                <div id="dashboard-toggle" class="p-4 flex justify-between items-center cursor-pointer hover:bg-gray-700/50 transition-colors">
+                    <div class="flex items-center space-x-3">
+                        <div class="bg-indigo-600/20 text-indigo-400 p-2 rounded-lg">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path></svg>
+                        </div>
+                        <div>
+                            <h3 class="text-lg font-bold text-header">Hızlı Bildirimler & Notlar</h3>
+                            <p class="text-xs text-subheader">Bulut senkronizasyonlu hatırlatıcı</p>
+                        </div>
+                    </div>
+                    <div class="flex items-center space-x-3">
+                        <span id="sync-status" class="text-xs text-gray-500 hidden sm:block"></span>
+                        <span id="dashboard-count" class="bg-red-500 text-white text-xs font-bold px-2.5 py-1 rounded-full hidden shadow-sm animate-pulse">0</span>
+                        <svg id="dashboard-chevron" class="w-6 h-6 text-gray-400 transform transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
                     </div>
                 </div>
-            `;
-
-            noteCell.querySelector('.note-save-inline').addEventListener('click', () => {
-                const newNote = noteCell.querySelector('textarea').value;
-                const dataRow = isTakipData.find(r => `${r['İLÇE']}|${r['BİRİM']}` === rowKey);
-                dataRow['NOTLAR'] = newNote;
-                noteCell.innerHTML = newNote;
-                
-                document.querySelectorAll(`tr[data-row-key="${rowKey}"] .not-btn`).forEach(btn => {
-                    btn.classList.toggle('has-note', newNote && newNote.trim() !== '');
-                });
-                
-                if (!newNote || newNote.trim() === '') {
-                    tr.remove();
-                }
-                markAsDirty();
-                showToast('Not güncellendi. Kaydetmeyi unutmayın.');
-                // Notlar tablosunu yeniden sırala ve çiz
-                const notlarWrapper = document.getElementById('notlar-wrapper');
-                notlarWrapper.innerHTML = '';
-                notlarWrapper.appendChild(createNotesTable());
-
-            });
-
-            noteCell.querySelector('.note-delete-inline').addEventListener('click', () => {
-                const dataRow = isTakipData.find(r => `${r['İLÇE']}|${r['BİRİM']}` === rowKey);
-                dataRow['NOTLAR'] = '';
-                tr.remove();
-                document.querySelectorAll(`tr[data-row-key="${rowKey}"] .not-btn`).forEach(btn => {
-                    btn.classList.remove('has-note');
-                });
-                markAsDirty();
-                showToast('Not silindi. Kaydetmeyi unutmayın.');
-            });
-        });
-
-
-        tbody.appendChild(tr);
-    });
-
-    // Satır atlama işlevselliği
-    tbody.addEventListener('click', (e) => {
-        const row = e.target.closest('.note-row');
-        if (row && e.target.tagName !== 'TEXTAREA' && e.target.tagName !== 'BUTTON') {
-            const rowKey = row.dataset.rowKey;
-            const uygulama = row.dataset.uygulama;
-
-            let targetTab = 'Tümü';
-            document.querySelectorAll('#tabs .tab-btn').forEach(btn => {
-                if(btn.textContent.startsWith(uygulama)){
-                    targetTab = uygulama;
-                }
-            });
-
-            const dataRow = isTakipData.find(r => `${r['İLÇE']}|${r['BİRİM']}` === rowKey);
-            if(dataRow && dataRow['İHALELİ/MÜDÜRLÜK'] === 'Müdürlük') {
-                targetTab = 'Müdürlük';
-            }
-            
-            showTab(targetTab);
-
-            setTimeout(() => {
-                const targetRow = document.querySelector(`.table-wrapper.active tr[data-row-key="${rowKey}"]`);
-                if(targetRow){
-                    targetRow.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                    targetRow.style.transition = 'background-color 0.5s';
-                    targetRow.style.backgroundColor = '#fff3cd';
-                    setTimeout(() => {
-                        targetRow.style.backgroundColor = '';
-                    }, 2000);
-                }
-            }, 100);
-        }
-    });
-
-    table.appendChild(tbody);
-    container.appendChild(table);
-    return container;
-}
-
-function excelIndirNotlar() {
-    const noteData = isTakipData
-        .filter(row => row['NOTLAR'] && row['NOTLAR'].trim() !== '')
-        .map(row => ({ ...row, extractedDate: extractDateFromNote(row['NOTLAR']) }))
-        .sort((a, b) => {
-            const dateA = a.extractedDate;
-            const dateB = b.extractedDate;
-            if (dateA && dateB) return dateA - dateB;
-            if (dateA) return -1;
-            if (dateB) return 1;
-            return 0;
-        });
-
-    const groupedByIlce = noteData.reduce((acc, row) => {
-        const ilce = row['İLÇE'];
-        if (!acc[ilce]) acc[ilce] = [];
-        acc[ilce].push(row);
-        return acc;
-    }, {});
-
-    const headers = ['UYGULAMA', 'İLÇE', 'BİRİM', 'GÖREVLİ MÜHENDİS', 'NOT'];
-    const excelData = [];
-    
-    // Filtrelenmiş mühendisi al (varsa)
-    const muhendisFiltre = document.getElementById('notlarMuhendisFiltresi').value;
-
-    Object.keys(groupedByIlce).sort().forEach(ilce => {
-        excelData.push([ilce]); // İlçe başlık satırı
-        excelData.push(headers); // Sütun başlıkları
-
-        let ilceData = groupedByIlce[ilce];
-        
-        // Mühendis filtresi uygulanmışsa veriyi filtrele
-        if (muhendisFiltre !== '') {
-            ilceData = ilceData.filter(row => {
-                const engineers = (row['GÖREVLİ PERSONELLER'] || '')
-                    .split(', ')
-                    .map(name => name.trim())
-                    .filter(name => {
-                        const fullName = fullPersonelListesi.find(p => p.toLocaleUpperCase('tr-TR').startsWith(name.toLocaleUpperCase('tr-TR')));
-                        return fullName && muhendisListesi.includes(fullName);
-                    });
-                
-                // Unvansız isim listesi oluştur
-                const unvansizEngineers = engineers.map(e => e.replace(/ \(.+\)$/, '').trim());
-                return unvansizEngineers.includes(muhendisFiltre);
-            });
-        }
-        
-        ilceData.forEach(row => {
-            const engineers = (row['GÖREVLİ PERSONELLER'] || '')
-                .split(', ')
-                .map(name => name.trim())
-                .filter(name => {
-                    const fullName = fullPersonelListesi.find(p => p.toLocaleUpperCase('tr-TR').startsWith(name.toLocaleUpperCase('tr-TR')));
-                    return fullName && muhendisListesi.includes(fullName);
-                })
-                .join(', ');
-            
-            excelData.push([
-                row['UYGULAMA'],
-                row['İLÇE'],
-                row['BİRİM'],
-                engineers,
-                row['NOTLAR']
-            ]);
-        });
-        excelData.push([]); // İlçeler arasına boş satır
-    });
-
-    const wb = XLSX.utils.book_new();
-    const ws = XLSX.utils.aoa_to_sheet(excelData);
-    
-    // Sütun genişliklerini ayarla (Not sütunu daha geniş)
-    ws['!cols'] = [ { wch: 15 }, { wch: 15 }, { wch: 20 }, { wch: 30 }, { wch: 60 } ];
-    
-    // Stil tanımları
-    const headerStyle = { font: { bold: true, color: { rgb: "FFFFFF" } }, fill: { fgColor: { rgb: "007BFF" } } };
-    const ilceHeaderStyle = { font: { bold: true, sz: 14, color: { rgb: "0056B3" } }, fill: { fgColor: { rgb: "E7F1FF" } } };
-
-    // Stilleri uygulama
-    for (let R = 0; R < excelData.length; ++R) {
-        if (excelData[R].length === 1) { // İlçe Başlığı
-            const cellRef = XLSX.utils.encode_cell({c: 0, r: R});
-            if(!ws[cellRef]) ws[cellRef] = {};
-            ws[cellRef].s = ilceHeaderStyle;
-            // Hücreleri birleştir
-            if (!ws['!merges']) ws['!merges'] = [];
-            ws['!merges'].push({ s: { r: R, c: 0 }, e: { r: R, c: headers.length - 1 } });
-        } else if (excelData[R].join(',') === headers.join(',')) { // Sütun Başlıkları
-            for(let C = 0; C < headers.length; ++C) {
-                const cellRef = XLSX.utils.encode_cell({c: C, r: R});
-                if(!ws[cellRef]) ws[cellRef] = {};
-                ws[cellRef].s = headerStyle;
-            }
-        }
-    }
-
-    XLSX.utils.book_append_sheet(wb, ws, 'Not Raporu');
-    XLSX.writeFile(wb, `NotRaporu_${new Date().toISOString().slice(0,10)}.xlsx`);
-}
-
-function createSummaryCards() {
-    const container = document.getElementById('summary-cards-container');
-    container.innerHTML = '';
-    const groups = {
-        '2/B': { data: isTakipData.filter(r => r['UYGULAMA'] === '2/B' && r['İHALELİ/MÜDÜRLÜK'] !== 'Müdürlük'), colorClass: 'card-2b' },
-        'GÜNCELLEME': { data: isTakipData.filter(r => r['UYGULAMA'] === 'GÜNCELLEME' && r['İHALELİ/MÜDÜRLÜK'] !== 'Müdürlük'), colorClass: 'card-guncelleme' },
-        'Müdürlük': { data: isTakipData.filter(r => r['İHALELİ/MÜDÜRLÜK'] === 'Müdürlük'), colorClass: 'card-mudurluk' }
-    };
-
-    for (const groupName in groups) {
-        const group = groups[groupName];
-        if (group.data.length === 0) continue;
-
-        const card = document.createElement('div');
-        card.className = `summary-card ${group.colorClass}`;
-        card.dataset.uygulama = groupName;
-
-        const totalCount = group.data.length;
-        const statusCounts = group.data.reduce((acc, row) => {
-            const status = row['DURUMU'] || 'Belirsiz';
-            acc[status] = (acc[status] || 0) + 1;
-            return acc;
-        }, {});
-        
-        let projectStartDate = null;
-        let projectEndDate = null;
-        
-        if (groupName === 'GÜNCELLEME') {
-             group.data.forEach(job => {
-                const detailRow = guncellemeData.find(d => d['İLÇE'] === job['İLÇE'] && d['BİRİM'] === job['BİRİM']);
-                if (detailRow) {
-                    const startDate = excelDateToJSDate(detailRow['İŞE BAŞLAMA']);
-                    const endDate = excelDateToJSDate(detailRow['BİTİŞ TARİHİ']);
-                    if (startDate instanceof Date && !isNaN(startDate)) {
-                        if (!projectStartDate || startDate < projectStartDate) projectStartDate = startDate;
-                    }
-                    if (endDate instanceof Date && !isNaN(endDate)) {
-                        if (!projectEndDate || endDate > projectEndDate) projectEndDate = endDate;
-                    }
-                }
-            });
-        }
-
-        let breakdownHTML = '<div class="status-breakdown">';
-        Object.entries(statusCounts).sort((a,b) => b[1] - a[1]).forEach(([status, count]) => {
-            let detailListHTML = '';
-            // GÜNCELLEME kartına özel tarih bilgisi ekle
-            if (groupName === 'GÜNCELLEME') {
-                const jobsInStatus = group.data.filter(job => (job['DURUMU'] || 'Belirsiz') === status);
-                detailListHTML += '<ul>';
-                jobsInStatus.forEach(job => {
-                    const detailRow = guncellemeData.find(d => d['İLÇE'] === job['İLÇE'] && d['BİRİM'] === job['BİRİM']);
-                    let dateInfo = '';
-                    if (detailRow) {
-                        const startDate = formatDate(excelDateToJSDate(detailRow['İŞE BAŞLAMA']));
-                        const endDate = formatDate(excelDateToJSDate(detailRow['BİTİŞ TARİHİ']));
-                        
-                        if (startDate && endDate) {
-                            dateInfo = ` (${startDate} - ${endDate})`;
-                        } else if (startDate) {
-                            dateInfo = ` (${startDate} - ...)`;
-                        } else if (endDate) {
-                             dateInfo = ` (... - ${endDate})`;
-                        }
-                    }
-                    detailListHTML += `<li><span>${job['İLÇE']} - ${job['BİRİM']}</span><span class="item-dates">${dateInfo}</span></li>`;
-                });
-                detailListHTML += '</ul>';
-            }
-             breakdownHTML += `<div class="status-item" data-status="${status}">
-                                 <span>${status}${detailListHTML}</span>
-                                 <strong>${count}</strong>
-                             </div>`;
-        });
-        breakdownHTML += '</div>';
-
-        let dateRangeHTML = '';
-        if (projectStartDate && projectEndDate) {
-            dateRangeHTML = `<span class="project-date-range">Proje Tarih Aralığı: ${formatDate(projectStartDate)} - ${formatDate(projectEndDate)}</span>`;
-        }
-
-
-        card.innerHTML = `
-            <h3>${groupName} İşleri</h3>
-            <div class="card-content">
-                <p class="total-count">${totalCount} İş</p>
-                ${dateRangeHTML}
-                ${breakdownHTML}
+                <div id="dashboard-content" class="hidden border-t border-gray-700 bg-gray-900/30">
+                    <div class="p-4 border-b border-gray-700/50 flex flex-col md:flex-row gap-3">
+                        <input type="text" id="quick-note-text" placeholder="Not ekle..." class="flex-grow p-2.5 rounded-lg bg-gray-700 border border-gray-600 text-white text-sm focus:outline-none focus:border-indigo-500">
+                        <input type="datetime-local" id="quick-note-date" class="p-2.5 rounded-lg bg-gray-700 border border-gray-600 text-white text-sm cursor-pointer">
+                        <select id="quick-note-priority" class="p-2.5 rounded-lg bg-gray-700 border border-gray-600 text-white text-sm cursor-pointer">
+                            <option value="normal">Normal</option>
+                            <option value="important">Önemli</option>
+                            <option value="critical">Kritik</option>
+                        </select>
+                        <button id="add-quick-note-btn" class="bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 px-4 rounded-lg text-sm transition-colors flex items-center justify-center flex-shrink-0">Ekle</button>
+                    </div>
+                    <div id="dashboard-list" class="p-3 space-y-2 max-h-64 overflow-y-auto custom-scrollbar">
+                        <div class="text-center text-gray-500 py-4 text-sm">Yükleniyor...</div>
+                    </div>
+                </div>
             </div>
-        `;
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
+             <div id="open-tkgm-modal" class="category-card card bg-gray-800 p-6 rounded-2xl shadow-lg flex flex-col justify-center items-center text-center cursor-pointer transform hover:-translate-y-2 transition-all duration-300 hover:shadow-blue-500/50 space-y-3">
+                <div class="bg-blue-500 p-3 rounded-xl"><svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 14v3m4-3v3m4-3v3M3 21h18M3 10h18M3 7l9-4 9 4M4 10h16v11H4V10z"></path></svg></div>
+                <div><h2 class="text-xl md:text-2xl font-bold text-header">TKGM Sistemleri</h2><p class="text-subheader mt-2 text-sm md:text-base">Resmi kurum uygulamaları</p></div>
+            </div>
+            <div id="open-projects-modal" class="category-card card bg-gray-800 p-6 rounded-2xl shadow-lg flex flex-col justify-center items-center text-center cursor-pointer transform hover:-translate-y-2 transition-all duration-300 hover:shadow-purple-500/50 space-y-3">
+                 <div class="bg-purple-500 p-3 rounded-xl"><svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"></path></svg></div>
+                 <div><h2 class="text-xl md:text-2xl font-bold text-header">Kişisel Projeler</h2><p class="text-subheader mt-2 text-sm md:text-base">Geliştirilen özel araçlar</p></div>
+            </div>
+            <div id="open-other-modal" class="category-card card bg-gray-800 p-6 rounded-2xl shadow-lg flex flex-col justify-center items-center text-center cursor-pointer transform hover:-translate-y-2 transition-all duration-300 hover:shadow-yellow-500/50 space-y-3">
+                <div class="bg-yellow-500 p-3 rounded-xl"><svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"></path></svg></div>
+                <div><h2 class="text-xl md:text-2xl font-bold text-header">Diğer Uygulamalar</h2><p class="text-subheader mt-2 text-sm md:text-base">Sosyal medya ve sık kullanılanlar</p></div>
+            </div>
+        </div>
         
-        container.appendChild(card);
-    }
-}
+        <footer class="text-center mt-12 footer-text pb-4"><p>© Gökhan ELGÜL tarafından tasarlanmıştır.</p></footer>
+    </div>
+    
+    <div class="fixed bottom-0 w-full h-10 bg-gray-900 border-t border-gray-700 flex items-center z-50 news-ticker-container shadow-2xl">
+        <div class="bg-red-600 text-white text-xs md:text-sm font-bold px-3 md:px-4 h-full flex items-center z-10 flex-shrink-0 shadow-md uppercase tracking-wider">Son Dakika</div>
+        <div class="overflow-hidden relative w-full h-full flex items-center bg-gray-800">
+            <div id="news-ticker-content" class="animate-marquee flex text-sm text-gray-200 font-medium">
+                <span class="inline-block mx-6 py-2"><span class="text-red-400 font-bold mr-1">•</span> Uygulama Portalı'na Hoşgeldiniz</span>
+                <span class="inline-block mx-6 py-2"><span class="text-red-400 font-bold mr-1">•</span> Güncel haberler yükleniyor...</span>
+            </div>
+        </div>
+    </div>
 
+    <!-- Modallar -->
+    <div id="tkgm-modal" class="modal-bg fixed inset-0 flex items-center justify-center p-4 hidden z-50 transition-opacity duration-300">
+        <div class="modal-content bg-gray-800 rounded-2xl shadow-2xl w-full max-w-4xl p-6 md:p-8 relative transform scale-95 transition-transform duration-300" style="max-height: 90vh;">
+            <button class="close-modal-btn absolute top-4 right-4 text-gray-500 hover:text-white text-3xl leading-none z-10">&times;</button>
+            <h2 class="text-2xl md:text-3xl font-bold text-center mb-8 text-header">TKGM Sistemleri</h2>
+            <section class="overflow-y-auto"><main class="card-grid grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
+                <a href="https://ebys.tkgm.gov.tr/edys-web/sistemeGiris.xhtml" target="_blank" class="card bg-gray-700 rounded-xl shadow-lg p-4 flex items-center space-x-3 hover:bg-gray-600"><div class="bg-gray-500 p-2 rounded-lg"><svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg></div><div><h2 class="text-lg font-semibold text-header">EBYS</h2><p class="text-sm text-subheader">Elektronik Belge</p></div></a>
+                <a href="https://bulut.tkgm.gov.tr/" target="_blank" class="card bg-gray-700 rounded-xl shadow-lg p-4 flex items-center space-x-3 hover:bg-gray-600"><div class="bg-cyan-400 p-2 rounded-lg"><svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z"></path></svg></div><div><h2 class="text-lg font-semibold text-header">BULUT</h2><p class="text-sm text-subheader">TKGM Bulut</p></div></a>
+                <a href="https://cbs.tkgm.gov.tr/login.aspx" target="_blank" class="card bg-gray-700 rounded-xl shadow-lg p-4 flex items-center space-x-3 hover:bg-gray-600"><div class="bg-green-500 p-2 rounded-lg"><svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9V3m0 18a9 9 0 009-9m-9 9a9 9 0 00-9-9"></path></svg></div><div><h2 class="text-lg font-semibold text-header">CBS</h2><p class="text-sm text-subheader">Coğrafi Bilgi</p></div></a>
+                <a href="https://www.tkgm.gov.tr/" target="_blank" class="card bg-gray-700 rounded-xl shadow-lg p-4 flex items-center space-x-3 hover:bg-gray-600"><div class="bg-blue-500 p-2 rounded-lg"><svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 14v3m4-3v3m4-3v3M3 21h18M3 10h18M3 7l9-4 9 4M4 10h16v11H4V10z"></path></svg></div><div><h2 class="text-lg font-semibold text-header">TKGM</h2><p class="text-sm text-subheader">Kurumsal Site</p></div></a>
+                <a href="https://ybs.tkgm.gov.tr/" target="_blank" class="card bg-gray-700 rounded-xl shadow-lg p-4 flex items-center space-x-3 hover:bg-gray-600"><div class="bg-yellow-500 p-2 rounded-lg"><svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z"></path></svg></div><div><h2 class="text-lg font-semibold text-header">YBS</h2><p class="text-sm text-subheader">Yönetim Bilgi</p></div></a>
+                <a href="https://yts.tkgm.gov.tr/" target="_blank" class="card bg-gray-700 rounded-xl shadow-lg p-4 flex items-center space-x-3 hover:bg-gray-600"><div class="bg-red-500 p-2 rounded-lg"><svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path></svg></div><div><h2 class="text-lg font-semibold text-header">YTS</h2><p class="text-sm text-subheader">Yatırım Takip</p></div></a>
+                <a href="https://thagis.tkgm.gov.tr/TKGM" target="_blank" class="card bg-gray-700 rounded-xl shadow-lg p-4 flex items-center space-x-3 hover:bg-gray-600"><div class="bg-teal-500 p-2 rounded-lg"><svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 9l-2.053 2.053a1 1 0 01-1.414 0L9 9v11z"></path></svg></div><div><h2 class="text-lg font-semibold text-header">Netigma</h2><p class="text-sm text-subheader">THA Bilgi</p></div></a>
+                <a href="https://webposta.tkgm.gov.tr/owa/" target="_blank" class="card bg-gray-700 rounded-xl shadow-lg p-4 flex items-center space-x-3 hover:bg-gray-600"><div class="bg-orange-500 p-2 rounded-lg"><svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg></div><div><h2 class="text-lg font-semibold text-header">Web-Mail</h2><p class="text-sm text-subheader">E-Posta</p></div></a>
+                <a href="https://parselsorgu.tkgm.gov.tr/" target="_blank" class="card bg-gray-700 rounded-xl shadow-lg p-4 flex items-center space-x-3 hover:bg-gray-600"><div class="bg-lime-500 p-2 rounded-lg"><svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0116 0z"></path></svg></div><div><h2 class="text-lg font-semibold text-header">Parsel Sorgu</h2><p class="text-sm text-subheader">Sorgulama</p></div></a>
+            </main></section>
+        </div>
+    </div>
 
+    <div id="projects-modal" class="modal-bg fixed inset-0 flex items-center justify-center p-4 hidden z-50 transition-opacity duration-300">
+        <div class="modal-content bg-gray-800 rounded-2xl shadow-2xl w-full max-w-4xl p-6 md:p-8 relative transform scale-95 transition-transform duration-300" style="max-height: 90vh;">
+            <button class="close-modal-btn absolute top-4 right-4 text-gray-500 hover:text-white text-3xl leading-none z-10">&times;</button>
+            <h2 class="text-2xl md:text-3xl font-bold text-center mb-8 text-header">Kişisel Projeler</h2>
+             <section class="overflow-y-auto"><main class="card-grid grid grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
+                <a href="https://gokhangeo.github.io/istakip/" target="_blank" class="card bg-gray-700 rounded-xl shadow-lg p-4 flex items-center space-x-3 hover:bg-gray-600"><div class="bg-indigo-500 p-2 rounded-lg"><svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"></path></svg></div><div><h2 class="text-lg font-semibold text-header">MEGSİS</h2><p class="text-sm text-subheader">Süreçler</p></div></a>
+                <a href="https://gokhangeo.github.io/tkmevzuat/" target="_blank" class="card bg-gray-700 rounded-xl shadow-lg p-4 flex items-center space-x-3 hover:bg-gray-600"><div class="bg-purple-500 p-2 rounded-lg"><svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v11.494m-9-5.747h18"></path></svg></div><div><h2 class="text-lg font-semibold text-header">TK Mevzuat</h2><p class="text-sm text-subheader">Mevzuat</p></div></a>
+                <a href="https://gokhangeo.github.io/ihale/" target="_blank" class="card bg-gray-700 rounded-xl shadow-lg p-4 flex items-center space-x-3 hover:bg-gray-600"><div class="bg-sky-500 p-2 rounded-lg"><svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path></svg></div><div><h2 class="text-lg font-semibold text-header">İhale</h2><p class="text-sm text-subheader">22-a, 2B</p></div></a>
+                <a href="https://gokhangeo.github.io/isyonetim/" target="_blank" class="card bg-gray-700 rounded-xl shadow-lg p-4 flex items-center space-x-3 hover:bg-gray-600"><div class="bg-emerald-500 p-2 rounded-lg"><svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745"></path></svg></div><div><h2 class="text-lg font-semibold text-header">İş Yönetim</h2><p class="text-sm text-subheader">İş Dağılımı</p></div></a>
+                <a href="https://gokhangeo.github.io/THA/" target="_blank" class="card bg-gray-700 rounded-xl shadow-lg p-4 flex items-center space-x-3 hover:bg-gray-600"><div class="bg-rose-500 p-2 rounded-lg"><svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h6m-6 4h6m-6 4h6"></path></svg></div><div><h2 class="text-lg font-semibold text-header">Mersin TH</h2><p class="text-sm text-subheader">Tescil Harici</p></div></a>
+                <a href="https://gokhangeo.github.io/mersin-norm/" target="_blank" class="card bg-gray-700 rounded-xl shadow-lg p-4 flex items-center space-x-3 hover:bg-gray-600"><div class="bg-amber-500 p-2 rounded-lg"><svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0"></path></svg></div><div><h2 class="text-lg font-semibold text-header">Norm</h2><p class="text-sm text-subheader">Kadro</p></div></a>
+                <a href="https://gokhangeo.github.io/evraktakip/" target="_blank" class="card bg-gray-700 rounded-xl shadow-lg p-4 flex items-center space-x-3 hover:bg-gray-600"><div class="bg-teal-500 p-2 rounded-lg"><svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"></path></svg></div><div><h2 class="text-lg font-semibold text-header">Evrak</h2><p class="text-sm text-subheader">Takip</p></div></a>
+                <a href="https://gokhangeo.github.io/personelmesai/" target="_blank" class="card bg-gray-700 rounded-xl shadow-lg p-4 flex items-center space-x-3 hover:bg-gray-600"><div class="bg-cyan-500 p-2 rounded-lg"><svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg></div><div><h2 class="text-lg font-semibold text-header">Mesai</h2><p class="text-sm text-subheader">Takip</p></div></a>
+                <a href="https://gokhangeo.github.io/asistan/" target="_blank" class="card bg-gray-700 rounded-xl shadow-lg p-4 flex items-center space-x-3 hover:bg-gray-600"><div class="bg-pink-500 p-2 rounded-lg"><svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z"></path></svg></div><div><h2 class="text-lg font-semibold text-header">Asistan</h2><p class="text-sm text-subheader">Dijital</p></div></a>
+                <a href="https://gokhangeo.github.io/telafi/" target="_blank" class="card bg-gray-700 rounded-xl shadow-lg p-4 flex items-center space-x-3 hover:bg-gray-600"><div class="bg-lime-500 p-2 rounded-lg"><svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m-8 4h10M9 15h.01M5 21h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v14a2 2 0 002 2z"></path></svg></div><div><h2 class="text-lg font-semibold text-header">Bilirkişi</h2><p class="text-sm text-subheader">Telafi</p></div></a>
+                <a href="https://gokhangeo.github.io/hesap/" target="_blank" class="card bg-gray-700 rounded-xl shadow-lg p-4 flex items-center space-x-3 hover:bg-gray-600"><div class="bg-emerald-500 p-2 rounded-lg"><svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 17h8m0 0V9m0 8l-8-8-4 4-6-6"></path></svg></div><div><h2 class="text-lg font-semibold text-header">Bütçe</h2><p class="text-sm text-subheader">Hesap</p></div></a>
+                <a href="https://gokhangeo.github.io/NOT/" target="_blank" class="card bg-gray-700 rounded-xl shadow-lg p-4 flex items-center space-x-3 hover:bg-gray-600"><div class="bg-fuchsia-500 p-2 rounded-lg"><svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5"></path></svg></div><div><h2 class="text-lg font-semibold text-header">NOT</h2><p class="text-sm text-subheader">Notlar</p></div></a>
+                <a href="https://gokhangeo.github.io/guncelleme/" target="_blank" class="card bg-gray-700 rounded-xl shadow-lg p-4 flex items-center space-x-3 hover:bg-gray-600"><div class="bg-orange-500 p-2 rounded-lg"><svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9"></path></svg></div><div><h2 class="text-lg font-semibold text-header">Güncelleme</h2><p class="text-sm text-subheader">Versiyon</p></div></a>
+                <a href="https://gokhangeo.github.io/hub/" target="_blank" class="card bg-gray-700 rounded-xl shadow-lg p-4 flex items-center space-x-3 hover:bg-gray-600"><div class="bg-slate-500 p-2 rounded-lg"><svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 12h14M5 12a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v4a2 2 0 01-2 2M5 12a2 2 0 00-2 2v4a2 2 0 002 2h14a2 2 0 002-2v-4a2 2 0 00-2-2m-2-4h.01M17 16h.01"></path></svg></div><div><h2 class="text-lg font-semibold text-header">Yerel Sunucu</h2><p class="text-sm text-subheader">Local Host</p></div></a>
+            </main></section>
+        </div>
+    </div>
 
-function createPersonelReport() {
-    const reportContainer = document.createElement('div');
+    <div id="other-modal" class="modal-bg fixed inset-0 flex items-center justify-center p-4 hidden z-50 transition-opacity duration-300">
+         <div class="modal-content bg-gray-800 rounded-2xl shadow-2xl w-full max-w-4xl p-6 md:p-8 relative transform scale-95 transition-transform duration-300" style="max-height: 90vh;">
+            <button class="close-modal-btn absolute top-4 right-4 text-gray-500 hover:text-white text-3xl leading-none z-10">&times;</button>
+            <h2 class="text-2xl md:text-3xl font-bold text-center mb-8 text-header">Sosyal Medya ve Araçlar</h2>
+            <div class="overflow-y-auto">
+                <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
+                    <a href="https://x.com" target="_blank" class="bg-gray-700 hover:bg-gray-600 p-4 rounded-xl flex flex-col items-center justify-center space-y-2 transition-all hover:scale-105"><svg class="w-8 h-8 text-white" fill="currentColor" viewBox="0 0 16 16"><path d="M12.6.75h2.454l-5.36 6.142L16 15.25h-4.937l-3.867-5.07-4.425 5.07H.316l5.733-6.57L0 .75h5.063l3.495 4.633L12.602.75Zm-2.267 12.95h1.506L5.032 2.15H3.436l6.9 11.55Z"></path></svg><span class="font-semibold text-header">X</span></a>
+                    <a href="https://youtube.com" target="_blank" class="bg-gray-700 hover:bg-gray-600 p-4 rounded-xl flex flex-col items-center justify-center space-y-2 transition-all hover:scale-105"><svg class="w-8 h-8 text-red-500" fill="currentColor" viewBox="0 0 24 24"><path d="M21.582,6.186C21.23,4.92,20.218,3.908,18.952,3.56C17.3,3.001,12,3,12,3S6.7,3.001,5.048,3.56 C3.782,3.908,2.77,4.92,2.418,6.186C1.999,7.844,2,12,2,12s-0.001,4.156,0.418,5.814c0.352,1.266,1.364,2.278,2.63,2.628 C6.7,21,12,21,12,21s5.3-0.001,6.952-0.558c1.266-0.35,2.278-1.362,2.63-2.628C22,16.156,22,12,22,12S22,7.844,21.582,6.186z M10,15.464V8.536L16,12L10,15.464z"></path></svg><span class="font-semibold text-header">YouTube</span></a>
+                    <a href="https://facebook.com" target="_blank" class="bg-gray-700 hover:bg-gray-600 p-4 rounded-xl flex flex-col items-center justify-center space-y-2 transition-all hover:scale-105"><svg class="w-8 h-8 text-blue-500" fill="currentColor" viewBox="0 0 24 24"><path d="M18,2H15a5,5,0,0,0-5,5v3H7v4h3v8h4V14h3l1-4H14V7a1,1,0,0,1,1-1h3Z"></path></svg><span class="font-semibold text-header">Facebook</span></a>
+                    <a href="https://gemini.google.com/" target="_blank" class="bg-gray-700 hover:bg-gray-600 p-4 rounded-xl flex flex-col items-center justify-center space-y-2 transition-all hover:scale-105"><svg class="w-8 h-8 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 2l3.09 6.26L22 9.27l-5 4.87L18.18 22 12 18.82 5.82 22 7 14.14 2 9.27l6.91-1.01L12 2z"></path></svg><span class="font-semibold text-header">Gemini</span></a>
+                    <a href="https://github.com/" target="_blank" class="bg-gray-700 hover:bg-gray-600 p-4 rounded-xl flex flex-col items-center justify-center space-y-2 transition-all hover:scale-105"><svg class="w-8 h-8" fill="currentColor" viewBox="0 0 24 24"><path d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12"></path></svg><span class="font-semibold text-header">GitHub</span></a>
+                    <a href="https://chat.openai.com/" target="_blank" class="bg-gray-700 hover:bg-gray-600 p-4 rounded-xl flex flex-col items-center justify-center space-y-2 transition-all hover:scale-105"><svg class="w-8 h-8 text-teal-400" fill="currentColor" viewBox="0 0 24 24"><path d="M20.73,8.21a2.84,2.84,0,0,0-4-3.83,2.83,2.83,0,0,0-4.63,2,2.84,2.84,0,0,0-1.5,5.1,2.84,2.84,0,0,0,4,3.83,2.83,2.83,0,0,0,4.63-2,2.84,2.84,0,0,0,1.5-5.1ZM12.06,14a1,1,0,1,1-1-1A1,1,0,0,1,12.06,14ZM16,12.06a1,1,0,1,1,1,1A1,1,0,0,1,16,12.06Zm-1-4a1,1,0,1,1-1-1A1,1,0,0,1,15,8.11Zm-4,.05a1,1,0,1,1,1-1A1,1,0,0,1,11,8.16Zm-2.8,2.9a1,1,0,1,1,1.05-1,1,1,0,0,1-1.05,1ZM9.05,16a1,1,0,1,1,1,1A1,1,0,0,1,9.05,16Z"></path></svg><span class="font-semibold text-header">ChatGPT</span></a>
+                    <a href="https://tr.tradingview.com/chart/djP0YvRF/" target="_blank" class="bg-gray-700 hover:bg-gray-600 p-4 rounded-xl flex flex-col items-center justify-center space-y-2 transition-all hover:scale-105"><svg class="w-8 h-8 text-sky-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 11V7a2 2 0 012-2h2a2 2 0 012 2v4m-4 5v-1.5a1.5 1.5 0 011.5-1.5h1a1.5 1.5 0 011.5 1.5V16m-4 0h4m-4 0H7m0 0v-5m0 5v2m6-11v-1.5a1.5 1.5 0 00-1.5-1.5h-1a1.5 1.5 0 00-1.5 1.5V5m4 0H9m0 0v5m0-5V3"></path></svg><span class="font-semibold text-header">TradingView</span></a>
+                    <a href="https://web.whatsapp.com/" target="_blank" class="bg-gray-700 hover:bg-gray-600 p-4 rounded-xl flex flex-col items-center justify-center space-y-2 transition-all hover:scale-105"><svg class="w-8 h-8 text-green-500" fill="currentColor" viewBox="0 0 24 24"><path d="M16.75 13.96c.25.13.42.2.46.3.04.1.04.62-.12 1.3.1.02-.38.13-.78.13-.4 0-1.04-.1-1.6-.33-.56-.23-1.1-.56-1.54-.9-.44-.34-.8-.75-1.1-1.22-.3-.47-.54-.98-.7-1.5-.15-.52-.22-1.04-.22-1.56 0-.52.06-1.04.18-1.56.12-.52.32-1.03.6-1.5.28-.48.62-.9.98-1.25.38-.36.78-.64 1.2-.82.42-.18.85-.28 1.3-.28.45 0 .9.1 1.32.28.42.18.8.44 1.12.8.32.34.58.76.76 1.22.18.48.28.98.28 1.5 0 .52-.1.98-.28 1.44-.18.46-.44.86-.76 1.2ZM20.5 3.5C18.2 1.2 15.2 0 12 0 5.4 0 0 5.4 0 12c0 2.2.6 4.2 1.6 6L0 24l6.2-1.6c1.8 1 3.8 1.6 6 1.6h.2c6.5 0 11.8-5.3 11.8-11.8 0-3.2-1.2-6.2-3.6-8.6Zm-8.4 16.7c-2 0-3.8-.6-5.4-1.6L4 19.8l1.4-2.6c-1-1.6-1.6-3.6-1.6-5.6C3.8 6.8 7.4 3 12 3c2.2 0 4.2.8 5.8 2.4 1.6 1.6 2.4 3.6 2.4 5.8.2 4.6-3.4 8.4-8.2 8.4Z"/></svg><span class="font-semibold text-header">WhatsApp</span></a>
+                    <a href="https://notebooklm.google.com/" target="_blank" class="bg-gray-700 hover:bg-gray-600 p-4 rounded-xl flex flex-col items-center justify-center space-y-2 transition-all hover:scale-105"><svg class="w-8 h-8 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v11.494m-9-5.747h18"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20.253H6.5a2.5 2.5 0 01-2.5-2.5V6.253a2.5 2.5 0 012.5-2.5H10m4 0h3.5a2.5 2.5 0 012.5 2.5v11.494a2.5 2.5 0 01-2.5 2.5H14"></path></svg><span class="font-semibold text-header">NotebookLM</span></a>
+                </div>
+            </div>
+        </div>
+    </div>
 
-    const muhendisReportData = {};
-    const teknikerReportData = {};
+    <!-- Notepad & Editor Modals -->
+    <div id="notepad-modal" class="modal-bg fixed inset-0 flex items-center justify-center p-4 hidden z-50 transition-opacity duration-300">
+        <div class="modal-content bg-gray-800 rounded-2xl shadow-2xl w-full max-w-2xl p-6 relative h-[60vh] flex flex-col">
+            <button class="close-modal-btn absolute top-4 right-4 text-gray-500 hover:text-white">&times;</button>
+            <div class="flex justify-between mb-4"><h2 class="text-2xl font-bold text-header">Not Defteri</h2><button id="add-new-note-btn" class="bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-1 rounded">Yeni</button></div>
+            <div id="notes-list-container" class="flex-grow overflow-y-auto"></div>
+            <div id="notepad-message" class="mt-2 text-center text-sm h-5"></div>
+        </div>
+    </div>
+    
+    <div id="note-editor-modal" class="modal-bg fixed inset-0 flex items-center justify-center p-4 hidden z-50">
+        <div class="modal-content bg-gray-800 rounded-2xl p-6 w-full max-w-xl">
+            <h2 id="note-editor-title" class="text-2xl font-bold mb-4 text-header">Not Düzenle</h2>
+            <input type="hidden" id="note-editor-id">
+            <textarea id="note-editor-content" class="w-full h-64 p-4 rounded-lg bg-gray-700 border border-gray-600 text-white"></textarea>
+            <button id="save-edited-note-btn" class="mt-4 bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-6 rounded-lg w-full">Kaydet</button>
+        </div>
+    </div>
 
-    isTakipData.forEach(is => {
-        const personeller = is['GÖREVLİ PERSONELLER'] ? String(is['GÖREVLİ PERSONELLER']).split(', ') : [];
-        personeller.forEach(pName => {
-            const pNameUpper = pName.trim().toLocaleUpperCase('tr-TR');
-            const personelFullName = fullPersonelListesi.find(p => p.toLocaleUpperCase('tr-TR').startsWith(pNameUpper));
+    <div id="note-viewer-modal" class="modal-bg fixed inset-0 flex items-center justify-center p-4 hidden z-50">
+        <div class="modal-content bg-gray-800 rounded-2xl p-6 w-full max-w-xl">
+            <button class="close-modal-btn absolute top-4 right-4 text-gray-500 hover:text-white">&times;</button>
+            <h2 class="text-2xl font-bold mb-4 text-header">Not</h2>
+            <div id="note-viewer-content" class="w-full p-4 rounded-lg bg-gray-700 border border-gray-600 text-white whitespace-pre-wrap max-h-[60vh] overflow-y-auto"></div>
+            <button id="copy-note-btn" class="mt-4 bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-6 rounded-lg w-full">Kopyala</button>
+            <div id="copy-message" class="mt-2 text-center text-green-400 h-5"></div>
+        </div>
+    </div>
+
+    <script>
+    document.addEventListener('DOMContentLoaded', () => {
+        // --- 1. VERİ TANIMLAMALARI (En başta) ---
+        let dashNotes = JSON.parse(localStorage.getItem('dashboardNotes')) || [];
+        let notes = JSON.parse(localStorage.getItem('notes')) || [];
+        const correctPassword = '5034';
+        
+        // Elemanlar
+        const loginOverlay = document.getElementById('login-overlay');
+        const mainContent = document.getElementById('main-content');
+        const passwordInput = document.getElementById('password-input');
+        
+        // --- 2. FONKSİYONLAR ---
+        
+        // Modal
+        window.openModal = (id) => {
+            const m = document.getElementById(id);
+            m.classList.remove('hidden');
+            setTimeout(() => { m.classList.remove('opacity-0'); m.children[0].classList.remove('scale-95'); }, 10);
+        };
+        window.closeModal = (id) => {
+            const m = document.getElementById(id);
+            m.classList.add('opacity-0');
+            m.children[0].classList.add('scale-95');
+            setTimeout(() => m.classList.add('hidden'), 300);
+        };
+
+        // Dashboard Render - FIX: Remove initial "Yükleniyor..." if notes empty
+        function renderDash() {
+            const list = document.getElementById('dashboard-list');
+            const count = document.getElementById('dashboard-count');
             
-            if (personelFullName) {
-                let reportData;
-                if (muhendisListesi.includes(personelFullName)) {
-                    reportData = muhendisReportData;
-                } else if (teknikerListesi.includes(personelFullName)) {
-                    reportData = teknikerReportData;
-                } else {
-                    return; // Skip if not in either list
-                }
+            // Clean up invalid notes
+            dashNotes = dashNotes.filter(n => n && n.t);
+            localStorage.setItem('dashboardNotes', JSON.stringify(dashNotes));
 
-                if (!reportData[personelFullName]) {
-                    reportData[personelFullName] = {};
-                }
-                const durum = is['DURUMU'] || 'Belirtilmemiş';
-                if (!reportData[personelFullName][durum]) {
-                    reportData[personelFullName][durum] = [];
-                }
-                reportData[personelFullName][durum].push(`${is['İLÇE']} - ${is['BİRİM']}`);
+            if(dashNotes.length > 0) { 
+                count.textContent = dashNotes.length; 
+                count.classList.remove('hidden'); 
+            } else { 
+                count.classList.add('hidden'); 
+            }
+
+            if (dashNotes.length === 0) {
+                list.innerHTML = '<div class="text-center text-gray-500 py-4 text-sm">Not yok.</div>';
+                return;
+            }
+
+            list.innerHTML = dashNotes.map((n, i) => `
+                <div class="dashboard-note-item bg-gray-700 p-3 rounded shadow-sm border-l-4 ${n.p==='critical'?'border-red-500':'border-indigo-500'} flex justify-between items-start mb-2">
+                    <div>
+                        <p class="text-sm font-medium text-white">${n.t}</p>
+                        <p class="text-xs text-gray-400">${n.d ? new Date(n.d).toLocaleString('tr-TR') : 'Tarihsiz'}</p>
+                    </div>
+                    <button onclick="delDash(${i})" class="text-gray-400 hover:text-red-400"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button>
+                </div>
+            `).join('');
+        }
+        
+        // Notepad Render
+        function renderNotepad() {
+            const list = document.getElementById('notes-list-container');
+            list.innerHTML = notes.map((n, i) => `
+                <div class="note-item" onclick="viewNote(${i})">
+                    <p class="flex-grow truncate pr-4 text-header cursor-pointer">${n.content.substring(0,30)}...</p>
+                    <button onclick="event.stopPropagation(); deleteNote(${i})" class="text-gray-400 hover:text-red-500"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg></button>
+                </div>
+            `).join('') || '<p class="text-center text-gray-400">Not yok.</p>';
+        }
+
+        // Reminders
+        function checkReminders() {
+            if(loginOverlay.style.display !== 'none' && !loginOverlay.classList.contains('hidden')) return;
+            const now = new Date();
+            const dues = dashNotes.filter(n => n.d && new Date(n.d) <= now);
+            if(dues.length > 0) {
+                document.getElementById('reminder-list').innerHTML = dues.map(n => `<div class="bg-gray-700 p-3 rounded border-l-4 border-red-500"><p class="text-white font-bold">${n.t}</p><p class="text-xs text-red-300">Zamanı geldi!</p></div>`).join('');
+                const rm = document.getElementById('reminder-modal');
+                rm.classList.remove('hidden'); setTimeout(()=>rm.classList.remove('opacity-0'),10);
+            }
+        }
+
+        // --- 3. EVENT LISTENERS ---
+        
+        // Login
+        function performLogin() {
+            localStorage.setItem('isLoggedIn', 'true');
+            loginOverlay.style.opacity = '0';
+            setTimeout(() => {
+                loginOverlay.style.display = 'none';
+                mainContent.classList.remove('hidden');
+                checkReminders();
+            }, 300);
+        }
+
+        const attemptLogin = () => {
+            if (passwordInput.value === correctPassword) {
+                performLogin();
+            } else {
+                document.getElementById('login-error').textContent = 'Hatalı şifre!';
+                passwordInput.value = '';
+                setTimeout(() => document.getElementById('login-error').textContent='', 2000);
+            }
+        };
+
+        document.getElementById('login-button').addEventListener('click', attemptLogin);
+
+        // Add Enter key listener for password input
+        passwordInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                attemptLogin();
             }
         });
-    });
-    
-    // Helper function to render a section
-    const renderSection = (data, title) => {
-        if (Object.keys(data).length === 0) return; // Don't render empty sections
 
-        const titleEl = document.createElement('h2');
-        titleEl.textContent = title;
-        reportContainer.appendChild(titleEl);
+        // Secret Bypass
+        let clicks = 0;
+        document.getElementById('login-header').addEventListener('click', () => {
+            clicks++; if(clicks===3){ performLogin(); clicks=0; } setTimeout(()=>clicks=0, 1000);
+        });
 
-        const sectionContainer = document.createElement('div');
-        sectionContainer.className = 'personel-rapor-container';
+        // Lock
+        document.getElementById('lock-toggle').addEventListener('click', () => {
+            localStorage.removeItem('isLoggedIn');
+            loginOverlay.style.display = 'flex';
+            loginOverlay.style.opacity = '1';
+            passwordInput.value = '';
+        });
 
-        // Sort personnel names alphabetically before rendering
-        const sortedPersonnel = Object.keys(data).sort((a, b) => a.localeCompare(b, 'tr-TR'));
+        // Modals
+        ['tkgm','projects','other','notepad'].forEach(k => {
+            const btn = document.getElementById('open-'+k+'-modal');
+            if(btn) btn.onclick = () => openModal(k+'-modal');
+            const m = document.getElementById(k+'-modal');
+            if(m) {
+                m.querySelectorAll('.close-modal-btn').forEach(b => b.onclick = () => closeModal(k+'-modal'));
+                m.onclick = (e) => { if(e.target===m) closeModal(k+'-modal'); };
+            }
+        });
 
-        sortedPersonnel.forEach(personel => {
-            const kart = document.createElement('div');
-            kart.className = 'personel-kart';
-            
-            const durumGruplari = Object.keys(data[personel]).sort();
-            let toplamIsSayisi = 0;
-            durumGruplari.forEach(durum => {
-                toplamIsSayisi += data[personel][durum].length;
-            });
-
-            let kartHTML = `<h4 onclick="togglePersonelDetay(this)">${personel} (${toplamIsSayisi} iş)</h4>`;
-            kartHTML += '<div class="personel-kart-icerik">';
-            
-            durumGruplari.forEach(durum => {
-                kartHTML += `<div class="durum-grup"><strong>${durum} (${data[personel][durum].length} iş):</strong><ul>`;
-                data[personel][durum].sort().forEach(isDetay => {
-                    kartHTML += `<li>${isDetay}</li>`;
+        // Dashboard Actions
+        document.getElementById('add-quick-note-btn').onclick = () => {
+            const t = document.getElementById('quick-note-text').value;
+            if(t) {
+                dashNotes.unshift({ 
+                    t, 
+                    d: document.getElementById('quick-note-date').value, 
+                    p: document.getElementById('quick-note-priority').value 
                 });
-                kartHTML += `</ul></div>`;
-            });
-
-            kartHTML += '</div>';
-            kart.innerHTML = kartHTML;
-            sectionContainer.appendChild(kart);
-        });
-        reportContainer.appendChild(sectionContainer);
-    };
-
-    renderSection(muhendisReportData, 'Mühendis Durum Raporu');
-    renderSection(teknikerReportData, 'Tekniker Durum Raporu');
-    
-    return reportContainer;
-}
-
-function createIlceReport() {
-    const reportContainer = document.createElement('div');
-    reportContainer.className = 'ilce-rapor-container';
-
-    const ilceData = {};
-
-    isTakipData.forEach(is => {
-        const ilce = is['İLÇE'];
-        if (!ilce) return;
-
-        if (!ilceData[ilce]) {
-            ilceData[ilce] = {};
-        }
-
-        const uygulama = is['UYGULAMA'] || 'Diğer';
-        if (!ilceData[ilce][uygulama]) {
-            ilceData[ilce][uygulama] = [];
-        }
-        ilceData[ilce][uygulama].push({
-            birim: is['BİRİM'],
-            durum: is['DURUMU'] || 'Belirtilmemiş'
-        });
-    });
-
-    const sortedIlceler = Object.keys(ilceData).sort((a, b) => a.localeCompare(b, 'tr-TR'));
-
-    sortedIlceler.forEach(ilce => {
-        const kart = document.createElement('div');
-        kart.className = 'ilce-kart';
+                localStorage.setItem('dashboardNotes', JSON.stringify(dashNotes));
+                document.getElementById('quick-note-text').value = '';
+                renderDash();
+            }
+        };
+        window.delDash = (i) => { 
+            dashNotes.splice(i, 1); 
+            localStorage.setItem('dashboardNotes', JSON.stringify(dashNotes)); 
+            renderDash(); 
+        };
         
-        let toplamIsSayisi = 0;
-        Object.keys(ilceData[ilce]).forEach(uygulama => {
-            toplamIsSayisi += ilceData[ilce][uygulama].length;
-        });
+        document.getElementById('dashboard-toggle').onclick = () => {
+            const c = document.getElementById('dashboard-content');
+            const chev = document.getElementById('dashboard-chevron');
+            c.classList.toggle('hidden');
+            chev.style.transform = c.classList.contains('hidden') ? 'rotate(0deg)' : 'rotate(180deg)';
+        };
 
-        let kartHTML = `<h4 onclick="toggleIlceDetay(this)">${ilce} (${toplamIsSayisi} iş)</h4>`;
-        kartHTML += '<div class="ilce-kart-icerik">';
+        // Notepad Actions
+        document.getElementById('add-new-note-btn').onclick = () => {
+            document.getElementById('note-editor-id').value = '';
+            document.getElementById('note-editor-content').value = '';
+            document.getElementById('note-editor-title').textContent = 'Yeni Not';
+            openModal('note-editor-modal');
+        };
+        document.getElementById('save-edited-note-btn').onclick = () => {
+            const c = document.getElementById('note-editor-content').value;
+            const id = document.getElementById('note-editor-id').value;
+            if(c) {
+                if(id !== '') notes[id].content = c; else notes.unshift({ id: Date.now(), content: c });
+                localStorage.setItem('notes', JSON.stringify(notes));
+                closeModal('note-editor-modal');
+                renderNotepad();
+            }
+        };
+        window.viewNote = (i) => {
+            document.getElementById('note-viewer-content').textContent = notes[i].content;
+            document.getElementById('note-editor-id').value = i;
+            openModal('note-viewer-modal');
+        };
+        window.deleteNote = (i) => { notes.splice(i, 1); localStorage.setItem('notes', JSON.stringify(notes)); renderNotepad(); };
         
-        Object.keys(ilceData[ilce]).sort().forEach(uygulama => {
-            const isler = ilceData[ilce][uygulama];
-            kartHTML += `<div class="uygulama-grup"><strong>${uygulama} (${isler.length} iş):</strong><ul>`;
-            isler.sort((a,b) => a.birim.localeCompare(b.birim, 'tr-TR')).forEach(is => {
-                kartHTML += `<li>${is.birim} <span>(${is.durum})</span></li>`;
+        // Reminder Actions
+        document.getElementById('close-reminder').onclick = () => document.getElementById('reminder-modal').classList.add('hidden');
+        document.getElementById('close-reminder-btn').onclick = () => document.getElementById('reminder-modal').classList.add('hidden');
+
+        // Copy Note
+        document.getElementById('copy-note-btn').onclick = () => {
+            navigator.clipboard.writeText(document.getElementById('note-viewer-content').textContent).then(() => {
+                document.getElementById('copy-message').textContent = 'Kopyalandı!'; setTimeout(()=> document.getElementById('copy-message').textContent='', 2000);
             });
-            kartHTML += `</ul></div>`;
-        });
+        };
+        
+        // Note Editor Close Btns
+        document.getElementById('note-editor-modal').querySelectorAll('.close-modal-btn').forEach(b => b.onclick = () => closeModal('note-editor-modal'));
+        document.getElementById('note-viewer-modal').querySelectorAll('.close-modal-btn').forEach(b => b.onclick = () => closeModal('note-viewer-modal'));
 
-        kartHTML += '</div>';
-        kart.innerHTML = kartHTML;
-        reportContainer.appendChild(kart);
+        // Weather & News
+        async function updateData() {
+            try {
+                let wRes = await fetch('https://api.open-meteo.com/v1/forecast?latitude=36.8121&longitude=34.6415&current_weather=true');
+                let wData = await wRes.json();
+                document.getElementById('weather-temp').textContent = Math.round(wData.current_weather.temperature) + '°C';
+            } catch(e) {}
+        }
+        updateData(); setInterval(updateData, 1800000);
+        
+        const fallbackNews = [
+            { title: "Piyasalarda son durum: Altın ve Döviz hareketli" },
+            { title: "Teknoloji dünyasında yapay zeka gelişmeleri" },
+            { title: "Spor dünyasından öne çıkan başlıklar" },
+            { title: "Hava durumu mevsim normallerinde seyrediyor" },
+            { title: "Uygulama Portalı güncellendi" }
+        ];
+
+        async function updateNews() {
+            try {
+                const res = await fetch('https://api.rss2json.com/v1/api.json?rss_url=https%3A%2F%2Fwww.trthaber.com%2Fsondakika.rss');
+                const data = await res.json();
+                if(data.status === 'ok') {
+                    const html = data.items.map(i => `<span class="inline-block mx-6 py-2"><span class="text-red-400 font-bold mr-1">•</span> ${i.title}</span>`).join('');
+                    document.getElementById('news-ticker-content').innerHTML = html;
+                } else throw new Error('Limit');
+            } catch(e) {
+                const html = fallbackNews.map(i => `<span class="inline-block mx-6 py-2"><span class="text-red-400 font-bold mr-1">•</span> ${i.title}</span>`).join('');
+                document.getElementById('news-ticker-content').innerHTML = html;
+            }
+        }
+        updateNews(); setInterval(updateNews, 300000);
+
+        // Time
+        const updateTime = () => { 
+            const now = new Date(); 
+            document.getElementById('time').textContent = now.toLocaleTimeString('tr-TR'); 
+            document.getElementById('date').textContent = now.toLocaleDateString('tr-TR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }); 
+        };
+        setInterval(updateTime, 1000); updateTime();
+
+        // Theme
+        const themeToggle = document.getElementById('theme-toggle');
+        const sunIcon = `<svg class="w-6 h-6 text-yellow-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>`;
+        const moonIcon = `<svg class="w-6 h-6 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path></svg>`;
+        const applyTheme = (t) => {
+            if(t === 'light') { document.documentElement.classList.add('light'); themeToggle.innerHTML = moonIcon; }
+            else { document.documentElement.classList.remove('light'); themeToggle.innerHTML = sunIcon; }
+        };
+        let currTheme = localStorage.getItem('theme') || 'dark';
+        applyTheme(currTheme);
+        themeToggle.onclick = () => {
+            currTheme = document.documentElement.classList.contains('light') ? 'dark' : 'light';
+            localStorage.setItem('theme', currTheme);
+            applyTheme(currTheme);
+        };
+
+        // --- 4. BAŞLATMA (En Son) ---
+        // Render Immediately to clear "Loading" state
+        renderDash();
+        renderNotepad();
+
+        // Auto Login Check (Last Step)
+        if (localStorage.getItem('isLoggedIn') === 'true') {
+            loginOverlay.style.display = 'none';
+            mainContent.classList.remove('hidden');
+            checkReminders();
+        }
     });
-    
-    return reportContainer;
-}
-
-function toggleIlceDetay(headerElement) {
-    const content = headerElement.nextElementSibling;
-    if (content.style.display === "block") {
-        content.style.display = "none";
-    } else {
-        content.style.display = "block";
-    }
-}
-
-
-function togglePersonelDetay(headerElement) {
-    const content = headerElement.nextElementSibling;
-    if (content.style.display === "block") {
-        content.style.display = "none";
-    } else {
-        content.style.display = "block";
-    }
-}
-
-
-window.addEventListener('resize', () => {
-    setupTopScrollbar();
-    applyStickyColumns();
-    applyDistrictBorders();
-});
-
-</script>
-
+    </script>
 </body>
 </html>
