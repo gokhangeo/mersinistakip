@@ -245,8 +245,6 @@
         #guncellemeDetailTable td[data-header="İŞE BAŞLAMA"],
         #guncellemeDetailTable th[data-header="BİTİŞ TARİHİ"],
         #guncellemeDetailTable td[data-header="BİTİŞ TARİHİ"],
-        #guncellemeDetailTable th[data-header="LİDAR/YERSEL ÖLÇÜM TARİHİ(YAPILAN)"],
-        #guncellemeDetailTable td[data-header="LİDAR/YERSEL ÖLÇÜM TARİHİ(YAPILAN)"],
         #guncellemeDetailTable th[data-header="ORMAN ASKI TARİHİ"],
         #guncellemeDetailTable td[data-header="ORMAN ASKI TARİHİ"] {
             display: none;
@@ -667,9 +665,9 @@ let ucusKiyDurumList = [], komisyonDurumList = [], degerlendirmeDurumList = [];
 
 let durumlar = [];
 const EXCEL_HEADERS_MAIN = ['Tamamlandı', 'İLÇE', 'BİRİM', 'UYGULAMA', 'PERSONEL', 'GÖREVLİ PERSONELLER', 'PARSEL SAYISI', 'BLOK SAYISI', 'ALAN(Ha)', 'İHALELİ/MÜDÜRLÜK', 'İŞE BAŞLAMA/YER TESLİMİ', 'İHALE BİTİŞ TARİHİ', 'DURUMU', 'NOTLAR'];
-const EXCEL_HEADERS_DETAIL = ['İLÇE', 'BİRİM', 'PARSEL SAYISI', 'İDÖ PARSEL SAYISI', 'TOPLAM PARSEL', 'İŞE BAŞLAMA', 'BİTİŞ TARİHİ', 'LİDAR/YERSEL ÖLÇÜM TARİHİ(YAPILAN)', 'ARAZİ YERSEL ÖLÇÜM TARİHİ(YAPILAN)', 'UÇUŞ TARİHİ(YAPILAN)', 'UÇUŞ KIYMETLENDİRME DURUM', 'DEĞERLENDİRME DURUM', 'ORMAN ASKI TARİHİ', 'BİLGİLENDİRME İLANI TARİHİ', 'KOMİSYON DURUM', 'KESİN ASKI TARİHİ'];
+const EXCEL_HEADERS_DETAIL = ['İLÇE', 'BİRİM', 'PARSEL SAYISI', 'İDÖ PARSEL SAYISI', 'TOPLAM PARSEL', 'İŞE BAŞLAMA', 'BİTİŞ TARİHİ', 'ARAZİ YERSEL ÖLÇÜM TARİHİ(YAPILAN)', 'UÇUŞ TARİHİ(YAPILAN)', 'UÇUŞ KIYMETLENDİRME DURUM', 'DEĞERLENDİRME DURUM', 'ORMAN ASKI TARİHİ', 'BİLGİLENDİRME İLANI TARİHİ', 'KOMİSYON DURUM', 'KESİN ASKI TARİHİ'];
 // Gizlenecek sütunlar
-const GIZLI_DETAY_SUTUNLAR = ['ORMAN ASKI TARİHİ', 'LİDAR/YERSEL ÖLÇÜM TARİHİ(YAPILAN)', 'İŞE BAŞLAMA', 'BİTİŞ TARİHİ'];
+const GIZLI_DETAY_SUTUNLAR = ['ORMAN ASKI TARİHİ', 'İŞE BAŞLAMA', 'BİTİŞ TARİHİ'];
 // Görüntülenecek başlıklar (Excel'den farklı)
 const DISPLAY_HEADERS_DETAIL = ['İLÇE', 'BİRİM', 'PARSEL SAYISI', 'İDÖ PARSEL SAYISI', 'TOPLAM PARSEL', 'ARAZİ YERSEL ÖLÇÜM TARİHİ(YAPILAN)', 'UÇUŞ TARİHİ(YAPILAN)', 'UÇUŞ KIYMETLENDİRME DURUM', 'DEĞERLENDİRME DURUM', 'BİLGİLENDİRME İLANI TARİHİ', 'KOMİSYON DURUM', 'KESİN ASKI TARİHİ'];
 
@@ -1468,8 +1466,7 @@ ${category} kapsamında toplam **${reportData.length}** adet iş listelenmiştir
 `;
 
         if (category === 'GÜNCELLEME') {
-            reportText += `   - Lidar/Yersel Ölçüm: ${fd(detailRow['LİDAR/YERSEL ÖLÇÜM TARİHİ(YAPILAN)'])}
-   - Arazi Yersel Ölçüm: ${fd(detailRow['ARAZİ YERSEL ÖLÇÜM TARİHİ(YAPILAN)'])}
+            reportText += `   - Arazi Yersel Ölçüm: ${fd(detailRow['ARAZİ YERSEL ÖLÇÜM TARİHİ(YAPILAN)'])}
    - Uçuş Tarihi: ${fd(detailRow['UÇUŞ TARİHİ(YAPILAN)'])}
    - Uçuş Kıymetlendirme: ${detailRow['UÇUŞ KIYMETLENDİRME DURUM'] || '-'}
    - Değerlendirme: ${detailRow['DEĞERLENDİRME DURUM'] || '-'}
@@ -1715,7 +1712,7 @@ function createRowElement(data = {}, tabName) {
         <td class="action-btn-cell">
             <button class="not-btn ${hasNote ? 'has-note' : ''}" title="Not Ekle/Görüntüle">
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-journal-text" viewBox="0 0 16 16">
-                    <path d="M5 10.5a.5.5 0 0 1 .5-.5h2a.5.5 0 0 1 0 1h-2a.5.5 0 0 1-.5-.5zm0-2a.5.5 0 0 1 .5-.5h5a.5.5 0 0 1 0 1h-5a.5.5 0 0 1-.5-.5zm0-2a.5.5 0 0 1 .5-.5h5a.5.5 0 0 1 0 1h-5a.5.5 0 0 1-.5-.5zm0-2a.5.5 0 0 1 .5-.5h5a.5.5 0 0 1 0 1h-5a.5.5 0 0 1-.5-.5z"/>
+                    <path d="M5 10.5a.5.5 0 0 1 .5-.5h2a.5.5 0 0 1 0 1h-2a.5.5 0 0 1-.5-.5zm0-2a.5.5 0 0 1 .5-.5h5a.5.5 0 0 1 0 1h-5a.5.5 0 0 1-.5-.5zm0-2a.5.5 0 0 1 .5-.5h5a.5.5 0 0 1 0 1h-5a.5.5 0 0 1-.5-.5zm0-2a.5.5 0 0 1 .5-.5h5a.5.5 0 0 1 0 1h-5a.5.5 0 0 1-.5-.5zm0-2a.5.5 0 0 1 .5-.5h5a.5.5 0 0 1 0 1h-5a.5.5 0 0 1-.5-.5z"/>
                     <path d="M3 0h10a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2v-1h1v1a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1H3a1 1 0 0 0-1 1v1H1V2a2 2 0 0 1 2-2z"/>
                     <path d="M1 5v-.5a.5.5 0 0 1 1 0V5h.5a.5.5 0 0 1 0 1H2v1h-.5a.5.5 0 0 1 0-1H1zm0 3v-.5a.5.5 0 0 1 1 0V8h.5a.5.5 0 0 1 0 1H2v1h-.5a.5.5 0 0 1 0-1H1zm0 3v-.5a.5.5 0 0 1 1 0v.5h.5a.5.5 0 0 1 0 1H2v1h-.5a.5.5 0 0 1 0-1H1z"/>
                 </svg>
@@ -1869,7 +1866,11 @@ function formatDate(date) {
              }
              return ''; // Eğer geçerli tarih değilse boş döndür
         }
-        return d.toISOString().split('T')[0];
+        // Use local time components to avoid timezone shifts
+        const year = d.getFullYear();
+        const month = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
     } catch (e) {
         return '';
     }
