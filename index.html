@@ -206,7 +206,10 @@
         .table-wrapper[data-group="2/B"] .col-tarih,
         .table-wrapper[data-group="GÜNCELLEME"] .col-tarih,
         .table-wrapper[data-group="2/B"] .col-parsel,
-        .table-wrapper[data-group="Müdürlük"] .col-tarih {
+        .table-wrapper[data-group="Müdürlük"] .col-tarih,
+        .table-wrapper[data-group="GÜNCELLEME(2026)"] .col-alan,
+        .table-wrapper[data-group="GÜNCELLEME(2026)"] .col-uygulama,
+        .table-wrapper[data-group="GÜNCELLEME(2026)"] .col-tarih {
             display: none;
         }
 
@@ -489,10 +492,14 @@
         .card-2b { background-color: #007bff; }
         .card-guncelleme { background-color: #28a745; }
         .card-mudurluk { background-color: #fd7e14; }
+        .card-guncelleme2026 { background-color: #6f42c1; } /* Mor renk - Yeni Kart */
+        
         .card-2b.expanded { background-color: #e7f1ff; border-left: 5px solid #007bff; }
         .card-guncelleme.expanded { background-color: #d4edda; border-left: 5px solid #28a745; }
         .card-mudurluk.expanded { background-color: #ffe8d6; border-left: 5px solid #fd7e14; }
-        .card-2b.expanded h3, .card-guncelleme.expanded h3, .card-mudurluk.expanded h3 { color: #343a40; }
+        .card-guncelleme2026.expanded { background-color: #e2d9f3; border-left: 5px solid #6f42c1; }
+        
+        .card-2b.expanded h3, .card-guncelleme.expanded h3, .card-mudurluk.expanded h3, .card-guncelleme2026.expanded h3 { color: #343a40; }
         
 
         /* Uyarı Stilleri */
@@ -912,7 +919,7 @@ function handleTableChange(event) {
             }
 
             const dataRecord = isTakipData.find(r => r['İLÇE'] == ilce && r['BİRİM'] == birim);
-            if (dataRecord && dataRecord['UYGULAMA'] === 'GÜNCELLEME') {
+            if (dataRecord && (dataRecord['UYGULAMA'] === 'GÜNCELLEME' || dataRecord['UYGULAMA'] === 'GÜNCELLEME(2026)')) {
                 const detailRow = document.querySelector(`#guncellemeDetailTable tr[data-row-key="${rowKey}"]`);
                 if (detailRow) {
                     detailRow.classList.toggle('tamamlandi', target.checked);
@@ -1103,7 +1110,13 @@ async function fetchFromGitHub() {
         parseLists(workbook, 'Liste');
 
         isTakipData = XLSX.utils.sheet_to_json(workbook.Sheets['İş Takip Listesi'] || {});
-        guncellemeData = XLSX.utils.sheet_to_json(workbook.Sheets['Güncelleme'] || {});
+        
+        // GÜNCELLEME ve GÜNCELLEME(2026) Sayfalarını Okuma
+        const guncellemeOld = XLSX.utils.sheet_to_json(workbook.Sheets['Güncelleme'] || {});
+        const guncelleme2026 = XLSX.utils.sheet_to_json(workbook.Sheets['Güncelleme(2026)'] || {});
+        
+        // Detay verilerini birleştir
+        guncellemeData = [...guncellemeOld, ...guncelleme2026];
         
         $('#personel-modal-select').select2({
             placeholder: "Personel Seçin",
@@ -1383,6 +1396,12 @@ function createGeneralReportsUI() {
     btnGuncelleme.innerHTML = '📄 Güncelleme Raporu Oluştur';
     btnGuncelleme.onclick = () => generateBulkReport('GÜNCELLEME');
     
+    const btnGuncelleme2026 = document.createElement('button');
+    btnGuncelleme2026.className = 'success';
+    btnGuncelleme2026.style.backgroundColor = '#6f42c1';
+    btnGuncelleme2026.innerHTML = '📄 Güncelleme(2026) Raporu';
+    btnGuncelleme2026.onclick = () => generateBulkReport('GÜNCELLEME(2026)');
+
     const btn2B = document.createElement('button');
     btn2B.className = 'info';
     btn2B.innerHTML = '📄 2/B Raporu Oluştur';
@@ -1403,6 +1422,7 @@ function createGeneralReportsUI() {
     };
 
     controls.appendChild(btnGuncelleme);
+    controls.appendChild(btnGuncelleme2026);
     controls.appendChild(btn2B);
     controls.appendChild(btnMudurluk);
     controls.appendChild(btnKopyala);
@@ -1438,7 +1458,7 @@ function generateBulkReport(category) {
     // Başlık
     let reportText = "";
 
-    if (category === 'GÜNCELLEME') {
+    if (category === 'GÜNCELLEME' || category === 'GÜNCELLEME(2026)') {
         // GÜNCELLEME İÇİN ÖZEL BİLGİ NOTU FORMATI
         
         let toplamBirim = reportData.length;
@@ -1507,7 +1527,7 @@ function generateBulkReport(category) {
 
         reportText += `**BİLGİ NOTU**
 
-**KONU:** MERSİN İLİ KADASTRO GÜNCELLEME ÇALIŞMALARI
+**KONU:** MERSİN İLİ KADASTRO GÜNCELLEME ÇALIŞMALARI (${category})
 
 Mersin ili genelinde yürütülen güncelleme çalışmaları kapsamında toplam **${toplamBirim}** adet birimde, **${toplamIdoParsel}** adet İDÖ parseli ve **${toplamParsel}** adet parselde çalışmalar sürdürülmektedir.
 
@@ -1561,7 +1581,7 @@ ${category} kapsamında toplam **${reportData.length}** adet iş listelenmiştir
    - İşe Başlama: ${fd(job['İŞE BAŞLAMA/YER TESLİMİ'])} | Bitiş: ${fd(job['İHALE BİTİŞ TARİHİ'])}
 `;
 
-        if (category === 'GÜNCELLEME') {
+        if (category === 'GÜNCELLEME' || category === 'GÜNCELLEME(2026)') {
             reportText += `   - Arazi Yersel Ölçüm: ${fd(detailRow['ARAZİ YERSEL ÖLÇÜM TARİHİ(YAPILAN)'])}
    - Uçuş Tarihi: ${fd(detailRow['UÇUŞ TARİHİ(YAPILAN)'])}
    - Uçuş Kıymetlendirme: ${detailRow['UÇUŞ KIYMETLENDİRME DURUM'] || '-'}
@@ -1617,7 +1637,7 @@ function showTab(uygulamaAdi) {
     setTimeout(applyStickyColumns, 50);
 }
 
-function saveToGitHub() {
+async function saveToGitHub() {
     const btn = document.getElementById('githubKaydetBtn');
     btn.disabled = true;
     btn.innerHTML = 'Kaydediliyor...';
@@ -1629,7 +1649,7 @@ function saveToGitHub() {
     (async function() {
         try {
             const mainData = getTableDataFromUI();
-            const detailData = getGuncellemeDetailDataFromUI();
+            const allDetailData = getGuncellemeDetailDataFromUI();
 
             const wb = XLSX.utils.book_new();
             
@@ -1640,7 +1660,24 @@ function saveToGitHub() {
             });
 
             XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(mainSheetData, {header: EXCEL_HEADERS_MAIN.filter(h => h !== 'PERSONEL'), cellDates:true}), 'İş Takip Listesi');
-            XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(detailData, {header: EXCEL_HEADERS_DETAIL, cellDates:true}), 'Güncelleme');
+            
+            // Detay verilerini ayrıştır (Güncelleme ve Güncelleme(2026))
+            const detailOld = [];
+            const detail2026 = [];
+
+            allDetailData.forEach(row => {
+                // Bu detay satırının ana listedeki karşılığını bul
+                const parentJob = mainData.find(m => m['İLÇE'] === row['İLÇE'] && m['BİRİM'] === row['BİRİM']);
+                if (parentJob && parentJob['UYGULAMA'] === 'GÜNCELLEME(2026)') {
+                    detail2026.push(row);
+                } else {
+                    detailOld.push(row);
+                }
+            });
+
+            XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(detailOld, {header: EXCEL_HEADERS_DETAIL, cellDates:true}), 'Güncelleme');
+            XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(detail2026, {header: EXCEL_HEADERS_DETAIL, cellDates:true}), 'Güncelleme(2026)');
+
             
             const personelData = [['ad', 'unvan'], ...fullPersonelListesi.map(p => { 
                 const m = p.match(/(.*) \((.*)\)/); 
@@ -1808,7 +1845,7 @@ function createRowElement(data = {}, tabName) {
         <td class="action-btn-cell">
             <button class="not-btn ${hasNote ? 'has-note' : ''}" title="Not Ekle/Görüntüle">
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-journal-text" viewBox="0 0 16 16">
-                    <path d="M5 10.5a.5.5 0 0 1 .5-.5h2a.5.5 0 0 1 0 1h-2a.5.5 0 0 1-.5-.5zm0-2a.5.5 0 0 1 .5-.5h5a.5.5 0 0 1 0 1h-5a.5.5 0 0 1-.5-.5zm0-2a.5.5 0 0 1 .5-.5h5a.5.5 0 0 1 0 1h-5a.5.5 0 0 1-.5-.5zm0-2a.5.5 0 0 1 .5-.5h5a.5.5 0 0 1 0 1h-5a.5.5 0 0 1-.5-.5z"/>
+                    <path d="M5 10.5a.5.5 0 0 1 .5-.5h2a.5.5 0 0 1 0 1h-2a.5.5 0 0 1-.5-.5zm0-2a.5.5 0 0 1 .5-.5h5a.5.5 0 0 1 0 1h-5a.5.5 0 0 1-.5-.5zm0-2a.5.5 0 0 1 .5-.5h5a.5.5 0 0 1 0 1h-5a.5.5 0 0 1-.5-.5zm0-2a.5.5 0 0 1 .5-.5h5a.5.5 0 0 1 0 1h-5a.5.5 0 0 1-.5-.5zm0-2a.5.5 0 0 1 .5-.5h5a.5.5 0 0 1 0 1h-5a.5.5 0 0 1-.5-.5zm0-2a.5.5 0 0 1 .5-.5h5a.5.5 0 0 1 0 1h-5a.5.5 0 0 1-.5-.5z"/>
                     <path d="M3 0h10a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2v-1h1v1a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1H3a1 1 0 0 0-1 1v1H1V2a2 2 0 0 1 2-2z"/>
                     <path d="M1 5v-.5a.5.5 0 0 1 1 0V5h.5a.5.5 0 0 1 0 1H2v1h-.5a.5.5 0 0 1 0-1H1zm0 3v-.5a.5.5 0 0 1 1 0V8h.5a.5.5 0 0 1 0 1H2v1h-.5a.5.5 0 0 1 0-1H1zm0 3v-.5a.5.5 0 0 1 1 0v.5h.5a.5.5 0 0 1 0 1H2v1h-.5a.5.5 0 0 1 0-1H1z"/>
                 </svg>
@@ -1850,7 +1887,7 @@ function createGuncellemeDetailRowElement(data) {
     const rowKey = `${data['İLÇE']}|${data['BİRİM']}`;
     newRow.dataset.rowKey = rowKey;
 
-    const mainDataRow = isTakipData.find(r => r['İLÇE'] === data['İLÇE'] && r['BİRİM'] === data['BİRİM'] && r['UYGULAMA'] === 'GÜNCELLEME');
+    const mainDataRow = isTakipData.find(r => r['İLÇE'] === data['İLÇE'] && r['BİRİM'] === data['BİRİM'] && (r['UYGULAMA'] === 'GÜNCELLEME' || r['UYGULAMA'] === 'GÜNCELLEME(2026)'));
     if (mainDataRow && mainDataRow['Tamamlandı'] === 'EVET') {
         newRow.classList.add('tamamlandi');
     }
@@ -2623,6 +2660,7 @@ function createSummaryCards() {
     const groups = {
         '2/B': { data: isTakipData.filter(r => r['UYGULAMA'] === '2/B' && r['İHALELİ/MÜDÜRLÜK'] !== 'Müdürlük'), colorClass: 'card-2b' },
         'GÜNCELLEME': { data: isTakipData.filter(r => r['UYGULAMA'] === 'GÜNCELLEME' && r['İHALELİ/MÜDÜRLÜK'] !== 'Müdürlük'), colorClass: 'card-guncelleme' },
+        'GÜNCELLEME(2026)': { data: isTakipData.filter(r => r['UYGULAMA'] === 'GÜNCELLEME(2026)' && r['İHALELİ/MÜDÜRLÜK'] !== 'Müdürlük'), colorClass: 'card-guncelleme2026' }, // YENİ
         'Müdürlük': { data: isTakipData.filter(r => r['İHALELİ/MÜDÜRLÜK'] === 'Müdürlük'), colorClass: 'card-mudurluk' }
     };
 
@@ -2644,7 +2682,7 @@ function createSummaryCards() {
         let projectStartDate = null;
         let projectEndDate = null;
         
-        if (groupName === 'GÜNCELLEME') {
+        if (groupName === 'GÜNCELLEME' || groupName === 'GÜNCELLEME(2026)') {
              group.data.forEach(job => {
                 const detailRow = guncellemeData.find(d => d['İLÇE'] === job['İLÇE'] && d['BİRİM'] === job['BİRİM']);
                 if (detailRow) {
@@ -2664,7 +2702,7 @@ function createSummaryCards() {
         Object.entries(statusCounts).sort((a,b) => b[1] - a[1]).forEach(([status, count]) => {
             let detailListHTML = '';
             // GÜNCELLEME kartına özel tarih bilgisi ekle
-            if (groupName === 'GÜNCELLEME') {
+            if (groupName === 'GÜNCELLEME' || groupName === 'GÜNCELLEME(2026)') {
                 const jobsInStatus = group.data.filter(job => (job['DURUMU'] || 'Belirsiz') === status);
                 detailListHTML += '<ul>';
                 jobsInStatus.forEach(job => {
